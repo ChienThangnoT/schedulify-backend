@@ -1,0 +1,6 @@
+@SchedulifySystem.API_HostAddress = http://localhost:5091
+
+GET {{SchedulifySystem.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
