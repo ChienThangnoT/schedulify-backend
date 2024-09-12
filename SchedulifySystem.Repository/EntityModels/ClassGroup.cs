@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class ClassGroup
+    public partial class ClassGroup : BaseEntity
     {
-        public int ClassGroupId { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
         public int SchoolYearId { get; set; }
@@ -16,12 +15,12 @@ namespace SchedulifySystem.Repository.EntityModels
         public int SchoolId { get; set; }
 
 
-        public School School { get; set;}
-        public ICollection<Curriculum> CurriculumList { get; set; }
-        public ICollection<StudentClassInGroup> StudentClassInGroups { get; set;}
-        public SchoolYear SchoolYear { get; set; }
-        public SubjectGroup SubjectGroup { get; set; }
-      
-        
+        public School? School { get; set; }
+        public SchoolYear? SchoolYear { get; set; }
+        public SubjectGroup? SubjectGroup { get; set; }
+        public ICollection<Curriculum> CurriculumList { get; set; } = new List<Curriculum>();
+        public ICollection<StudentClassInGroup> StudentClassInGroups { get; set; } = new List<StudentClassInGroup>();
+
+
     }
 }

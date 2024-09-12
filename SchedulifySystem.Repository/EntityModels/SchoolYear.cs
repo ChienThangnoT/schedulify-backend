@@ -6,16 +6,15 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class SchoolYear
+    public partial class SchoolYear : BaseEntity
     {
-        public int SchoolYearId { get; set; }
         public string? StartYear { get; set; }
         public string? EndYear { get; set; }
 
-        public ICollection<SchoolSchedule> SchoolSchedules { get; set; }
-        public ICollection<Curriculum> Curriculums { get; set; }
-        public ICollection<Term> Terms { get; set; }
-        public ICollection<StudentClass> StudentClasses { get; set; }
-        public ICollection<ClassGroup> ClassGroups { get; set; }
+        public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();
+        public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
+        public ICollection<Term> Terms { get; set; } = new List<Term>();
+        public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
+        public ICollection<ClassGroup> ClassGroups { get; set; } = new List<ClassGroup>();
     }
 }

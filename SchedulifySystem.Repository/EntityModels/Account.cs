@@ -8,18 +8,17 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class Account
+    public partial class Account : BaseEntity
     {
-        public int AccountId { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string? Username { get; set; }
+        public string? Password { get; set; }
         public int SchoolId { get; set; }
-        public string Email { get; set; }
-        public int Role { get; set; }
-        public string RefreshToken { get; set; }
-        public string AccessToken { get; set; }
+        public string? Email { get; set; }
+        public int RoleId { get; set; }
+        public string? AccessToken { get; set; }
 
-        public School School { get; set; }  
+        public School? School { get; set; }  
+        public Role? Role { get; set; }  
     }
 
 }

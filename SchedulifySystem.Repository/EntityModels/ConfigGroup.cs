@@ -6,14 +6,12 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class ConfigGroup
+    public partial class ConfigGroup : BaseEntity
     {
-   
-        public int ConfigGroupId { get; set; }
         public string? Name { get; set; }
         public string? GroupType { get; set; }
         public int Status { get; set; }
 
-        public ICollection<ConfigAttribute> ConfigAttributes { get; set; }
+        public ICollection<ConfigAttribute> ConfigAttributes { get; set; } = new List<ConfigAttribute>();
     }
 }

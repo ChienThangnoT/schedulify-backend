@@ -6,14 +6,13 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class TeacherGroup
+    public partial class TeacherGroup : BaseEntity
     {
-        public int TeacherGroupId { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
         public int SchoolId { get; set; }
 
-        public School School { get; set; }
-        public ICollection<Teacher> Teachers { get; set; }
+        public School? School { get; set; }
+        public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
     }
 }

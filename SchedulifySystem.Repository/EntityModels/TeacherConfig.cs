@@ -6,16 +6,15 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class TeacherConfig
+    public partial class TeacherConfig : BaseEntity
     {
-        public int TeacherConfigId { get; set; }
         public int ConfigAttributeId { get; set; }
         public int SchoolScheduleId { get; set; }
         public int TeacherId { get; set; }
         public int Value { get; set; }
 
-        public ConfigAttribute ConfigAttribute { get; set; }
-        public Teacher teacher { get; set; }
-        public SchoolSchedule SchoolSchedule { get; set; }
+        public ConfigAttribute? ConfigAttribute { get; set; }
+        public Teacher? Teacher { get; set; }
+        public SchoolSchedule? SchoolSchedule { get; set; }
     }
 }

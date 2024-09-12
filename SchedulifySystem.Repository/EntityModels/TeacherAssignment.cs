@@ -6,12 +6,11 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public partial class StudentClassInGroup : BaseEntity
+    public partial class TeacherAssignment : BaseEntity
     {
+        public int TeachableSubjectId { get; set; }
         public int StudentClassId { get; set; }
-        public int ClassGroupId { get; set; }
-
+        public TeachableSubject? TeachableSubject { get; set; }
         public StudentClass? StudentClass { get; set; }
-        public ClassGroup? ClassGroup { get; set; }  
     }
 }

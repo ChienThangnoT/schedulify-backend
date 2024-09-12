@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class SubjectConfig
+    public partial class SubjectConfig : BaseEntity
     {
-        public int SubjectConfigId { get; set; }
         public int SubjectId { get; set; }
         public int CurriculumId { get; set; }
         public int StudentClassId { get; set; }
@@ -17,11 +16,10 @@ namespace SchedulifySystem.Repository.EntityModels
         public int Value { get; set; }
         public int ConfigAttributeId { get; set; }
 
-        public Subject Subject { get; set; }
-        public Curriculum Curriculum { get; set; }
-        public StudentClass StudentClass { get; set; }
-        public SchoolSchedule SchoolSchedule { get; set; }
-        public ConfigAttribute configAttribute { get; set; }
-
+        public Subject? Subject { get; set; }
+        public Curriculum? Curriculum { get; set; }
+        public StudentClass? StudentClass { get; set; }
+        public SchoolSchedule? SchoolSchedule { get; set; }
+        public ConfigAttribute? ConfigAttribute { get; set; }
     }
 }

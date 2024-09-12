@@ -8,15 +8,14 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class Department
+    public partial class Department : BaseEntity
     {
-        public int DepartmentId { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
         public int SchoolId { get; set; }
 
-        public School School { get; set; }
-        public ICollection<Teacher> Teachers { get; set; }
+        public School? School { get; set; }
+        public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
     }
 
 }
