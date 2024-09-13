@@ -11,7 +11,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int ConfigAttributeId { get; set; }
         public int SchoolScheduleId { get; set; }
         public int TeacherId { get; set; }
-        public int? Value { get; set; }
+        public int Value { get; set; }
 
         public ConfigAttribute? ConfigAttribute { get; set; }
         public Teacher? Teacher { get; set; }
