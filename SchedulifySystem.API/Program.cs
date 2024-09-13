@@ -1,23 +1,24 @@
+using SchedulifySystem.API;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddWebAPIService(builder);
+builder.Services.AddInfractstructure(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Schedulify Web API");
+});
 
 app.UseHttpsRedirection();
 
+app.UseCors("app-cors");
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
