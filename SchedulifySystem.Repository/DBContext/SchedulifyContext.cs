@@ -172,9 +172,13 @@ public partial class SchedulifyContext : DbContext
         // ClassSchedule Entity
         modelBuilder.Entity<Holiday>()
             .HasKey(cs => cs.Id);
-        modelBuilder.Entity<ClassSchedule>()
+        modelBuilder.Entity<Holiday>()
             .Property(ca => ca.Name)
             .HasMaxLength(70);
+        modelBuilder.Entity<Holiday>()
+            .HasOne(cs => cs.School)
+            .WithMany(ss => ss.Holidays)
+            .HasForeignKey(cs => cs.SchoolId);
 
         // ConfigAttribute Entity
         modelBuilder.Entity<ConfigAttribute>()
