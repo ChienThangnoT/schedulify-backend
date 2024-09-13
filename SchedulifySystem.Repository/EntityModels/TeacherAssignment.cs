@@ -10,6 +10,7 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public int TeachableSubjectId { get; set; }
         public int StudentClassId { get; set; }
+        public int AssignmentType { get; set; }
         public TeachableSubject? TeachableSubject { get; set; }
         public StudentClass? StudentClass { get; set; }
     }

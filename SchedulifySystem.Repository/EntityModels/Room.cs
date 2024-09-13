@@ -13,6 +13,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int RoomTypeId { get; set; }
         public int MaxClassPerTime { get; set; }
         public int BuildingId { get; set; }
+        public int AvailabilityeStatus { get; set; }
 
         public RoomType? RoomType { get; set; }
         public Building? Building { get; set; }

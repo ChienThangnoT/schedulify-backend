@@ -13,7 +13,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Name { get; set; }
         public string? Description { get; set; }
         public int IsHardConfig { get; set; }
-        public int IsRequire { get; set; }
+        public bool IsRequire { get; set; } = false;
         public int MinValue { get; set; }
         public int MaxValue { get; set; }
         public int DefaultValue { get; set; }

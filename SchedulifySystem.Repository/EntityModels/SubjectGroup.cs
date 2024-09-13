@@ -10,8 +10,8 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string? GroupName { get; set; }
         public int ClassGroupId { get; set; }
+        public ClassGroup? ClassGroup { get; set; }
 
         public ICollection<SubjectInGroup> SubjectInGroups { get; set; } = new List<SubjectInGroup>();
-        public ClassGroup? ClassGroup { get; set; }
     }
 }

@@ -14,12 +14,11 @@ namespace SchedulifySystem.Repository.EntityModels
         public int ParentId { get; set; }
         public int SchoolId { get; set; }
 
-
         public School? School { get; set; }
         public SchoolYear? SchoolYear { get; set; }
-        public SubjectGroup? SubjectGroup { get; set; }
         public ICollection<Curriculum> CurriculumList { get; set; } = new List<Curriculum>();
         public ICollection<StudentClassInGroup> StudentClassInGroups { get; set; } = new List<StudentClassInGroup>();
+        public ICollection<SubjectGroup> SubjectGroups { get; set; } = new List<SubjectGroup>();
 
 
     }
