@@ -16,6 +16,8 @@ namespace SchedulifySystem.Repository.EntityModels
 
         public School? School { get; set; }
         public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
+        public ICollection<RoleAssignment> RoleAssignments { get; set; } = new List<RoleAssignment>();
+
     }
 
 }
