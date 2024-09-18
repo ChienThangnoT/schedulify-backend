@@ -50,6 +50,8 @@ public partial class SchedulifyContext : DbContext
     public DbSet<TeacherUnavailability> TeacherUnavailabilities { get; set; }
     public DbSet<Term> Terms { get; set; }
     public DbSet<TimeSlot> TimeSlots { get; set; }
+    public DbSet<RoleAssignment> RoleAssignments { get; set; }
+    public DbSet<Notification> notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,9 +73,43 @@ public partial class SchedulifyContext : DbContext
             .WithMany(s => s.Accounts)
             .HasForeignKey(b => b.SchoolId);
         modelBuilder.Entity<Account>()
-            .HasOne(b => b.Role)
+            .HasOne(b => b.School)
             .WithMany(s => s.Accounts)
+            .HasForeignKey(b => b.SchoolId);
+
+        // RoleAssignment Entity
+        modelBuilder.Entity<RoleAssignment>()
+                .HasKey(a => a.Id);
+        modelBuilder.Entity<RoleAssignment>()
+                .ToTable("RoleAssignment");
+        modelBuilder.Entity<RoleAssignment>()
+            .HasOne(b => b.Account)
+            .WithMany(s => s.RoleAssignments)
+            .HasForeignKey(b => b.AccountId);
+        modelBuilder.Entity<RoleAssignment>()
+            .HasOne(b => b.Role)
+            .WithMany(s => s.RoleAssignments)
             .HasForeignKey(b => b.RoleId);
+        modelBuilder.Entity<RoleAssignment>()
+            .HasOne(b => b.Department)
+            .WithMany(s => s.RoleAssignments)
+            .HasForeignKey(b => b.DepartmentId);
+
+        // Notification Entity
+        modelBuilder.Entity<Notification>()
+                .HasKey(a => a.Id);
+        modelBuilder.Entity<Notification>()
+                .ToTable("Notification");
+        modelBuilder.Entity<Notification>()
+            .Property(a => a.Title)
+            .HasMaxLength(50);
+        modelBuilder.Entity<Notification>()
+            .Property(a => a.Message)
+            .HasMaxLength(50);
+        modelBuilder.Entity<Notification>()
+            .HasOne(b => b.Account)
+            .WithMany(s => s.Notifications)
+            .HasForeignKey(b => b.AccountId);
 
         // Building Entity
         modelBuilder.Entity<Building>()
@@ -377,6 +413,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sig => sig.ClassGroup)
             .WithMany(sg => sg.SubjectGroups)
             .HasForeignKey(sig => sig.ClassGroupId);
+        modelBuilder.Entity<SubjectGroup>()
+            .HasOne(sig => sig.School)
+            .WithMany(sg => sg.SubjectGroups)
+            .HasForeignKey(sig => sig.SchoolId);
 
         // SubjectInGroup Entity
         modelBuilder.Entity<SubjectInGroup>()

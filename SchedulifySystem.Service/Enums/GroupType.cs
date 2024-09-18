@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.Enums
 {
-    public enum ObjectType
+    public enum GroupType
     {
         Class = 1,
         Classroom = 2,

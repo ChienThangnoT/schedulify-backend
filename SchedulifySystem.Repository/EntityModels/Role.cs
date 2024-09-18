@@ -10,6 +10,6 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string Name { get; set; } = null!;
 
-        public virtual ICollection<Account> Accounts { get; set; } = [];
+        public ICollection<RoleAssignment> RoleAssignments { get; set; } = new List<RoleAssignment>();
     }
 }
