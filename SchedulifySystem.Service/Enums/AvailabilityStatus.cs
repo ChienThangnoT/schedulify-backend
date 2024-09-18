@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.Enums
 {
-    public enum RoomType
+    public enum AvailabilityStatus
     {
         Available = 1,        
         UnderMaintenance = 2  
