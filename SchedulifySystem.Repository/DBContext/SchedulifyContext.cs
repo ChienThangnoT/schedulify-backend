@@ -52,6 +52,9 @@ public partial class SchedulifyContext : DbContext
     public DbSet<TimeSlot> TimeSlots { get; set; }
     public DbSet<RoleAssignment> RoleAssignments { get; set; }
     public DbSet<Notification> notifications { get; set; }
+    public DbSet<EducationDepartment> EducationDepartments { get; set; }
+    public DbSet<Province> Provinces { get; set; }
+    public DbSet<SubmitRequest> SubmitsRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,8 +66,11 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<Account>()
                 .ToTable("Account");
         modelBuilder.Entity<Account>()
-            .Property(a => a.Username)
-            .HasMaxLength(50);
+            .Property(a => a.FirstName)
+            .HasMaxLength(100);
+        modelBuilder.Entity<Account>()
+            .Property(a => a.LastName)
+            .HasMaxLength(100);
         modelBuilder.Entity<Account>()
             .Property(a => a.Password)
             .HasMaxLength(100);
@@ -149,6 +155,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(cs => cs.SchoolYear)
             .WithMany(ss => ss.ClassGroups)
             .HasForeignKey(cs => cs.SchoolYearId);
+        modelBuilder.Entity<ClassGroup>()
+            .HasOne(cs => cs.SubjectGroup)
+            .WithMany(ss => ss.ClassGroups)
+            .HasForeignKey(cs => cs.SubjectGroupId);
 
         // ConfigGroup Entity
         modelBuilder.Entity<ConfigGroup>()
@@ -163,7 +173,7 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<ClassPeriod>(entity =>
         {
             entity.ToTable("ClassPeriod");
-            entity.HasKey(cp => cp.Id); 
+            entity.HasKey(cp => cp.Id);
 
             entity.HasOne(cp => cp.TimeSlot)
                 .WithMany(ts => ts.ClassPeriods)
@@ -305,6 +315,10 @@ public partial class SchedulifyContext : DbContext
             .Property(s => s.Name)
             .IsRequired()
             .HasMaxLength(100);
+        modelBuilder.Entity<School>()
+            .HasOne(s => s.EducationDepartment)
+            .WithMany(ed => ed.Schools)
+            .HasForeignKey(s => s.EducationDepartmentId);
 
         // SchoolSchedule Entity
         modelBuilder.Entity<SchoolSchedule>()
@@ -365,6 +379,9 @@ public partial class SchedulifyContext : DbContext
             .Property(s => s.SubjectName)
             .HasMaxLength(100);
         modelBuilder.Entity<Subject>()
+            .Property(s => s.Abbreviation)
+            .HasMaxLength(50);
+        modelBuilder.Entity<Subject>()
             .Property(s => s.Description)
             .HasMaxLength(150);
 
@@ -410,10 +427,6 @@ public partial class SchedulifyContext : DbContext
             .Property(sg => sg.GroupName)
             .HasMaxLength(100);
         modelBuilder.Entity<SubjectGroup>()
-            .HasOne(sig => sig.ClassGroup)
-            .WithMany(sg => sg.SubjectGroups)
-            .HasForeignKey(sig => sig.ClassGroupId);
-        modelBuilder.Entity<SubjectGroup>()
             .HasOne(sig => sig.School)
             .WithMany(sg => sg.SubjectGroups)
             .HasForeignKey(sig => sig.SchoolId);
@@ -452,6 +465,9 @@ public partial class SchedulifyContext : DbContext
             .Property(t => t.LastName)
             .HasMaxLength(100);
         modelBuilder.Entity<Teacher>()
+            .Property(t => t.Abbreviation)
+            .HasMaxLength(50);
+        modelBuilder.Entity<Teacher>()
             .HasOne(t => t.Department)
             .WithMany(d => d.Teachers)
             .HasForeignKey(t => t.DepartmentId);
@@ -459,7 +475,7 @@ public partial class SchedulifyContext : DbContext
         //TeacherAssignment Entity
         modelBuilder.Entity<TeacherAssignment>(entity =>
         {
-            entity.HasKey(ta => ta.Id); 
+            entity.HasKey(ta => ta.Id);
 
             entity.HasOne(ta => ta.TeachableSubject)
                 .WithMany(t => t.TeacherAssignments)
@@ -536,6 +552,35 @@ public partial class SchedulifyContext : DbContext
             .HasOne(ts => ts.School)
             .WithMany(s => s.TimeSlots)
             .HasForeignKey(ts => ts.SchoolId);
+
+        // EducationDepartment Entity
+        modelBuilder.Entity<EducationDepartment>()
+            .HasKey(ed => ed.Id);
+        modelBuilder.Entity<EducationDepartment>()
+            .Property(ts => ts.Name)
+            .IsRequired()
+            .HasMaxLength(50);
+        modelBuilder.Entity<EducationDepartment>()
+            .HasOne(ed => ed.Province)
+            .WithMany(p => p.EducationDepartments)
+            .HasForeignKey(ed => ed.ProvinceId);
+
+        // Province Entity
+        modelBuilder.Entity<Province>()
+            .HasKey(p => p.Id);
+        modelBuilder.Entity<Province>()
+            .Property(p => p.Name)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        // SubmitRequest Entity
+        modelBuilder.Entity<SubmitRequest>()
+            .HasKey(sr => sr.Id);
+        modelBuilder.Entity<SubmitRequest>()
+            .HasOne(sr => sr.Teacher)
+            .WithMany(t => t.SubmitRequests)
+            .HasForeignKey(sr => sr.TeacherId);
+
 
     }
 }

@@ -12,11 +12,14 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string? Abbreviation { get; set; }
+        public string? Email { get; set; }
         public int Gender { get; set; }
         public int DepartmentId { get; set; }
         public DateOnly DateOfBirth { get; set; }
         public int SchoolId { get; set; }
         public int TeacherGroupId { get; set; }
+        public int TeacherRole { get; set; }
         public int Status { get; set; }
 
         public Department? Department { get; set; }
@@ -27,5 +30,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();
         public ICollection<TeacherConfig> TeacherConfigs { get; set; } = new List<TeacherConfig>();
         public ICollection<TeacherUnavailability> TeacherUnavailabilities { get; set; } = new List<TeacherUnavailability>();
+        public ICollection<SubmitRequest> SubmitRequests { get; set; } = new List<SubmitRequest>();
     }
 }

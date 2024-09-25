@@ -11,6 +11,7 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public int SubjectId { get; set; }
         public int SubjectGroupId { get; set; }
+        public int SlotPerWeek { get; set; }
 
         public Subject? Subject { get; set; }
         public SubjectGroup? SubjectGroup { get; set; }
