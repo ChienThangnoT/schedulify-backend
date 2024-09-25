@@ -10,6 +10,8 @@ namespace SchedulifySystem.Repository.EntityModels
     public partial class Subject : BaseEntity
     {
         public string? SubjectName { get; set; }
+        public string? Abbreviation { get; set; }
+        public bool IsRequired { get; set; }
         public string? Description { get; set; }
 
         public ICollection<SubjectInGroup> SubjectInGroups { get; set; } = new List<SubjectInGroup>();

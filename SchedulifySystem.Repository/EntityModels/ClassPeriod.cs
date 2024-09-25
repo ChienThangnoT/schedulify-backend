@@ -14,6 +14,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int Status { get; set; }
         public int TeacherId { get; set; }
         public int SubjectId { get; set; }
+        public int DateOfWeek { get; set; }
 
         public TimeSlot? TimeSlot { get; set; }
         public ClassSchedule? ClassSchedule { get; set; }

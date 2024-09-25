@@ -10,7 +10,9 @@ namespace SchedulifySystem.Repository.EntityModels
 {
     public partial class Account : BaseEntity
     {
-        public string? Username { get; set; }
+
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
         public string? Password { get; set; }
         public int SchoolId { get; set; }
         public string? Email { get; set; }
