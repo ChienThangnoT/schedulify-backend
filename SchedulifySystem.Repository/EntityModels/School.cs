@@ -12,7 +12,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Address { get; set; }
         public string? PrincipalName { get; set; }
         public int EducationDepartmentId { get; set; }
-        public EducationDepartment? EducationDepartment { get; set; };
+        public EducationDepartment? EducationDepartment { get; set; }
 
         public ICollection<TeacherGroup> TeacherGroups { get; set; } = new List<TeacherGroup>();
         public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();

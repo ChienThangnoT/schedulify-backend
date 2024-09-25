@@ -54,6 +54,7 @@ public partial class SchedulifyContext : DbContext
     public DbSet<Notification> notifications { get; set; }
     public DbSet<EducationDepartment> EducationDepartments { get; set; }
     public DbSet<Province> Provinces { get; set; }
+    public DbSet<SubmitRequest> SubmitsRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -571,6 +572,14 @@ public partial class SchedulifyContext : DbContext
             .Property(p => p.Name)
             .IsRequired()
             .HasMaxLength(50);
+
+        // SubmitRequest Entity
+        modelBuilder.Entity<SubmitRequest>()
+            .HasKey(sr => sr.Id);
+        modelBuilder.Entity<SubmitRequest>()
+            .HasOne(sr => sr.Teacher)
+            .WithMany(t => t.SubmitRequests)
+            .HasForeignKey(sr => sr.TeacherId);
 
 
     }

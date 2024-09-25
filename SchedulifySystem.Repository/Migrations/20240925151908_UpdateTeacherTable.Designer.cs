@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SchedulifySystem.Repository.DBContext;
@@ -11,9 +12,11 @@ using SchedulifySystem.Repository.DBContext;
 namespace SchedulifySystem.Repository.Migrations
 {
     [DbContext(typeof(SchedulifyContext))]
-    partial class SchedulifyContextModelSnapshot : ModelSnapshot
+    [Migration("20240925151908_UpdateTeacherTable")]
+    partial class UpdateTeacherTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1115,48 +1118,6 @@ namespace SchedulifySystem.Repository.Migrations
                     b.ToTable("SubjectInGroups");
                 });
 
-            modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.SubmitRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AttachedFile")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("RequestTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("RequestType")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TeacherId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TeacherId");
-
-                    b.ToTable("SubmitsRequests");
-                });
-
             modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.TeachableSubject", b =>
                 {
                     b.Property<int>("Id")
@@ -1904,17 +1865,6 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Navigation("SubjectGroup");
                 });
 
-            modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.SubmitRequest", b =>
-                {
-                    b.HasOne("SchedulifySystem.Repository.EntityModels.Teacher", "Teacher")
-                        .WithMany("SubmitRequests")
-                        .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Teacher");
-                });
-
             modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.TeachableSubject", b =>
                 {
                     b.HasOne("SchedulifySystem.Repository.EntityModels.Subject", "Subject")
@@ -2228,8 +2178,6 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Navigation("ClassPeriods");
 
                     b.Navigation("StudentClasses");
-
-                    b.Navigation("SubmitRequests");
 
                     b.Navigation("TeachableSubjects");
 
