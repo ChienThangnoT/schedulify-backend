@@ -8,72 +8,219 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SchedulifySystem.Repository.DBContext;
+using System.Linq.Expressions;
 
 namespace SchedulifySystem.Repository.Repositories.Implements
 {
-    public class GenericRepository<TModel> : IGenericRepository<TModel> where TModel : class
+    public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        protected DbSet<TModel> _dbSet;
+        internal DbSet<T> _dbSet;
 
         public GenericRepository(SchedulifyContext context)
         {
-            _dbSet = context.Set<TModel>();
+            _dbSet = context.Set<T>();
         }
 
-        public virtual async Task AddAsync(TModel model)
+        public async Task AddAsync(T entity)
         {
-            await _dbSet.AddAsync(model);
+            await _dbSet.AddAsync(entity);
         }
 
-        public virtual void AddAttach(TModel model)
+        public async Task AddRangeAsync(IEnumerable<T> entities)
         {
-            _dbSet.Attach(model).State = EntityState.Added;
+            await _dbSet.AddRangeAsync(entities);
         }
 
-        public virtual void AddEntry(TModel model)
+
+        public async Task<T?> GetByIdAsync(int id)
         {
-            _dbSet.Entry(model).State = EntityState.Added;
+            return await _dbSet.FindAsync(id);
         }
 
-        public virtual async Task AddRangeAsync(List<TModel> models)
+
+        public void Remove(T entity)
         {
-            await _dbSet.AddRangeAsync(models);
+            _dbSet.Remove(entity);
         }
 
-        public virtual async Task<List<TModel>> GetAllAsync() => await _dbSet.ToListAsync();
-
-        public virtual async Task<List<TModel>> GetAllAsync(Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>>? include = null)
+        public void RemoveRange(IEnumerable<T> entities)
         {
-            IQueryable<TModel> query = _dbSet;
-            if (include != null)
+            _dbSet.RemoveRange(entities);
+        }
+
+        public void Update(T entity)
+        {
+            _dbSet.Update(entity);
+        }
+
+        public async Task<IEnumerable<T>> GetAsync(
+            Expression<Func<T, bool>> filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
+            string includeProperties = "",
+            int? pageIndex = null, // Optional parameter for pagination (page number)
+            int? pageSize = null)  // Optional parameter for pagination (number of records per page)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
             {
-                query = include(query);
+                query = query.Where(filter);
             }
+
+            foreach (var includeProperty in includeProperties.Split
+                (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                query = query.Include(includeProperty);
+            }
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            // Implementing pagination
+            if (pageIndex.HasValue && pageSize.HasValue)
+            {
+                // Ensure the pageIndex and pageSize are valid
+                int validPageIndex = pageIndex.Value > 0 ? pageIndex.Value - 1 : 0;
+                int validPageSize = pageSize.Value > 0 ? pageSize.Value : 10; // Assuming a default pageSize of 10 if an invalid value is passed
+
+                query = query.Skip(validPageIndex * validPageSize).Take(validPageSize);
+            }
+
             return await query.ToListAsync();
         }
 
-        public virtual async Task<TModel?> GetByIdAsync(int id) => await _dbSet.FindAsync(id);
-
-        public void Update(TModel? model)
+        public async Task<Pagination<T>> ToPaginationAsync(
+            Expression<Func<T, bool>> filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
+            string includeProperties = "",
+            int? pageIndex = null, // Optional parameter for pagination (page number)
+            int? pageSize = null)  // Optional parameter for pagination (number of records per page)
         {
-            _dbSet.Update(model);
+            IQueryable<T> query = _dbSet;
+
+            var itemCount = await CountAsync();
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            foreach (var includeProperty in includeProperties.Split
+                (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                query = query.Include(includeProperty);
+            }
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            // Implementing pagination
+            if (pageIndex.HasValue && pageSize.HasValue)
+            {
+                // Ensure the pageIndex and pageSize are valid
+                int validPageIndex = pageIndex.Value > 0 ? pageIndex.Value - 1 : 0;
+                int validPageSize = pageSize.Value > 0 ? pageSize.Value : 10; // Assuming a default pageSize of 10 if an invalid value is passed
+
+                query = query.Skip(validPageIndex * validPageSize).Take(validPageSize);
+            }
+
+            //return await query.ToListAsync();
+
+            var result = new Pagination<T>()
+            {
+                PageSize = (int)pageSize,
+                TotalItemCount = itemCount,
+                PageIndex = (int)pageIndex,
+            };
+
+            var items = await query.Skip(result.PageIndex * result.PageSize)
+                .Take(result.PageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            result.Items = items;
+
+            return result;
         }
 
-        public void UpdateRange(List<TModel> models)
+        public async Task<int> CountAsync(Expression<Func<T, bool>> filter = null)
         {
-            _dbSet.UpdateRange(models);
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            return await query.CountAsync();
         }
 
-        public void Remove(TModel model)
+        public async Task<Pagination<T>> GetPaginationAsync(
+            Expression<Func<T, bool>> filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
+            string includeProperties = "",
+            int? pageIndex = null, // Optional parameter for pagination (page number)
+            int? pageSize = null)  // Optional parameter for pagination (number of records per page)
         {
-            _dbSet.Remove(model);
+            IQueryable<T> query = _dbSet;
+
+            var itemCount = await CountAsync();
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            foreach (var includeProperty in includeProperties.Split
+                (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                query = query.Include(includeProperty);
+            }
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            // Implementing pagination
+            if (pageIndex.HasValue && pageSize.HasValue)
+            {
+                // Ensure the pageIndex and pageSize are valid
+                int validPageIndex = pageIndex.Value > 0 ? pageIndex.Value - 1 : 0;
+                int validPageSize = pageSize.Value > 0 ? pageSize.Value : 10; // Assuming a default pageSize of 10 if an invalid value is passed
+
+                query = query.Skip(validPageIndex * validPageSize).Take(validPageSize);
+            }
+
+            //return await query.ToListAsync();
+
+            var result = new Pagination<T>()
+            {
+                PageSize = (int)pageSize,
+                TotalItemCount = itemCount,
+                PageIndex = (int)pageIndex,
+            };
+
+            var items = await _dbSet.Skip(result.PageIndex * result.PageSize)
+                .Take(result.PageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            result.Items = items;
+
+            return result;
         }
 
-        public async Task<Pagination<TModel>> ToPaginationAsync(int pageIndex = 0, int pageSize = 10)
+        public async Task<Pagination<T>> ToPaginationAsync(int pageIndex = 0, int pageSize = 10)
         {
-            var itemCount = await _dbSet.CountAsync();
+            // get total count of items in the db set
+            var itemCount = await CountAsync();
 
-            var result = new Pagination<TModel>()
+            var result = new Pagination<T>()
             {
                 PageSize = pageSize,
                 TotalItemCount = itemCount,
@@ -89,54 +236,5 @@ namespace SchedulifySystem.Repository.Repositories.Implements
 
             return result;
         }
-
-        public async Task<Pagination<TModel>> ToListPaginationAsync(IQueryable<TModel> query, int pageIndex = 0, int pageSize = 10)
-        {
-            var itemCount = await query.CountAsync();
-            var result = new Pagination<TModel>()
-            {
-                PageSize = pageSize,
-                TotalItemCount = itemCount,
-                PageIndex = pageIndex,
-            };
-            var items = await query.Skip(result.PageIndex * result.PageSize)
-                                   .Take(result.PageSize)
-                                   .AsNoTracking()
-                                   .ToListAsync();
-
-            result.Items = items;
-
-            return result;
-        }
-
-        public async Task<Pagination<TModel>> ToPaginationIncludeAsync(int pageIndex = 0, int pageSize = 10, Func<IQueryable<TModel>, IIncludableQueryable<TModel, object>>? include = null)
-        {
-            IQueryable<TModel> query = _dbSet;
-
-            if (include != null)
-            {
-                query = include(query);
-            }
-
-            var itemCount = await query.CountAsync();
-
-            var result = new Pagination<TModel>
-            {
-                PageSize = pageSize,
-                TotalItemCount = itemCount,
-                PageIndex = pageIndex
-            };
-
-            var items = await query
-                .Skip(result.PageIndex * result.PageSize)
-                .Take(result.PageSize)
-                .AsNoTracking()
-                .ToListAsync();
-
-            result.Items = items;
-
-            return result;
-        }
-
     }
 }
