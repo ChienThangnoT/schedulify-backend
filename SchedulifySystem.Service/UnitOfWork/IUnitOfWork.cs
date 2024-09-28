@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
+using SchedulifySystem.Repository.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,11 @@ namespace SchedulifySystem.Service.UnitOfWork
 {
     public interface IUnitOfWork
     {
+        public IUserRepository UserRepo { get; }
+        public IRoleRepository RoleRepo { get; }
+        public IRoleAssignmentRepository RoleAssignmentRepo { get; }
+        public ITeacherRepository TeacherRepo { get; }
+
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

@@ -14,25 +14,5 @@ namespace SchedulifySystem.Service.BusinessModels.AccountBusinessModels
         public string? Email { get; set; }
         public RoleEnum RoleType { get; set; }
         public string? SchoolName { get; set; }
-
-        public bool IsAdmin()
-        {
-            return RoleType == RoleEnum.Admin;
-        }
-
-        public bool IsSchoolManager()
-        {
-            return RoleType == RoleEnum.SchoolManager;
-        }
-
-        public bool IsTeacher()
-        {
-            return RoleType == RoleEnum.Teacher;
-        }
-
-        public bool IsTeacherDepartmentHead()
-        {
-            return RoleType == RoleEnum.TeacherDepartmentHead;
-        }
     }
 }

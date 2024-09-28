@@ -10,6 +10,11 @@ using System.Configuration;
 using System;
 using SchedulifySystem.Repository.DBContext;
 using SchedulifySystem.Service.UnitOfWork;
+using SchedulifySystem.Service.Mapper;
+using SchedulifySystem.Repository.Repositories.Interfaces;
+using SchedulifySystem.Repository.Repositories.Implements;
+using SchedulifySystem.Service.Services.Interfaces;
+using SchedulifySystem.Service.Services.Implements;
 
 
 namespace SchedulifySystem.API
@@ -100,8 +105,23 @@ namespace SchedulifySystem.API
 
             //Configure UnitOfWork
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddAutoMapper(typeof(MapperConfigs).Assembly);
 
+            //config user service and repo
+            services.AddTransient<IUserRepository, UserRepository>();
+            services.AddTransient<IUserService, UserService>();
 
+            //config teacher service and repo
+            services.AddTransient<ITeacherRepository, TeacherRepository>();
+            services.AddTransient<ITeacherService, TeacherService>();
+
+            //config role service and repo
+            services.AddTransient<IRoleRepository, RoleRepository>();
+            //services.AddTransient<IRoleService, RoleService>();
+
+            //config role assignmentt service and repo
+            services.AddTransient<IRoleAssignmentRepository, RoleAssignmentRepository>();
+            //services.AddTransient<IRoleAssignmentService, RoleAssignmentService>();
             #endregion
 
             #region add db context

@@ -4,6 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-internal class TEST7
+namespace SchedulifySystem.Service.Enums
 {
+    public enum Gender
+    {
+        Male=0,
+        Female=1,
+    }
 }
