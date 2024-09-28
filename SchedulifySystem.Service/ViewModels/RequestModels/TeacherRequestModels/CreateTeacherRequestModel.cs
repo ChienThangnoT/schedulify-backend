@@ -11,7 +11,6 @@ namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
 {
     public class CreateTeacherRequestModel
     {
-        public int Id { get; set; }
 
         [Required(ErrorMessage = "First Name is required."), MaxLength(100, ErrorMessage = "First Name can't be longer than 100 characters.")]
         public string? FirstName { get; set; }
@@ -30,6 +29,7 @@ namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
 
         public int DepartmentId { get; set; }
 
+        [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Date of Birth must be in the format YYYY-MM-DD.")]
         public string DateOfBirth { get; set; }
 
         public int SchoolId { get; set; }
