@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Service.ViewModels.ResponeModel
+namespace SchedulifySystem.Service.ViewModels.ResponseModels
 {
     public class AuthenticationResponseModel
     {

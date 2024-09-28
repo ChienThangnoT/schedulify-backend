@@ -1,5 +1,5 @@
 ﻿using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
-using SchedulifySystem.Service.ViewModels.ResponeModel;
+using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface IUserService
     {
-        public Task<BaseResponeModel> SignInAccountAsync(SignInModel signInModel);
+        public Task<BaseResponseModel> SignInAccountAsync(SignInModel signInModel);
 
     }
 }

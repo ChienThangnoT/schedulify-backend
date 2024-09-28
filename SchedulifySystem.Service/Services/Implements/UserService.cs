@@ -6,7 +6,7 @@ using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
-using SchedulifySystem.Service.ViewModels.ResponeModel;
+using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -67,7 +67,7 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
-        public Task<BaseResponeModel> SignInAccountAsync(SignInModel signInModel)
+        public Task<BaseResponseModel> SignInAccountAsync(SignInModel signInModel)
         {
             throw new NotImplementedException();
         }
