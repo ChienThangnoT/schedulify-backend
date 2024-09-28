@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
@@ -34,10 +35,10 @@ namespace SchedulifySystem.Service.Services.Implements
         #region CreateTeacher
         public async Task<BaseResponseModel> CreateTeacher(CreateTeacherRequestModel createTeacherRequestModel)
         {
-            //try
-            //{
+            try
+            {
                 var existedTeacher = await _unitOfWork.TeacherRepo.GetAsync(filter: t => t.Email == createTeacherRequestModel.Email);
-                if(existedTeacher.FirstOrDefault() != null)
+                if (existedTeacher.FirstOrDefault() != null)
                 {
                     return new BaseResponseModel() { Status = StatusCodes.Status409Conflict, Message = $"Email {createTeacherRequestModel.Email} is existed!" };
                 }
@@ -45,11 +46,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 await _unitOfWork.TeacherRepo.AddAsync(newTeacher);
                 await _unitOfWork.SaveChangesAsync();
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Add Teacher success" };
-            //}
-            //catch (Exception ex)
-            //{
-            //    return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
-            //}
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
+            }
         }
         #endregion
 
@@ -58,8 +59,8 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             try
             {
-                var teachers = await _unitOfWork.TeacherRepo.GetAsync(pageSize: pageSize, pageIndex: pageIndex);
-                var teachersResponse = _mapper.Map<List<TeacherResponseModel>>(teachers);
+                var teachers = await _unitOfWork.TeacherRepo.GetPaginationAsync(pageSize: pageSize, pageIndex: pageIndex);
+                var teachersResponse = _mapper.Map<Pagination<TeacherResponseModel>>(teachers);
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
             }
             catch (Exception ex)
