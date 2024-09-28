@@ -9,5 +9,6 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
 {
     public interface IUserRepository : IGenericRepository<Account>
     {
+        public Task<Account?> GetAccountByEmail(string email);
     }
 }
