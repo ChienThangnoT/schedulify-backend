@@ -4,7 +4,7 @@ using SchedulifySystem.Service.ViewModels.ResponseModels;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/base-controller")]
     [ApiController]
     public class BaseController : ControllerBase
     {
@@ -14,42 +14,32 @@ namespace SchedulifySystem.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-            return GetActionResponse(await func());
-        }
 
+            try
+            {
+                return GetActionResponse(await func());
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponseModel
+                {
+                    Status = StatusCodes.Status500InternalServerError,
+                    Message = "An unexpected error has occurred.",
+                });
+            }
+        }
 
         protected IActionResult GetActionResponse(BaseResponseModel baseResponse)
         {
-            switch (baseResponse.Status)
+            return baseResponse.Status switch
             {
-                case StatusCodes.Status401Unauthorized:
-                    {
-                        return Unauthorized(baseResponse);
-                    }
-                case StatusCodes.Status200OK:
-                    {
-                        return Ok(baseResponse);
-                    }
-                case StatusCodes.Status400BadRequest:
-                    {
-                        return BadRequest(baseResponse);
-                    }
-                case StatusCodes.Status404NotFound:
-                    {
-                        return NotFound(baseResponse);
-                    }
-                case StatusCodes.Status500InternalServerError:
-                    {
-                        return BadRequest(baseResponse);
-                    }
-                case StatusCodes.Status409Conflict:
-                    {
-                        return Conflict(baseResponse);
-                    }
-                default:
-                    {
-                        return StatusCode(baseResponse.Status, baseResponse);
-                    }
+                StatusCodes.Status401Unauthorized => Unauthorized(baseResponse),
+                StatusCodes.Status200OK => Ok(baseResponse),
+                StatusCodes.Status400BadRequest => BadRequest(baseResponse),
+                StatusCodes.Status404NotFound => NotFound(baseResponse),
+                StatusCodes.Status409Conflict => Conflict(baseResponse),
+                StatusCodes.Status500InternalServerError => StatusCode(StatusCodes.Status500InternalServerError, baseResponse),
+                _ => StatusCode(baseResponse.Status, baseResponse)
             };
         }
     }
