@@ -1,5 +1,5 @@
 ﻿using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
-using SchedulifySystem.Service.ViewModels.ResponeModel;
+using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;

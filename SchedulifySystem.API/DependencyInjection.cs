@@ -111,6 +111,10 @@ namespace SchedulifySystem.API
             services.AddTransient<IUserRepository, UserRepository>();
             services.AddTransient<IUserService, UserService>();
 
+            //config teacher service and repo
+            services.AddTransient<ITeacherRepository, TeacherRepository>();
+            services.AddTransient<ITeacherService, TeacherService>();
+
             //config role service and repo
             services.AddTransient<IRoleRepository, RoleRepository>();
             //services.AddTransient<IRoleService, RoleService>();
