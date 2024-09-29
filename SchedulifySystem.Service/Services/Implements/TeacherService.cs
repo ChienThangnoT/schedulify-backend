@@ -11,6 +11,7 @@ using SchedulifySystem.Service.ViewModels.ResponseModels;
 using SchedulifySystem.Service.ViewModels.ResponseModels.TeacherResponseModels;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -62,6 +63,46 @@ namespace SchedulifySystem.Service.Services.Implements
                 var teachers = await _unitOfWork.TeacherRepo.GetPaginationAsync(pageSize: pageSize, pageIndex: pageIndex);
                 var teachersResponse = _mapper.Map<Pagination<TeacherResponseModel>>(teachers);
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
+            }
+        }
+        #endregion
+
+        #region UpdateTeacher
+        public async Task<BaseResponseModel> UpdateTeacher(int id, UpdateTeacherRequestModel updateTeacherRequestModel)
+        {
+            try
+            {
+
+                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
+                if (existedTeacher == null)
+                {
+                    return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "The teacher is not found!" };
+                }
+                _mapper.Map(updateTeacherRequestModel, existedTeacher);
+                _unitOfWork.TeacherRepo.Update(existedTeacher);
+                await _unitOfWork.SaveChangesAsync();
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Update Teacher success" };
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
+            }
+        }
+        #endregion
+
+        #region GetTeacherById
+        public async Task<BaseResponseModel> GetTeacherById(int id)
+        {
+            try
+            {
+                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
+                var teachersResponse = _mapper.Map<TeacherResponseModel>(teacher);
+                return teacher != null ? new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse } :
+                    new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "The teacher is not found!" };
             }
             catch (Exception ex)
             {

@@ -13,5 +13,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
     {
         Task<BaseResponseModel> GetTeachers(int pageIndex, int pageSize);
         Task<BaseResponseModel> CreateTeacher(CreateTeacherRequestModel createTeacherRequestModel);
+        Task<BaseResponseModel> UpdateTeacher(int id, UpdateTeacherRequestModel updateTeacherRequestModel);
+        Task<BaseResponseModel> GetTeacherById(int id);
     }
 }

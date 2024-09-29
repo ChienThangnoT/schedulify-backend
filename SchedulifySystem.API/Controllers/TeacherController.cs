@@ -27,5 +27,17 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherService.CreateTeacher(model));
         }
+
+        [HttpPut("{id}")]
+        public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherRequestModel model)
+        {
+            return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
+        }
+
+        [HttpGet("{id}")]
+        public Task<IActionResult> GetTeacherById(int id)
+        {
+            return ValidateAndExecute(() => _teacherService.GetTeacherById(id));
+        }
     }
 }
