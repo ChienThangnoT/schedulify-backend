@@ -8,6 +8,7 @@ namespace SchedulifySystem.Service.ViewModels.ResponseModels.TeacherResponseMode
 {
     public class TeacherResponseModel
     {
+        public int Id { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string? Abbreviation { get; set; }
@@ -19,5 +20,6 @@ namespace SchedulifySystem.Service.ViewModels.ResponseModels.TeacherResponseMode
         public int TeacherGroupId { get; set; }
         public int TeacherRole { get; set; }
         public int Status { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

@@ -56,11 +56,11 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region GetTeachers
-        public async Task<BaseResponseModel> GetTeachers(int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetTeachers(bool includeDeleted, int pageIndex, int pageSize)
         {
             try
             {
-                var teachers = await _unitOfWork.TeacherRepo.GetPaginationAsync(pageSize: pageSize, pageIndex: pageIndex);
+                var teachers = await _unitOfWork.TeacherRepo.GetPaginationAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => includeDeleted ? true : t.IsDeleted == false);
                 var teachersResponse = _mapper.Map<Pagination<TeacherResponseModel>>(teachers);
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
             }

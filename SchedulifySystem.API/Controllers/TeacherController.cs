@@ -16,13 +16,13 @@ namespace SchedulifySystem.API.Controllers
             _teacherService = teacherService;
         }
 
-        [HttpGet("GetTeachers")]
-        public Task<IActionResult> GetTeachers(int pageSize = 20, int pageIndex = 1)
+        [HttpGet()]
+        public Task<IActionResult> GetTeachers(bool includeDeleted = false, int pageSize = 20, int pageIndex = 1)
         {
-            return ValidateAndExecute(() => _teacherService.GetTeachers(pageIndex, pageSize));
+            return ValidateAndExecute(() => _teacherService.GetTeachers(includeDeleted, pageIndex, pageSize));
         }
 
-        [HttpPost("CreateTeacher")]
+        [HttpPost()]
         public Task<IActionResult> CreateTeacher(CreateTeacherRequestModel model)
         {
             return ValidateAndExecute(() => _teacherService.CreateTeacher(model));
