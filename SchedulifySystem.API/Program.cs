@@ -12,7 +12,7 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Schedulify Web API");
-    c.InjectStylesheet("/assets/css/xmas-style.css");
+    c.InjectStylesheet("/swagger-ui/SwaggerDark.css");
     c.RoutePrefix = "swagger";
 });
 

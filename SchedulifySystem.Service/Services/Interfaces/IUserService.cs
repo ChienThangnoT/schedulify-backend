@@ -10,7 +10,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface IUserService
     {
-        public Task<BaseResponseModel> SignInAccountAsync(SignInModel signInModel);
+        public Task<AuthenticationResponseModel> SignInAccountAsync(SignInModel signInModel);
 
     }
 }

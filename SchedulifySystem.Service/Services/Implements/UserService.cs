@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
+using SchedulifySystem.Service.Utils;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -29,6 +31,52 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
+        }
+
+        public async Task<AuthenticationResponseModel> SignInAccountAsync(SignInModel signInModel)
+        {
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(signInModel.email);
+                    if (existUser == null)
+                    {
+                        return new AuthenticationResponseModel
+                        {
+                            Status = StatusCodes.Status401Unauthorized,
+                            Message = "Account not exist!"
+                        };
+                    }
+                    var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.password, existUser.Password);
+                    if (verifyUser)
+                    {
+                        if (existUser.Status == (int)AccountStatus.Inactive|| existUser.IsDeleted == true)
+                        {
+                            return new AuthenticationResponseModel
+                            {
+                                Status = StatusCodes.Status401Unauthorized,
+                                Message = "Account can not access!"
+                            };
+                        }
+
+
+                        await transaction.CommitAsync();
+
+                        return await GenerateAuthenticationResponse(existUser);
+                    }
+                    return new AuthenticationResponseModel
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Password incorrect"
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            };
         }
 
         private async Task<List<Claim>> GetAuthClaims(Account user)
@@ -65,11 +113,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 JwtRefreshToken = refreshToken,
                 AccountId = account.Id
             };
-        }
-
-        public Task<BaseResponseModel> SignInAccountAsync(SignInModel signInModel)
-        {
-            throw new NotImplementedException();
         }
     }
 }
