@@ -168,7 +168,7 @@ namespace SchedulifySystem.Repository.Repositories.Implements
         {
             IQueryable<T> query = _dbSet;
 
-            var itemCount = await CountAsync();
+            var itemCount = await CountAsync(filter);
 
             if (filter != null)
             {
@@ -200,17 +200,11 @@ namespace SchedulifySystem.Repository.Repositories.Implements
 
             var result = new Pagination<T>()
             {
-                PageSize = (int)pageSize,
+                PageSize = pageSize ?? 10,
                 TotalItemCount = itemCount,
-                PageIndex = (int)pageIndex,
+                PageIndex = pageIndex ?? 1,
+                Items = await query.AsNoTracking().ToListAsync()
             };
-
-            var items = await _dbSet.Skip(result.PageIndex * result.PageSize)
-                .Take(result.PageSize)
-                .AsNoTracking()
-                .ToListAsync();
-
-            result.Items = items;
 
             return result;
         }

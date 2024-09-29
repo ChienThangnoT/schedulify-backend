@@ -21,7 +21,7 @@ namespace SchedulifySystem.API.Controllers
         [Authorize]
         public Task<IActionResult> GetTeachers(int pageSize = 20, int pageIndex = 1)
         {
-            return ValidateAndExecute(() => _teacherService.GetTeachers(pageIndex, pageSize));
+            return ValidateAndExecute(() => _teacherService.GetTeachers(includeDeleted, pageIndex, pageSize));
         }
 
         [HttpPost]
@@ -29,6 +29,18 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> CreateTeacher(CreateTeacherRequestModel model)
         {
             return ValidateAndExecute(() => _teacherService.CreateTeacher(model));
+        }
+
+        [HttpPut("{id}")]
+        public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherRequestModel model)
+        {
+            return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
+        }
+
+        [HttpGet("{id}")]
+        public Task<IActionResult> GetTeacherById(int id)
+        {
+            return ValidateAndExecute(() => _teacherService.GetTeacherById(id));
         }
     }
 }
