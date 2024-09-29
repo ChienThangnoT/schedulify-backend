@@ -2,9 +2,12 @@
 using FTravel.Service.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
+using SchedulifySystem.Service.BusinessModels.RoleAssignmentBusinessModels;
 using SchedulifySystem.Service.Enums;
+using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils;
@@ -33,6 +36,62 @@ namespace SchedulifySystem.Service.Services.Implements
             _configuration = configuration;
         }
 
+        #region sign up - create school manager account
+        public async Task<BaseResponseModel> CreateSchoolManagerAccount(CreateSchoolManagerModel createSchoolManagerModel)
+        {
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(createSchoolManagerModel.Email);
+                    if (existUser != null)
+                    {
+                        throw new AccountAlreadyExistsException();
+                    }
+                    var account = _mapper.Map<Account>(createSchoolManagerModel);
+                    account.Password = AuthenticationUtils.HashPassword(createSchoolManagerModel.Password);
+                    await _unitOfWork.UserRepo.AddAsync(account);
+                    var role = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.SchoolManager.ToString());
+                    if (role == null)
+                    {
+                        Role newRole = new()
+                        {
+                            Name = RoleEnum.SchoolManager.ToString()
+                        };
+                        await _unitOfWork.RoleRepo.AddAsync(newRole);
+                        await _unitOfWork.SaveChangesAsync();
+                        role = newRole;
+                    }
+
+                    var accountRoleModel = new RoleAssigntmentAddModel
+                    {
+                        AccountId = account.Id,
+                        RoleId = role.Id
+                    };
+                    var accountRoleEntyties = _mapper.Map<RoleAssignment>(accountRoleModel);
+                    await _unitOfWork.RoleAssignmentRepo.AddAsync(accountRoleEntyties);
+                    await _unitOfWork.SaveChangesAsync();
+                    //var result = _mapper.Map<AccounttViewModel>(account);
+                    await transaction.CommitAsync();
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = "Create school manager successful!",
+                        Result = account
+                    };
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+
+            }
+        }
+        #endregion
+
+
+        #region sign in
         public async Task<AuthenticationResponseModel> SignInAccountAsync(SignInModel signInModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
@@ -51,7 +110,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.password, existUser.Password);
                     if (verifyUser)
                     {
-                        if (existUser.Status == (int)AccountStatus.Inactive|| existUser.IsDeleted == true)
+                        if (existUser.Status == (int)AccountStatus.Inactive || existUser.IsDeleted == true)
                         {
                             return new AuthenticationResponseModel
                             {
@@ -79,6 +138,73 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
+        #endregion
+
+        #region refresh token validate
+        public async Task<AuthenticationResponseModel> RefreshToken(string refreshToken)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            SecurityToken validatedToken;
+
+            try
+            {
+                var principal = handler.ValidateToken(refreshToken, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SecretKey"])),
+                    ValidateIssuer = true,
+                    ValidIssuer = _configuration["JWT:ValidIssuer"],
+                    ValidateAudience = true,
+                    ValidAudience = _configuration["JWT:ValidAudience"],
+                    ValidateLifetime = true, // validate time 
+                    ClockSkew = TimeSpan.Zero
+                }, out validatedToken);
+
+                var emailClaim = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
+                if (emailClaim == null)
+                {
+                    return new AuthenticationResponseModel
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Message = "Invalid Refresh token!"
+                    };
+                }
+
+                var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(emailClaim.Value);
+                if (existUser != null)
+                {
+                    var newAccessToken = GenerateJWTToken.CreateAccessToken(await GetAuthClaims(existUser), _configuration, DateTime.UtcNow);
+                    var newRefreshToken = GenerateJWTToken.CreateRefreshToken(GetAuthClaimsRefresh(existUser), _configuration, DateTime.UtcNow);
+
+                    return new AuthenticationResponseModel
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = "Refresh token successful.",
+                        JwtToken = new JwtSecurityTokenHandler().WriteToken(newAccessToken),
+                        Expired = TimeZoneInfo.ConvertTimeFromUtc(newAccessToken.ValidTo, TimeZoneInfo.Local),
+                        JwtRefreshToken = new JwtSecurityTokenHandler().WriteToken(newRefreshToken),
+                        AccountId = existUser.Id
+                    };
+                }
+
+                return new AuthenticationResponseModel
+                {
+                    Status = StatusCodes.Status401Unauthorized,
+                    Message = "Account not exist!"
+                };
+            }
+            catch
+            {
+                return new AuthenticationResponseModel
+                {
+                    Status = StatusCodes.Status401Unauthorized,
+                    Message = "Refresh token invalid or expired time"
+                };
+            }
+        }
+        #endregion
+
+        #region jwt service
         private async Task<List<Claim>> GetAuthClaims(Account user)
         {
             var authClaims = new List<Claim>
@@ -87,11 +213,27 @@ namespace SchedulifySystem.Service.Services.Implements
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            var userRoles = await _unitOfWork.RoleAssignmentRepo.GetRolesByAccountIdAsync(user.Id);
+            var userRolesAssignments = await _unitOfWork.RoleAssignmentRepo.GetRolesByAccountIdAsync(user.Id);
+
+            var roleIds = userRolesAssignments.Select(assignment => assignment.RoleId).ToList();
+
+            var userRoles = await _unitOfWork.RoleRepo.GetRolesByIdsAsync(roleIds);
+
             foreach (var role in userRoles)
             {
-                authClaims.Add(new Claim(ClaimTypes.Role, role.Role.Name ));
+                authClaims.Add(new Claim(ClaimTypes.Role, role.Name));
             }
+
+            return authClaims;
+        }
+
+
+        private List<Claim> GetAuthClaimsRefresh(Account user)
+        {
+            var authClaims = new List<Claim>
+            {
+                new(ClaimTypes.Email, user.Email),
+            };
 
             return authClaims;
         }
@@ -99,10 +241,9 @@ namespace SchedulifySystem.Service.Services.Implements
         private async Task<AuthenticationResponseModel> GenerateAuthenticationResponse(Account account)
         {
             var authClaims = await GetAuthClaims(account);
+            var authClaimsRefresh = GetAuthClaimsRefresh(account);
             var token = GenerateJWTToken.CreateAccessToken(authClaims, _configuration, DateTime.UtcNow);
-            var refreshToken = GenerateJWTToken.CreateRefreshToken(authClaims, _configuration, DateTime.UtcNow).ToString();
-
-            _ = int.TryParse(_configuration["JWT:RefreshTokenValidityInDays"], out int refreshTokenValidityInDays);
+            var refreshToken = GenerateJWTToken.CreateRefreshToken(authClaimsRefresh, _configuration, DateTime.UtcNow);
 
             return new AuthenticationResponseModel
             {
@@ -110,9 +251,10 @@ namespace SchedulifySystem.Service.Services.Implements
                 Message = "Login successfully!",
                 JwtToken = new JwtSecurityTokenHandler().WriteToken(token),
                 Expired = TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local),
-                JwtRefreshToken = refreshToken,
+                JwtRefreshToken = new JwtSecurityTokenHandler().WriteToken(refreshToken).ToString(),
                 AccountId = account.Id
             };
         }
+        #endregion
     }
 }

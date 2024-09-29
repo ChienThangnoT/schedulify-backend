@@ -51,7 +51,8 @@ public partial class SchedulifyContext : DbContext
     public DbSet<Term> Terms { get; set; }
     public DbSet<TimeSlot> TimeSlots { get; set; }
     public DbSet<RoleAssignment> RoleAssignments { get; set; }
-    public DbSet<Notification> notifications { get; set; }
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
     public DbSet<EducationDepartment> EducationDepartments { get; set; }
     public DbSet<Province> Provinces { get; set; }
     public DbSet<SubmitRequest> SubmitsRequests { get; set; }
@@ -569,6 +570,16 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<Province>()
             .HasKey(p => p.Id);
         modelBuilder.Entity<Province>()
+            .Property(p => p.Name)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        // Role Entity
+        modelBuilder.Entity<Role>()
+            .ToTable("Role");
+        modelBuilder.Entity<Role>()
+            .HasKey(p => p.Id);
+        modelBuilder.Entity<Role>()
             .Property(p => p.Name)
             .IsRequired()
             .HasMaxLength(50);

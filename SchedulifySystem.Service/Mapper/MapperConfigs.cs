@@ -12,11 +12,20 @@ namespace SchedulifySystem.Service.Mapper
     {
         public MapperConfigs()
         {
-            //add map here
-            TeacherMapperConfig();
             //create map between pagination
             CreateMap(typeof(Pagination<>), typeof(Pagination<>));
+
+            //add teacher mapper config
+            TeacherMapperConfig();
+            
+            //add teacher mapper config
+            AccountMapperConfig();
+            
+            //add role assignment  mapper config
+            RoleAssignmentMapperConfig();
         }
         partial void TeacherMapperConfig();
+        partial void AccountMapperConfig();
+        partial void RoleAssignmentMapperConfig();
     }
 }

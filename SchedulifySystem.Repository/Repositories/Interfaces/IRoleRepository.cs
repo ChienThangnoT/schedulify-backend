@@ -9,5 +9,7 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
 {
     public interface IRoleRepository : IGenericRepository<Role>
     {
+        public Task<Role> GetRoleByNameAsync(string name);
+        public Task<List<Role>> GetRolesByIdsAsync(List<int> roleIds);
     }
 }
