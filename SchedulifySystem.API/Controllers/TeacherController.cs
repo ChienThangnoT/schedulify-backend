@@ -19,25 +19,27 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize]
-        public Task<IActionResult> GetTeachers(int pageSize = 20, int pageIndex = 1)
+        public Task<IActionResult> GetTeachers(bool includeDeleted = false, int pageSize = 20, int pageIndex = 1)
         {
             return ValidateAndExecute(() => _teacherService.GetTeachers(includeDeleted, pageIndex, pageSize));
         }
 
         [HttpPost]
-        [Authorize("Admin")]
+        [Authorize]
         public Task<IActionResult> CreateTeacher(CreateTeacherRequestModel model)
         {
             return ValidateAndExecute(() => _teacherService.CreateTeacher(model));
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherRequestModel model)
         {
             return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public Task<IActionResult> GetTeacherById(int id)
         {
             return ValidateAndExecute(() => _teacherService.GetTeacherById(id));
