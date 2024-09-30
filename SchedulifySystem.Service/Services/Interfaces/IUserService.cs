@@ -10,8 +10,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface IUserService
     {
-        public Task<AuthenticationResponseModel> SignInAccountAsync(SignInModel signInModel);
-        public Task<AuthenticationResponseModel> RefreshToken(string jwtToken);
-        public Task<BaseResponseModel> CreateSchoolManagerAccount(CreateSchoolManagerModel createSchoolManagerModel);
+        Task<AuthenticationResponseModel> SignInAccountAsync(SignInModel signInModel);
+        Task<AuthenticationResponseModel> RefreshToken(string jwtToken);
+        Task<BaseResponseModel> CreateSchoolManagerAccount(CreateSchoolManagerModel createSchoolManagerModel);
     }
 }

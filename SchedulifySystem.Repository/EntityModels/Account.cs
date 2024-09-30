@@ -18,7 +18,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Email { get; set; }
         public bool IsChangeDefaultPassword { get; set; }
         public int Status { get; set; }
-        public int Phone {  get; set; }
+        public string? Phone {  get; set; }
         public string? AvatarURL { get; set; }
 
         public School? School { get; set; }

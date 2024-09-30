@@ -15,6 +15,7 @@ using SchedulifySystem.Repository.Repositories.Interfaces;
 using SchedulifySystem.Repository.Repositories.Implements;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.Services.Implements;
+using SchedulifySystem.Service.BusinessModels.EmailModels;
 
 
 namespace SchedulifySystem.API
@@ -23,13 +24,20 @@ namespace SchedulifySystem.API
     {
         public static void AddWebAPIService(this IServiceCollection services, WebApplicationBuilder builder)
         {
-            services.AddControllers().AddJsonOptions(x =>
-                x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles)
-                .AddJsonOptions(option =>
-                {
-                    option.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.KebabCaseLower;
-                    option.JsonSerializerOptions.WriteIndented = true;
-                });
+            services.AddControllers().AddJsonOptions(options =>
+            {
+                // Prevent circular references (ignores cycles in object graphs)
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+
+                // Set property naming policy to kebab-case (lowercase with hyphens)
+                options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.KebabCaseLower;
+
+                // Pretty-print JSON for readability
+                options.JsonSerializerOptions.WriteIndented = true;
+
+                // Add converter for enums to serialize them as strings
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
             services.AddEndpointsApiExplorer();
 
@@ -98,6 +106,13 @@ namespace SchedulifySystem.API
                     };
                 });
             #endregion
+            #region Email setting
+            //add dj mail service
+            services.AddTransient<IMailService, MailService>();
+
+            //Add config mail setting
+            services.Configure<EmailConfig>(builder.Configuration.GetSection("MailSettings"));
+            #endregion
         }
         public static IServiceCollection AddInfractstructure(this IServiceCollection services, IConfiguration config)
         {
@@ -111,17 +126,24 @@ namespace SchedulifySystem.API
             services.AddTransient<IUserRepository, UserRepository>();
             services.AddTransient<IUserService, UserService>();
 
+            //config account service and repo
+            services.AddTransient<IAccountService, AccountService>();
+
             //config teacher service and repo
             services.AddTransient<ITeacherRepository, TeacherRepository>();
             services.AddTransient<ITeacherService, TeacherService>();
 
             //config role service and repo
             services.AddTransient<IRoleRepository, RoleRepository>();
-            //services.AddTransient<IRoleService, RoleService>();
+            services.AddTransient<IRoleService, RoleService>();
 
-            //config role assignmentt service and repo
+            //config role assignment service and repo
             services.AddTransient<IRoleAssignmentRepository, RoleAssignmentRepository>();
-            //services.AddTransient<IRoleAssignmentService, RoleAssignmentService>();
+            services.AddTransient<IRoleAssignmentService, RoleAssignmentService>();
+
+            //config school service and repo
+            services.AddTransient<ISchoolRepository, SchoolRepository>();
+            //services.AddTransient<ISchoolService, SchoolService>();
             #endregion
 
             #region add db context

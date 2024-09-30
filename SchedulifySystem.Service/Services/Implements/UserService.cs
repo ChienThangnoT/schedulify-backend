@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
+using SchedulifySystem.Service.BusinessModels.EmailModels;
 using SchedulifySystem.Service.BusinessModels.RoleAssignmentBusinessModels;
 using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
@@ -18,6 +19,7 @@ using System.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -71,6 +73,18 @@ namespace SchedulifySystem.Service.Services.Implements
                     var accountRoleEntyties = _mapper.Map<RoleAssignment>(accountRoleModel);
                     await _unitOfWork.RoleAssignmentRepo.AddAsync(accountRoleEntyties);
                     await _unitOfWork.SaveChangesAsync();
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(createSchoolManagerModel.SchoolId);
+                    if (school != null)
+                    {
+                        var messageRequest = new EmailRequest
+                        {
+                            To = createSchoolManagerModel.Email,
+                            Subject = "Đăng ký tài khoản thành công",
+                            Content = MailTemplate.ConfirmTemplate(school.Name)
+                        };
+                        //await _mailService.SendConFirmEmailAsync(messageRequest);
+                    }
+
                     //var result = _mapper.Map<AccounttViewModel>(account);
                     await transaction.CommitAsync();
                     return new BaseResponseModel
@@ -110,7 +124,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.password, existUser.Password);
                     if (verifyUser)
                     {
-                        if (existUser.Status == (int)AccountStatus.Inactive || existUser.IsDeleted == true)
+                        if (existUser.Status == (int)AccountStatus.Inactive 
+                            || existUser.Status == (int)AccountStatus.Pending 
+                            || existUser.IsDeleted == true)
                         {
                             return new AuthenticationResponseModel
                             {

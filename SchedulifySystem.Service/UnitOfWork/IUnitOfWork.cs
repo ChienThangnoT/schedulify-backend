@@ -14,6 +14,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IRoleRepository RoleRepo { get; }
         public IRoleAssignmentRepository RoleAssignmentRepo { get; }
         public ITeacherRepository TeacherRepo { get; }
+        public ISchoolRepository SchoolRepo { get; }
 
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
