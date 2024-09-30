@@ -39,5 +39,6 @@ namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
         public int TeacherRole { get; set; }
 
         public int Status { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }
