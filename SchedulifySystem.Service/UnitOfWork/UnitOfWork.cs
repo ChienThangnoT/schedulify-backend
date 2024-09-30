@@ -16,23 +16,28 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IRoleRepository _roleRepository;
         private readonly IRoleAssignmentRepository _roleAssignmentRepository;
         private readonly ITeacherRepository _teacherRepository;
+        private readonly ISchoolRepository _schoolRepository;
+
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
             IRoleRepository roleRepository,
             IRoleAssignmentRepository roleAssignmentRepository,
-            ITeacherRepository teacherRepository)
+            ITeacherRepository teacherRepository,
+            ISchoolRepository schoolRepository)
         {
             _context = context;
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _roleAssignmentRepository = roleAssignmentRepository;
             _teacherRepository = teacherRepository;
+            _schoolRepository = schoolRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
         public IRoleRepository RoleRepo => _roleRepository;
         public IRoleAssignmentRepository RoleAssignmentRepo => _roleAssignmentRepository;
         public ITeacherRepository TeacherRepo => _teacherRepository;
+        public ISchoolRepository SchoolRepo => _schoolRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {

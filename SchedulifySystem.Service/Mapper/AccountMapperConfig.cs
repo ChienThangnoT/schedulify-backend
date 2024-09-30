@@ -14,7 +14,7 @@ namespace SchedulifySystem.Service.Mapper
         partial void AccountMapperConfig()
         {
             CreateMap<CreateSchoolManagerModel, Account>().ReverseMap();
-            CreateMap<Account, AccounttViewModel>()
+            CreateMap<Account, AccountViewModel>()
             .ForMember(dest => dest.SchoolName,
                 opt => opt.MapFrom(src => src.School != null ? src.School.Name : string.Empty))
             .ReverseMap();
