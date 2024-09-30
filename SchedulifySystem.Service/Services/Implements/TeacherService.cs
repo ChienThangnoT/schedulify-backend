@@ -110,5 +110,27 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
         #endregion
+
+        #region DeleteTeacher
+        public async Task<BaseResponseModel> DeleteTeacher(int id)
+        {
+            try
+            {
+                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
+                if (existedTeacher == null)
+                {
+                    return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "The teacher is not found!" };
+                }
+                existedTeacher.IsDeleted = true;
+                _unitOfWork.TeacherRepo.Update(existedTeacher);
+                await _unitOfWork.SaveChangesAsync();
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Deleted Teacher success" };
+            }
+            catch(Exception ex)
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
+            }
+        }
+        #endregion
     }
 }

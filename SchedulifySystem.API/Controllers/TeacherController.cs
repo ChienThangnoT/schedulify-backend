@@ -44,5 +44,12 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherService.GetTeacherById(id));
         }
+
+        [HttpDelete("{id}")]
+        //[Authorize]
+        public Task<IActionResult> DeleteTeacher(int id)
+        {
+            return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
+        }
     }
 }
