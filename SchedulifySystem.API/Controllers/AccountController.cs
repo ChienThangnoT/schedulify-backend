@@ -18,7 +18,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        //[Authorize]
+        [Authorize]
         public Task<IActionResult> GetAccounts(AccountStatus? accountStatus, int pageSize = 20, int pageIndex = 1)
         {
             return ValidateAndExecute(() => _accountService.GetListAccount(accountStatus, pageIndex, pageSize));

@@ -20,7 +20,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int Status { get; set; }
         public string? Phone {  get; set; }
         public string? AvatarURL { get; set; }
-
+        public bool IsConfirmSchoolManager { get; set; }
         public School? School { get; set; }
         public ICollection<RoleAssignment> RoleAssignments { get; set; } = new List<RoleAssignment>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();

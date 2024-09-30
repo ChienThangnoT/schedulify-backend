@@ -1,4 +1,5 @@
 ﻿using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -13,5 +14,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<AuthenticationResponseModel> SignInAccountAsync(SignInModel signInModel);
         Task<AuthenticationResponseModel> RefreshToken(string jwtToken);
         Task<BaseResponseModel> CreateSchoolManagerAccount(CreateSchoolManagerModel createSchoolManagerModel);
+        Task<BaseResponseModel> ConfirmCreateSchoolManagerAccount(int schoolManagerId, int schoolId, AccountStatus accountStatus);
     }
 }
