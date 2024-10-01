@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/teachers")]
     [ApiController]
     public class TeacherController : BaseController
     {
@@ -16,28 +17,39 @@ namespace SchedulifySystem.API.Controllers
             _teacherService = teacherService;
         }
 
-        [HttpGet()]
+        [HttpGet]
+        [Authorize]
         public Task<IActionResult> GetTeachers(bool includeDeleted = false, int pageSize = 20, int pageIndex = 1)
         {
             return ValidateAndExecute(() => _teacherService.GetTeachers(includeDeleted, pageIndex, pageSize));
         }
 
-        [HttpPost()]
+        [HttpPost]
+        [Authorize]
         public Task<IActionResult> CreateTeacher(CreateTeacherRequestModel model)
         {
             return ValidateAndExecute(() => _teacherService.CreateTeacher(model));
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherRequestModel model)
         {
             return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public Task<IActionResult> GetTeacherById(int id)
         {
             return ValidateAndExecute(() => _teacherService.GetTeacherById(id));
+        }
+
+        [HttpDelete("{id}")]
+        //[Authorize]
+        public Task<IActionResult> DeleteTeacher(int id)
+        {
+            return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
         }
     }
 }

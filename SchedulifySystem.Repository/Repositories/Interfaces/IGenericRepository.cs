@@ -25,12 +25,7 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
             int? pageIndex = 1,
             int? pageSize = 20);
 
-        Task<Pagination<T>> ToPaginationAsync(
-            Expression<Func<T, bool>> filter = null,
-            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
-            string includeProperties = "",
-            int? pageIndex = 1,
-            int? pageSize = 20);
+        Task<Pagination<T>> ToPaginationAsync(int pageIndex = 1, int pageSize = 20);
 
         Task<Pagination<T>> GetPaginationAsync(
           Expression<Func<T, bool>> filter = null,
@@ -38,5 +33,13 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
           string includeProperties = "",
           int? pageIndex = 1, // Optional parameter for pagination (page number)
           int? pageSize = 20);
+
+        Task<Pagination<T>> ToPaginationIncludeAsync(
+            int pageIndex = 1,
+            int pageSize = 20, 
+            Func<IQueryable<T>, 
+            IIncludableQueryable<T, object>>? include = null,
+            Expression<Func<T, bool>> filter = null,
+          Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null);
     }
 }

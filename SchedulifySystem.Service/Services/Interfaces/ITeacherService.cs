@@ -15,5 +15,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> CreateTeacher(CreateTeacherRequestModel createTeacherRequestModel);
         Task<BaseResponseModel> UpdateTeacher(int id, UpdateTeacherRequestModel updateTeacherRequestModel);
         Task<BaseResponseModel> GetTeacherById(int id);
+        Task<BaseResponseModel> DeleteTeacher(int id);
     }
 }
