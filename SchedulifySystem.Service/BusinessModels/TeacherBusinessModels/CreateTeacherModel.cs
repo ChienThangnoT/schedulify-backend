@@ -7,9 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
+namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
 {
-    public class CreateTeacherRequestModel
+    public class CreateTeacherModel
     {
 
         [Required(ErrorMessage = "First Name is required."), MaxLength(100, ErrorMessage = "First Name can't be longer than 100 characters.")]

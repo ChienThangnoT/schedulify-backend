@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.Services.Interfaces;
-using SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels;
+using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -26,14 +26,22 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPost]
         [Authorize]
-        public Task<IActionResult> CreateTeacher(CreateTeacherRequestModel model)
+        public Task<IActionResult> CreateTeacher(CreateTeacherModel model)
         {
             return ValidateAndExecute(() => _teacherService.CreateTeacher(model));
         }
 
+        [HttpPost]
+        [Authorize]
+        [Route("add-list")]
+        public Task<IActionResult> CreateTeachers(List<CreateTeacherModel> models)
+        {
+            return ValidateAndExecute(() => _teacherService.CreateTeachers(models));
+        }
+
         [HttpPut("{id}")]
         [Authorize]
-        public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherRequestModel model)
+        public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherModel model)
         {
             return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
         }
@@ -43,6 +51,13 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> GetTeacherById(int id)
         {
             return ValidateAndExecute(() => _teacherService.GetTeacherById(id));
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize]
+        public Task<IActionResult> DeleteTeacher(int id)
+        {
+            return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
         }
     }
 }
