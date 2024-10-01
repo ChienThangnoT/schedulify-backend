@@ -57,8 +57,8 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             Expression<Func<T, bool>> filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
             string includeProperties = "",
-            int? pageIndex = null, // Optional parameter for pagination (page number)
-            int? pageSize = null)  // Optional parameter for pagination (number of records per page)
+            int? pageIndex = null,
+            int? pageSize = null)
         {
             IQueryable<T> query = _dbSet;
 
@@ -81,70 +81,13 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             // Implementing pagination
             if (pageIndex.HasValue && pageSize.HasValue)
             {
-                // Ensure the pageIndex and pageSize are valid
                 int validPageIndex = pageIndex.Value > 0 ? pageIndex.Value - 1 : 0;
-                int validPageSize = pageSize.Value > 0 ? pageSize.Value : 10; // Assuming a default pageSize of 10 if an invalid value is passed
+                int validPageSize = pageSize.Value > 0 ? pageSize.Value : 10;
 
                 query = query.Skip(validPageIndex * validPageSize).Take(validPageSize);
             }
 
             return await query.ToListAsync();
-        }
-
-        public async Task<Pagination<T>> ToPaginationAsync(
-            Expression<Func<T, bool>> filter = null,
-            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
-            string includeProperties = "",
-            int? pageIndex = null, // Optional parameter for pagination (page number)
-            int? pageSize = null)  // Optional parameter for pagination (number of records per page)
-        {
-            IQueryable<T> query = _dbSet;
-
-            var itemCount = await CountAsync();
-
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
-
-            foreach (var includeProperty in includeProperties.Split
-                (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                query = query.Include(includeProperty);
-            }
-
-            if (orderBy != null)
-            {
-                query = orderBy(query);
-            }
-
-            // Implementing pagination
-            if (pageIndex.HasValue && pageSize.HasValue)
-            {
-                // Ensure the pageIndex and pageSize are valid
-                int validPageIndex = pageIndex.Value > 0 ? pageIndex.Value - 1 : 0;
-                int validPageSize = pageSize.Value > 0 ? pageSize.Value : 10; // Assuming a default pageSize of 10 if an invalid value is passed
-
-                query = query.Skip(validPageIndex * validPageSize).Take(validPageSize);
-            }
-
-            //return await query.ToListAsync();
-
-            var result = new Pagination<T>()
-            {
-                PageSize = (int)pageSize,
-                TotalItemCount = itemCount,
-                PageIndex = (int)pageIndex,
-            };
-
-            var items = await query.Skip(result.PageIndex * result.PageSize)
-                .Take(result.PageSize)
-                .AsNoTracking()
-                .ToListAsync();
-
-            result.Items = items;
-
-            return result;
         }
 
         public async Task<int> CountAsync(Expression<Func<T, bool>> filter = null)
@@ -163,8 +106,8 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             Expression<Func<T, bool>> filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
             string includeProperties = "",
-            int? pageIndex = null, // Optional parameter for pagination (page number)
-            int? pageSize = null)  // Optional parameter for pagination (number of records per page)
+            int? pageIndex = null,
+            int? pageSize = null)
         {
             IQueryable<T> query = _dbSet;
 
@@ -209,7 +152,7 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             return result;
         }
 
-        public async Task<Pagination<T>> ToPaginationAsync(int pageIndex = 0, int pageSize = 10)
+        public async Task<Pagination<T>> ToPaginationAsync(int pageIndex = 1, int pageSize = 20)
         {
             // get total count of items in the db set
             var itemCount = await CountAsync();
@@ -225,6 +168,51 @@ namespace SchedulifySystem.Repository.Repositories.Implements
                 .Take(result.PageSize)
                 .AsNoTracking()
                 .ToListAsync();
+
+            result.Items = items;
+
+            return result;
+        }
+
+
+        public async Task<Pagination<T>> ToPaginationIncludeAsync(
+            int pageIndex = 1,
+            int pageSize = 20,
+            Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
+            Expression<Func<T, bool>> filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null)
+         {
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            if (include != null)
+            {
+                query = include(query);
+            }
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            var itemCount = await query.CountAsync();
+
+            var result = new Pagination<T>
+            {
+                PageSize = pageSize,
+                TotalItemCount = itemCount,
+                PageIndex = pageIndex
+            };
+
+            // Implement pagination
+            int validPageIndex = pageIndex > 0 ? pageIndex - 1 : 0;
+            query = query.Skip(validPageIndex * pageSize).Take(pageSize);
+
+            var items = await query.AsNoTracking().ToListAsync();
 
             result.Items = items;
 

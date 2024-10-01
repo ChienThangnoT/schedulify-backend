@@ -8,6 +8,6 @@ namespace SchedulifySystem.Service.Exceptions
 {
     public class NotExistsException : Exception
     {
-        public NotExistsException() : base("Not found!") { }
+        public NotExistsException(string msg) : base(msg) { }
     }
 }

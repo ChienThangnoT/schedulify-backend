@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
+using SchedulifySystem.Service.Enums;
+using SchedulifySystem.Service.Services.Implements;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
+using System.Drawing.Printing;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -17,6 +20,12 @@ namespace SchedulifySystem.API.Controllers
         public UserController(IUserService userService)
         {
             _userService = userService;
+        }
+
+        [HttpPut("confirm-school-manager-account")]
+        public Task<IActionResult> ConfirmCreateSchoolManagerAccount(int schoolManagerId, int schoolId, AccountStatus accountStatus)
+        {
+            return ValidateAndExecute(() => _userService.ConfirmCreateSchoolManagerAccount(schoolManagerId, schoolId, accountStatus));
         }
 
         [HttpPost("login")]

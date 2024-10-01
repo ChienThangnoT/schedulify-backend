@@ -5,12 +5,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
+using SchedulifySystem.Service.BusinessModels.EmailModels;
 using SchedulifySystem.Service.BusinessModels.RoleAssignmentBusinessModels;
 using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils;
+using SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -18,6 +20,7 @@ using System.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,14 +31,68 @@ namespace SchedulifySystem.Service.Services.Implements
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
+        private readonly IMailService _mailService;
 
-        public UserService(IMapper mapper, IUnitOfWork unitOfWork, IConfiguration configuration)
+        public UserService(IMapper mapper, IUnitOfWork unitOfWork, IConfiguration configuration, IMailService mailService)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
+            _mailService = mailService;
         }
-
+        #region confirm create account
+        public async Task<BaseResponseModel> ConfirmCreateSchoolManagerAccount(int schoolManagerId, int schoolId, AccountStatus accountStatus)
+        {
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var schoolManager = await _unitOfWork.UserRepo.GetByIdAsync(schoolManagerId) ?? throw new NotExistsException("Not found school manager!");
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException("Not found school");
+                    if (accountStatus == AccountStatus.Pending || accountStatus == 0)
+                    {
+                        return new BaseResponseModel
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = "Account status must be different than Pending status or not null"
+                        };
+                    }
+                    var isConfirm = schoolManager.IsConfirmSchoolManager;
+                    if (isConfirm == true)
+                    {
+                        return new BaseResponseModel
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = "School manager has been verified!"
+                        };
+                    }
+                    schoolManager.IsConfirmSchoolManager = true;
+                    schoolManager.Status = (int)accountStatus;
+                    _unitOfWork.UserRepo.Update(schoolManager);
+                    await _unitOfWork.SaveChangesAsync();
+                    
+                    var messageRequest = new EmailRequest
+                    {
+                        To = schoolManager.Email,
+                        Subject = "Đăng ký tài khoản thành công",
+                        Content = MailTemplate.ConfirmTemplate(school.Name)
+                    };
+                    await _mailService.SendEmailAsync(messageRequest);
+                    await transaction.CommitAsync();
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = "Confirm create school manager account success"
+                    };
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+        }
+        #endregion
         #region sign up - create school manager account
         public async Task<BaseResponseModel> CreateSchoolManagerAccount(CreateSchoolManagerModel createSchoolManagerModel)
         {
@@ -48,9 +105,28 @@ namespace SchedulifySystem.Service.Services.Implements
                     {
                         throw new AccountAlreadyExistsException();
                     }
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(createSchoolManagerModel.SchoolId);
+                    if (school == null)
+                    {
+                        throw new NotExistsException("Not found school");
+                    }
+
+                    var schoolsInAccount = _unitOfWork.UserRepo.GetAsync(filter: t => t.SchoolId == createSchoolManagerModel.SchoolId);
+                    if(schoolsInAccount != null)
+                    {
+                        return new BaseResponseModel
+                        {
+                            Status = StatusCodes.Status409Conflict,
+                            Message = "School has been assigned to another account!",
+                        };
+                    }
+
                     var account = _mapper.Map<Account>(createSchoolManagerModel);
                     account.Password = AuthenticationUtils.HashPassword(createSchoolManagerModel.Password);
+                    account.CreateDate = DateTime.UtcNow;
+                    account.IsConfirmSchoolManager = false;
                     await _unitOfWork.UserRepo.AddAsync(account);
+                    await _unitOfWork.SaveChangesAsync();
                     var role = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.SchoolManager.ToString());
                     if (role == null)
                     {
@@ -71,13 +147,15 @@ namespace SchedulifySystem.Service.Services.Implements
                     var accountRoleEntyties = _mapper.Map<RoleAssignment>(accountRoleModel);
                     await _unitOfWork.RoleAssignmentRepo.AddAsync(accountRoleEntyties);
                     await _unitOfWork.SaveChangesAsync();
-                    //var result = _mapper.Map<AccounttViewModel>(account);
+                    
+                    account.School = school;
+                    var result = _mapper.Map<AccountViewModel>(account);
                     await transaction.CommitAsync();
                     return new BaseResponseModel
                     {
-                        Status = StatusCodes.Status200OK,
+                        Status = StatusCodes.Status201Created,
                         Message = "Create school manager successful!",
-                        Result = account
+                        Result = result
                     };
                 }
                 catch (Exception ex)
@@ -89,7 +167,6 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
         #endregion
-
 
         #region sign in
         public async Task<AuthenticationResponseModel> SignInAccountAsync(SignInModel signInModel)
@@ -110,7 +187,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.password, existUser.Password);
                     if (verifyUser)
                     {
-                        if (existUser.Status == (int)AccountStatus.Inactive || existUser.IsDeleted == true)
+                        if (existUser.Status == (int)AccountStatus.Inactive
+                            || existUser.Status == (int)AccountStatus.Pending
+                            || existUser.IsDeleted == true)
                         {
                             return new AuthenticationResponseModel
                             {
@@ -255,6 +334,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 AccountId = account.Id
             };
         }
+
         #endregion
     }
 }
