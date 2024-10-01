@@ -11,9 +11,9 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? GroupName { get; set; }
         public int SchoolId { get; set; }
         public string? GroupDescription { get; set; }
-        public School? School { get; set; }
         public int SubjectGroupType { get; set; }
 
+        public School? School { get; set; }
         public ICollection<SubjectInGroup> SubjectInGroups { get; set; } = new List<SubjectInGroup>();
         public ICollection<ClassGroup> ClassGroups { get; set; } = new List<ClassGroup>();
     }
