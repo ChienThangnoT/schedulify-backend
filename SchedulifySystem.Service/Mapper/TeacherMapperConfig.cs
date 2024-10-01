@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
-using SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels;
-using SchedulifySystem.Service.ViewModels.ResponseModels.TeacherResponseModels;
+using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,11 +13,11 @@ namespace SchedulifySystem.Service.Mapper
     {
         partial void TeacherMapperConfig()
         {
-            CreateMap<Teacher, TeacherResponseModel>();
-            CreateMap<CreateTeacherRequestModel, Teacher>()
+            CreateMap<Teacher, TeacherViewModel>();
+            CreateMap<CreateTeacherModel, Teacher>()
                 .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => DateOnly.Parse(src.DateOfBirth)))
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
-            CreateMap<UpdateTeacherRequestModel, Teacher>()
+            CreateMap<UpdateTeacherModel, Teacher>()
                 .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => DateOnly.Parse(src.DateOfBirth)))
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
         }

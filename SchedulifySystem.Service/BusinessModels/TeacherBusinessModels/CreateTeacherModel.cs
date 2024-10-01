@@ -1,15 +1,17 @@
-﻿using SchedulifySystem.Service.Validations;
+﻿using SchedulifySystem.Repository.EntityModels;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
+namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
 {
-    public class UpdateTeacherRequestModel
+    public class CreateTeacherModel
     {
+
         [Required(ErrorMessage = "First Name is required."), MaxLength(100, ErrorMessage = "First Name can't be longer than 100 characters.")]
         public string? FirstName { get; set; }
 
@@ -27,9 +29,7 @@ namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
 
         public int DepartmentId { get; set; }
 
-        [Required(ErrorMessage = "Date of Birth is require")]
         [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Date of Birth must be in the format YYYY-MM-DD.")]
-        [ValidDateOnly(ErrorMessage = "Date of Birth is not a valid date.")]
         public string DateOfBirth { get; set; }
 
         public int SchoolId { get; set; }
@@ -39,6 +39,7 @@ namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
         public int TeacherRole { get; set; }
 
         public int Status { get; set; }
-        public bool IsDeleted { get; set; }
+
+        
     }
 }

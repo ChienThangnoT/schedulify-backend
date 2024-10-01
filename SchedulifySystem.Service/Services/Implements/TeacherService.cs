@@ -6,9 +6,7 @@ using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
-using SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
-using SchedulifySystem.Service.ViewModels.ResponseModels.TeacherResponseModels;
 using System;
 using System.Collections.Generic;
 using System.Drawing.Printing;
@@ -34,7 +32,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #region CreateTeacher
-        public async Task<BaseResponseModel> CreateTeacher(CreateTeacherRequestModel createTeacherRequestModel)
+        public async Task<BaseResponseModel> CreateTeacher(CreateTeacherModel createTeacherRequestModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
@@ -63,7 +61,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #region CreateTeachers
-        public async Task<BaseResponseModel> CreateTeachers(List<CreateTeacherRequestModel> createTeacherRequestModels)
+        public async Task<BaseResponseModel> CreateTeachers(List<CreateTeacherModel> createTeacherRequestModels)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
@@ -122,7 +120,7 @@ namespace SchedulifySystem.Service.Services.Implements
             try
             {
                 var teachers = await _unitOfWork.TeacherRepo.GetPaginationAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => includeDeleted ? true : t.IsDeleted == false);
-                var teachersResponse = _mapper.Map<Pagination<TeacherResponseModel>>(teachers);
+                var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
             }
             catch (Exception ex)
@@ -133,7 +131,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region UpdateTeacher
-        public async Task<BaseResponseModel> UpdateTeacher(int id, UpdateTeacherRequestModel updateTeacherRequestModel)
+        public async Task<BaseResponseModel> UpdateTeacher(int id, UpdateTeacherModel updateTeacherRequestModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
@@ -167,7 +165,7 @@ namespace SchedulifySystem.Service.Services.Implements
             try
             {
                 var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
-                var teachersResponse = _mapper.Map<TeacherResponseModel>(teacher);
+                var teachersResponse = _mapper.Map<TeacherViewModel>(teacher);
                 return teacher != null ? new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse } :
                     new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "The teacher is not found!" };
             }

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Service.ViewModels.ResponseModels.TeacherResponseModels
+namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
 {
-    public class TeacherResponseModel
+    public class TeacherViewModel
     {
         public int Id { get; set; }
         public string? FirstName { get; set; }
