@@ -23,6 +23,10 @@ namespace SchedulifySystem.API.Middleware
             {
                 await HandleExceptionAsync(context, ex, StatusCodes.Status409Conflict);
             }
+            catch (AlreadyExistsException ex)
+            {
+                await HandleExceptionAsync(context, ex, StatusCodes.Status409Conflict);
+            }
             catch (NotExistsException ex)
             {
                 await HandleExceptionAsync(context, ex, StatusCodes.Status404NotFound);

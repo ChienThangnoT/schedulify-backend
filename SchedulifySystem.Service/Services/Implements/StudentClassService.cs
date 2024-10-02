@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
+using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Repository.Repositories.Interfaces;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.Exceptions;
@@ -26,6 +27,73 @@ namespace SchedulifySystem.Service.Services.Implements
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
+        #region CreateStudentClass
+        public async Task<BaseResponseModel> CreateStudentClass(CreateStudentClassModel createStudentClassModel)
+        {
+            string className = createStudentClassModel.Name.ToUpper();
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => sc.Name.Equals(className) && sc.SchoolYearId == createStudentClassModel.SchoolYearId);
+            if (existedClass.FirstOrDefault() == null)
+            {
+                var newClass = _mapper.Map<StudentClass>(createStudentClassModel);
+                await _unitOfWork.StudentClassesRepo.AddAsync(newClass);
+                await _unitOfWork.SaveChangesAsync();
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = $"Class {className} is created!" };
+            }
+            throw new AlreadyExistsException($"Class {className} is already existed!");
+
+        }
+        #endregion
+
+        #region CreateStudentClasses
+        public async Task<BaseResponseModel> CreateStudentClasses(List<CreateStudentClassModel> createStudentClassModels)
+        {
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var addAbleClasses = new List<StudentClass>();
+                    var addedClasses = new List<string>();
+
+                    var skippedClasses = new List<string>();
+
+                    foreach (var studentClass in createStudentClassModels)
+                    {
+                        var className = studentClass.Name.ToUpper();
+                        var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => sc.Name.Equals(className) && sc.SchoolYearId == studentClass.SchoolYearId);
+                        if (existedClass.FirstOrDefault() != null)
+                        {
+                            if (existedClass.FirstOrDefault().IsDeleted)
+                            {
+                                continue;
+                            }
+                            skippedClasses.Add($"Class {className} can not be add due to existed!");
+                            continue;
+                        }
+                        addedClasses.Add($"Class {className} is added!");
+                        addAbleClasses.Add(_mapper.Map<StudentClass>(studentClass));
+                    }
+                    await _unitOfWork.StudentClassesRepo.AddRangeAsync(addAbleClasses);
+                    await _unitOfWork.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = "Operation completed!",
+                        Result = new
+                        {
+                            AddedClasses = addedClasses,
+                            SkippedClasses = skippedClasses
+                        }
+                    };
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+        }
+        #endregion
 
         #region GetStudentClassById
         public async Task<BaseResponseModel> GetStudentClassById(int id)

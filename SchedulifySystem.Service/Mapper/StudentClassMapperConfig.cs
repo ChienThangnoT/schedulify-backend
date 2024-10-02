@@ -10,7 +10,12 @@ namespace SchedulifySystem.Service.Mapper
         partial void StudentClassMapperConfig()
         {
             CreateMap<StudentClass, StudentClassViewModel>()
-                .ForMember(dest => dest.HomeroomTeacherName, otp => otp.MapFrom(src => src.Teacher == null ? "" : $"{src.Teacher.FirstName} {src.Teacher.LastName}"));
+                .ForMember(dest => dest.HomeroomTeacherName, 
+                otp => otp.MapFrom(src => src.Teacher == null ? "" : $"{src.Teacher.FirstName} {src.Teacher.LastName}"));
+            CreateMap<CreateStudentClassModel, StudentClass>()
+                .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.ToUpper()));
+
         }
     }
 }
