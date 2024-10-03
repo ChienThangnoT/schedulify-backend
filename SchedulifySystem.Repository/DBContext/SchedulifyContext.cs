@@ -259,6 +259,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(c => c.ClassGroup)
             .WithMany(sy => sy.CurriculumList)
             .HasForeignKey(c => c.ClassGroupId);
+        modelBuilder.Entity<Curriculum>()
+           .HasOne(c => c.SubjectGroup)
+           .WithMany(sg => sg.Curriculums)
+           .HasForeignKey(c => c.SubjectGroupId);
 
         // Department Entity
         modelBuilder.Entity<Department>()
@@ -385,6 +389,10 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<Subject>()
             .Property(s => s.Description)
             .HasMaxLength(150);
+        modelBuilder.Entity<Subject>()
+            .HasOne(s => s.School)
+            .WithMany(s => s.Subjects)
+            .HasForeignKey(s => s.SchoolId);
 
         // SubjectConfig Entity
         modelBuilder.Entity<SubjectConfig>()
@@ -431,6 +439,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sig => sig.School)
             .WithMany(sg => sg.SubjectGroups)
             .HasForeignKey(sig => sig.SchoolId);
+        modelBuilder.Entity<SubjectGroup>()
+            .HasOne(sg => sg.SubjectGroupType)
+            .WithMany(sgt => sgt.subjectGroups)
+            .HasForeignKey(sg => sg.SubjectGroupTypeId);
 
         // SubjectInGroup Entity
         modelBuilder.Entity<SubjectInGroup>()
@@ -443,6 +455,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sig => sig.Subject)
             .WithMany(s => s.SubjectInGroups)
             .HasForeignKey(sig => sig.SubjectId);
+        modelBuilder.Entity<SubjectInGroup>()
+            .HasOne(sig => sig.Term)
+            .WithMany(t => t.SubjectInGroups)
+            .HasForeignKey(sig => sig.TermId);
 
         // TeachableSubject Entity
         modelBuilder.Entity<TeachableSubject>()
@@ -592,6 +608,9 @@ public partial class SchedulifyContext : DbContext
             .WithMany(t => t.SubmitRequests)
             .HasForeignKey(sr => sr.TeacherId);
 
+        //SubjectGroupType Entity
+        modelBuilder.Entity<SubjectGroupType>()
+            .HasKey(sgt => sgt.Id);
 
     }
 }
