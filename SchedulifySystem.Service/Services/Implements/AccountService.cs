@@ -5,6 +5,7 @@ using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
 using SchedulifySystem.Service.Enums;
+using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
@@ -30,39 +31,33 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetListAccount(AccountStatus? accountStatus, int pageIndex, int pageSize)
         {
-            try
-            {
-                Expression<Func<Account, bool>> filter;
 
-                if (accountStatus == null)
-                {
-                    filter = null; 
-                }
-                else
-                {
-                    filter = u => u.Status == (int)accountStatus.Value;
-                }
+            Expression<Func<Account, bool>> filter;
 
-                var accounts = await _unitOfWork.UserRepo.ToPaginationIncludeAsync(
-                pageIndex, pageSize,
-                query => query.Include(s => s.School),
-                filter: filter
-                );
-                var result = _mapper.Map<Pagination<AccountViewModel>>(accounts);
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status200OK,
-                    Result = result
-                };
-            }
-            catch (Exception ex)
+            if (accountStatus == null)
             {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status500InternalServerError,
-                    Message = ex.Message
-                };
+                filter = null;
             }
+            else
+            {
+                filter = u => u.Status == (int)accountStatus.Value;
+            }
+
+            var accounts = await _unitOfWork.UserRepo.ToPaginationIncludeAsync(
+            pageIndex, pageSize,
+            query => query.Include(s => s.School),
+            filter: filter
+            );
+            if (accounts.Items.Count == 0)
+            {
+                throw new NotExistsException("Account list not exist");
+            }
+            var result = _mapper.Map<Pagination<AccountViewModel>>(accounts);
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Result = result
+            };
         }
     }
 }

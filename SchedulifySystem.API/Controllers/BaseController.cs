@@ -14,19 +14,7 @@ namespace SchedulifySystem.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-
-            try
-            {
-                return GetActionResponse(await func());
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponseModel
-                {
-                    Status = StatusCodes.Status500InternalServerError,
-                    Message = "An unexpected error has occurred.",
-                });
-            }
+            return GetActionResponse(await func());
         }
 
         protected IActionResult GetActionResponse(BaseResponseModel baseResponse)

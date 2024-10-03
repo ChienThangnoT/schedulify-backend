@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 {
-    internal class SubjectAddModel
+    public class SubjectAddModel
     {
+        public string? SubjectName { get; set; }
+        public string? Abbreviation { get; set; }
+        public bool IsRequired { get; set; }
+        public string? Description { get; set; }
     }
 }

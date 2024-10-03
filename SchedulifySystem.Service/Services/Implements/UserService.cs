@@ -157,7 +157,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         Result = result
                     };
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await transaction.RollbackAsync();
                     throw;

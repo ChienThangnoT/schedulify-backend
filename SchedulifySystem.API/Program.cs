@@ -1,4 +1,5 @@
 using SchedulifySystem.API;
+using SchedulifySystem.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +18,8 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseHttpsRedirection();
-
 app.UseCors("app-cors");
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
