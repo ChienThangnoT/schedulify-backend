@@ -112,5 +112,14 @@ namespace SchedulifySystem.Service.Services.Implements
 
         }
         #endregion
+
+        #region UpdateStudentClass
+        public async Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassBusinessModel updateStudentClassBusinessModel)
+        {
+            //var existedClasses = await _unitOfWork.SchoolRepo.GetAsync(filter: sc => sc.Id == id, includeProperties: ""); 
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK };
+            
+        }
+        #endregion
     }
 }

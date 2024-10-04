@@ -45,5 +45,11 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(models));
         }
+
+        [HttpPut("{id}")]
+        public Task<IActionResult> UpdateStudentClass(int id, UpdateStudentClassBusinessModel model)
+        {
+            return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(id, model));
+        }
     }
 }
