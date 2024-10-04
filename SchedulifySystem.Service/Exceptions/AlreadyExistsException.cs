@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace SchedulifySystem.Service.Exceptions
 {
     [Serializable]
-    internal class AlreadyExistsException : Exception
+    public class AlreadyExistsException : Exception
     {
         public AlreadyExistsException() : base() { }
 

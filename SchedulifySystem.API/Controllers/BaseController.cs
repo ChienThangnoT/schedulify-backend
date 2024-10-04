@@ -14,6 +14,7 @@ namespace SchedulifySystem.API.Controllers
             {
                 return BadRequest(ModelState);
             }
+
             return GetActionResponse(await func());
         }
 
