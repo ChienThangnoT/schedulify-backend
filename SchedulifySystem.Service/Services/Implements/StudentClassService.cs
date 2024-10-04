@@ -31,7 +31,7 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> CreateStudentClass(CreateStudentClassModel createStudentClassModel)
         {
             string className = createStudentClassModel.Name.ToUpper();
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => sc.Name.Equals(className) && sc.SchoolYearId == createStudentClassModel.SchoolYearId);
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == createStudentClassModel.SchoolYearId);
             if (existedClass.FirstOrDefault() == null)
             {
                 var newClass = _mapper.Map<StudentClass>(createStudentClassModel);
@@ -59,13 +59,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     foreach (var studentClass in createStudentClassModels)
                     {
                         var className = studentClass.Name.ToUpper();
-                        var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => sc.Name.Equals(className) && sc.SchoolYearId == studentClass.SchoolYearId);
-                        if (existedClass.FirstOrDefault() != null)
+                        var existedClasses = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == studentClass.SchoolYearId);
+                        var existedClass = existedClasses.FirstOrDefault();
+                        if (existedClass != null)
                         {
-                            if (existedClass.FirstOrDefault().IsDeleted)
-                            {
-                                continue;
-                            }
                             skippedClasses.Add($"Class {className} can not be add due to existed!");
                             continue;
                         }

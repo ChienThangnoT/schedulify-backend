@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
+using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
@@ -115,18 +117,14 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region GetTeachers
-        public async Task<BaseResponseModel> GetTeachers(bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetTeachers(int schoolId, bool includeDeleted, int pageIndex, int pageSize)
         {
-            try
-            {
-                var teachers = await _unitOfWork.TeacherRepo.GetPaginationAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => includeDeleted ? true : t.IsDeleted == false);
-                var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
-                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
-            }
-            catch (Exception ex)
-            {
-                return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
-            }
+            _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException("School is not found!");
+
+            var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false),
+                include: query => query.Include(t => t.Department).Include(t => t.Group).Include(t => t.TeachableSubjects));
+            var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
         }
         #endregion
 
@@ -155,7 +153,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
                 }
             }
-               
+
         }
         #endregion
 
