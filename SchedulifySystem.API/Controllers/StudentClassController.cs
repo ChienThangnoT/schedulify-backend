@@ -19,7 +19,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        //[Authorize]
+        [Authorize]
         public Task<IActionResult> GetStudentClasses(int schoolId, int? schoolYearId = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, schoolYearId, includeDeleted, pageIndex, pageSize));
