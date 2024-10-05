@@ -32,6 +32,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             string className = createStudentClassModel.Name.ToUpper();
             var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == createStudentClassModel.SchoolYearId);
+            //var existedGrade = await _unitOfWork
             if (existedClass.FirstOrDefault() == null)
             {
                 var newClass = _mapper.Map<StudentClass>(createStudentClassModel);

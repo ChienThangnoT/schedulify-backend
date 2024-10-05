@@ -15,5 +15,6 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int? SchoolYearId { get; set; }
         public int? MainSession { get; set; }
         public int? Status { get; set; }
+        public int? GradeId { get; set; }
     }
 }
