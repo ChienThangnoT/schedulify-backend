@@ -112,5 +112,16 @@ namespace SchedulifySystem.Service.Services.Implements
 
         }
         #endregion
+
+        #region DeleteStudentClass
+        public async Task<BaseResponseModel> DeleteStudentClass(int id)
+        {
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id) ?? throw new NotExistsException($"Class id {id} is not found!");
+            existedClass.IsDeleted = true;
+            _unitOfWork.StudentClassesRepo.Update(existedClass);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Class delete success!"};
+        }
+        #endregion
     }
 }
