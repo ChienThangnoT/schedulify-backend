@@ -9,5 +9,6 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
 {
     public interface ISubjectRepository : IGenericRepository<Subject>
     {
+        public List<Subject?> GetSubjectByName(string subjectName);
     }
 }

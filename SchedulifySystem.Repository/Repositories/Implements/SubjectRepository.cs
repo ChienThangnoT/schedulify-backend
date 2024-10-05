@@ -11,8 +11,17 @@ namespace SchedulifySystem.Repository.Repositories.Implements
 {
     public class SubjectRepository : GenericRepository<Subject>, ISubjectRepository
     {
+        private SchedulifyContext _context;
+
         public SubjectRepository(SchedulifyContext context) : base(context)
         {
+            _context = context;
+        }
+
+        public List<Subject?> GetSubjectByName(string subjectName)
+        {
+            var subjects = _context.Subjects.Where(x => x.SubjectName == subjectName).ToList();
+            return subjects;
         }
     }
 }
