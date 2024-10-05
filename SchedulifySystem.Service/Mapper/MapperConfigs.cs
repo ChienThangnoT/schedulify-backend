@@ -26,10 +26,14 @@ namespace SchedulifySystem.Service.Mapper
 
             //add student class mapper config
             StudentClassMapperConfig();
+
+            //add subject mapper config
+            SubjectMapperConfig();
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
         partial void RoleAssignmentMapperConfig();
         partial void StudentClassMapperConfig();
+        partial void SubjectMapperConfig();
     }
 }
