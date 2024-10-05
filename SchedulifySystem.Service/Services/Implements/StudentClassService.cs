@@ -66,8 +66,10 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region CreateStudentClasses
-        public async Task<BaseResponseModel> CreateStudentClasses(List<CreateStudentClassModel> createStudentClassModels)
+        public async Task<BaseResponseModel> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> createStudentClassModels)
         {
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"school id {schoolId} is not found!");
+            
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
@@ -80,7 +82,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     {
 
                         var className = studentClass.Name.ToUpper();
-                        var existedClasses = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == studentClass.SchoolYearId);
+                        var existedClasses = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == schoolYearId);
                         var existedClass = existedClasses.FirstOrDefault();
                         if (existedClass != null)
                         {
@@ -97,6 +99,8 @@ namespace SchedulifySystem.Service.Services.Implements
                         else
                         {
                             var newClass = _mapper.Map<StudentClass>(studentClass);
+                            newClass.SchoolId = schoolId;
+                            newClass.SchoolYearId = schoolYearId;
                             await _unitOfWork.StudentClassesRepo.AddAsync(newClass);
                             await _unitOfWork.SaveChangesAsync();
                             var classInGroup = new StudentClassInGroup()

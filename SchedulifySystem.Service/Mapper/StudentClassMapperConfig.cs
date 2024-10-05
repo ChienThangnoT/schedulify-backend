@@ -28,6 +28,10 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForPath(dest => dest.Name, opt => opt.MapFrom(src => src.Name.ToUpper()));
 
+            CreateMap<CreateListStudentClassModel, StudentClass>()
+                .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForPath(dest => dest.Name, opt => opt.MapFrom(src => src.Name.ToUpper()));
+
             CreateMap<UpdateStudentClassModel, StudentClassInGroup>()
             .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow)) 
             .ForPath(dest => dest.StudentClass.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow)) 
