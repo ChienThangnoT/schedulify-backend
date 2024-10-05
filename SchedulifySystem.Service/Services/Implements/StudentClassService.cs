@@ -21,6 +21,7 @@ namespace SchedulifySystem.Service.Services.Implements
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private const int ROOT = 0;
 
         public StudentClassService(IUnitOfWork unitOfWork, IMapper mapper)
         {
@@ -36,7 +37,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             //check grade
             var existedGrade = await _unitOfWork.ClassGroupRepo
-                .GetByIdAsync(id: createStudentClassModel.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == 0)
+                .GetByIdAsync(id: createStudentClassModel.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == ROOT)
                 ?? throw new NotExistsException($"Grade id {createStudentClassModel.GradeId} is not found!");
 
             //check class
@@ -87,7 +88,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         }
                         // check grade is exist
                         var existedGrade = await _unitOfWork.ClassGroupRepo
-                            .GetByIdAsync(id: studentClass.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == 0);
+                            .GetByIdAsync(id: studentClass.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == ROOT);
                         if (existedGrade == null)
                         {
                             skippedClasses.Add($"Class {className} can not be add due to grade id {studentClass.GradeId} do not exist!");
@@ -134,8 +135,8 @@ namespace SchedulifySystem.Service.Services.Implements
         #region GetStudentClassById
         public async Task<BaseResponseModel> GetStudentClassById(int id)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id) ?? throw new NotExistsException($"Student class id {id} is not found!");
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get class success!", Result = existedClass };
+            var existedClass = await _unitOfWork.StudentClassInGroupRepo.GetByIdAsync(id, include: query => query.Include(stig => stig.ClassGroup).Include(stig => stig.StudentClass).Include(stig => stig.StudentClass.Teacher)) ?? throw new NotExistsException($"Student class id {id} is not found!");
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get class success!", Result = _mapper.Map<StudentClassViewModel>(existedClass) };
         }
         #endregion
 
@@ -143,9 +144,9 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> GetStudentClasses(int schoolId, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException("School is not found!");
-            var studentClasses = await _unitOfWork.StudentClassesRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
-                filter: tc => tc.School.Id == schoolId && (includeDeleted ? true : tc.IsDeleted == false) && (schoolYearId == null ? true : tc.SchoolYearId == schoolYearId),
-                include: query => query.Include(tc => tc.Teacher));
+            var studentClasses = await _unitOfWork.StudentClassInGroupRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
+                filter: stig => stig.StudentClass.SchoolId == schoolId && (includeDeleted ? true : stig.IsDeleted == false) && (stig.ClassGroup.ParentId == ROOT) && (schoolYearId == null ? true : stig.StudentClass.SchoolYearId == schoolYearId),
+                include: query => query.Include(stig => stig.ClassGroup).Include(stig => stig.StudentClass).Include(stig => stig.StudentClass.Teacher));
             var studentClassesViewModel = _mapper.Map<Pagination<StudentClassViewModel>>(studentClasses);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get student classes success!", Result = studentClassesViewModel };
 
