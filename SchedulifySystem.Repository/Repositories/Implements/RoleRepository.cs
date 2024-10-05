@@ -19,7 +19,7 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             _context = context;
         }
 
-        public async Task<Role> GetRoleByNameAsync(string roleName)
+        public async Task<Role?> GetRoleByNameAsync(string roleName)
         {
             var existRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
             return existRole;
@@ -29,6 +29,5 @@ namespace SchedulifySystem.Repository.Repositories.Implements
         {
             return await _context.Roles.Where(r => roleIds.Contains(r.Id)).ToListAsync();
         }
-
     }
 }
