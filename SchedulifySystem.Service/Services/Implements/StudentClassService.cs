@@ -27,16 +27,34 @@ namespace SchedulifySystem.Service.Services.Implements
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
+
         #region CreateStudentClass
         public async Task<BaseResponseModel> CreateStudentClass(CreateStudentClassModel createStudentClassModel)
         {
             string className = createStudentClassModel.Name.ToUpper();
             var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == createStudentClassModel.SchoolYearId);
-            //var existedGrade = await _unitOfWork
+
+            //check grade
+            var existedGrade = await _unitOfWork.ClassGroupRepo
+                .GetByIdAsync(id: createStudentClassModel.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == 0)
+                ?? throw new NotExistsException($"Grade id {createStudentClassModel.GradeId} is not found!");
+
+            //check class
             if (existedClass.FirstOrDefault() == null)
             {
                 var newClass = _mapper.Map<StudentClass>(createStudentClassModel);
                 await _unitOfWork.StudentClassesRepo.AddAsync(newClass);
+                //save to get class id
+                await _unitOfWork.SaveChangesAsync();
+
+                //create new class in group
+                var classInGroup = new StudentClassInGroup()
+                {
+                    StudentClassId = newClass.Id,
+                    ClassGroupId = existedGrade.Id,
+                    CreateDate = DateTime.UtcNow,
+                };
+                await _unitOfWork.StudentClassInGroupRepo.AddAsync(classInGroup);
                 await _unitOfWork.SaveChangesAsync();
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = $"Class {className} is created!" };
             }
@@ -52,13 +70,13 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var addAbleClasses = new List<StudentClass>();
                     var addedClasses = new List<string>();
-
+                    var classInGroups = new List<StudentClassInGroup>();
                     var skippedClasses = new List<string>();
 
                     foreach (var studentClass in createStudentClassModels)
                     {
+                        
                         var className = studentClass.Name.ToUpper();
                         var existedClasses = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == studentClass.SchoolYearId);
                         var existedClass = existedClasses.FirstOrDefault();
@@ -67,10 +85,30 @@ namespace SchedulifySystem.Service.Services.Implements
                             skippedClasses.Add($"Class {className} can not be add due to existed!");
                             continue;
                         }
-                        addedClasses.Add($"Class {className} is added!");
-                        addAbleClasses.Add(_mapper.Map<StudentClass>(studentClass));
+                        // check grade is exist
+                        var existedGrade = await _unitOfWork.ClassGroupRepo
+                            .GetByIdAsync(id: studentClass.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == 0);
+                        if (existedGrade == null)
+                        {
+                            skippedClasses.Add($"Class {className} can not be add due to grade id {studentClass.GradeId} do not exist!");
+                        }
+                        else 
+                        {
+                            var newClass = _mapper.Map<StudentClass>(studentClass);
+                            await _unitOfWork.StudentClassesRepo.AddAsync(newClass);
+                            await _unitOfWork.SaveChangesAsync();
+                            var classInGroup = new StudentClassInGroup()
+                            {
+                                StudentClassId = newClass.Id,
+                                ClassGroupId = (int)studentClass.GradeId,
+                                CreateDate = DateTime.UtcNow
+                            };
+                            classInGroups.Add(classInGroup);
+                            addedClasses.Add($"Class {className} is added!");
+                        }
                     }
-                    await _unitOfWork.StudentClassesRepo.AddRangeAsync(addAbleClasses);
+                  
+                    await _unitOfWork.StudentClassInGroupRepo.AddRangeAsync(classInGroups);
                     await _unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new BaseResponseModel()
@@ -121,7 +159,7 @@ namespace SchedulifySystem.Service.Services.Implements
             existedClass.IsDeleted = true;
             _unitOfWork.StudentClassesRepo.Update(existedClass);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Class delete success!"};
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Class delete success!" };
         }
         #endregion
     }
