@@ -63,8 +63,9 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #region CreateTeachers
-        public async Task<BaseResponseModel> CreateTeachers(List<CreateTeacherModel> createTeacherRequestModels)
+        public async Task<BaseResponseModel> CreateTeachers(int schoolId, List<CreateTeacherModel> createTeacherRequestModels)
         {
+            var _ = _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School is {schoolId} is not found!");
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
@@ -75,7 +76,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     foreach (var createTeacherRequestModel in createTeacherRequestModels)
                     {
-                        var existedTeacher = await _unitOfWork.TeacherRepo.GetAsync(filter: t => t.Email == createTeacherRequestModel.Email);
+                        var existedTeacher = await _unitOfWork.TeacherRepo.GetAsync(filter: t =>!t.IsDeleted && t.SchoolId == schoolId && t.Email == createTeacherRequestModel.Email);
 
                         if (existedTeacher.FirstOrDefault() != null)
                         {

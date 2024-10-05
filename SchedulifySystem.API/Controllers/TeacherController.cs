@@ -34,7 +34,7 @@ namespace SchedulifySystem.API.Controllers
         [HttpPost]
         [Authorize]
         [Route("add-list")]
-        public Task<IActionResult> CreateTeachers(List<CreateTeacherModel> models)
+        public Task<IActionResult> CreateTeachers(int schoolId, List<CreateTeacherModel> models)
         {
             return ValidateAndExecute(() => _teacherService.CreateTeachers(models));
         }
