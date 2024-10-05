@@ -17,5 +17,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();
         public SchoolYear? SchoolYear { get; set; }
         public School? School { get; set; }
+        public ICollection<SubjectInGroup> SubjectInGroups { get; set; } = new List<SubjectInGroup>();
     }
 }

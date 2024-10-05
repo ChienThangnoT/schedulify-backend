@@ -12,7 +12,6 @@ using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils;
-using SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -158,7 +157,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         Result = result
                     };
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await transaction.RollbackAsync();
                     throw;

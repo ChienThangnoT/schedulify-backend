@@ -6,9 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
+namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
 {
-    public class UpdateTeacherRequestModel
+    public class UpdateTeacherModel
     {
         [Required(ErrorMessage = "First Name is required."), MaxLength(100, ErrorMessage = "First Name can't be longer than 100 characters.")]
         public string? FirstName { get; set; }
@@ -39,5 +39,6 @@ namespace SchedulifySystem.Service.ViewModels.RequestModels.TeacherRequestModels
         public int TeacherRole { get; set; }
 
         public int Status { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }
