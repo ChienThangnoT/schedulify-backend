@@ -11,6 +11,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface ISubjectService
     {
         Task<BaseResponseModel> CreateSubject(SubjectAddModel subjectAddModel);
-        Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, bool includeDeleted, int pageSize, int pageIndex);
+        Task<BaseResponseModel> CreateSubjectList(int schoolId,List<SubjectAddListModel> subjectAddModel);
+        Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? schoolName, bool includeDeleted, int pageSize, int pageIndex);
+        Task<BaseResponseModel> GetSubjectByNameFilter(string schoolName, int pageSize, int pageIndex);
     }
 }
