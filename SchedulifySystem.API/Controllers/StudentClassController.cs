@@ -20,9 +20,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize]
-        public Task<IActionResult> GetStudentClasses(int schoolId, int? schoolYearId = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetStudentClasses(int schoolId, int? gradeId = null, int? schoolYearId = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, schoolYearId, includeDeleted, pageIndex, pageSize));
+            return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, gradeId, schoolYearId, includeDeleted, pageIndex, pageSize));
         }
 
 
