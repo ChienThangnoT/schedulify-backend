@@ -34,6 +34,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public Task<IActionResult> CreateStudentClass(CreateStudentClassModel model)
         {
             return ValidateAndExecute(() => _studentClassService.CreateStudentClass(model));
@@ -41,18 +42,21 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPost]
         [Route("add-list")]
+        [Authorize]
         public Task<IActionResult> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> models)
         {
             return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(schoolId, schoolYearId, models));
         }
 
         [HttpDelete("{classGroupId}")]
+        [Authorize]
         public Task<IActionResult> DeleteStudentClass(int classGroupId)
         {
             return ValidateAndExecute(() => _studentClassService.DeleteStudentClass(classGroupId));
         }
 
         [HttpPut("{classGroupId}")]
+        [Authorize]
         public Task<IActionResult> UpdateStudentClass(int classGroupId, UpdateStudentClassModel model)
         {
             return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(classGroupId, model));
