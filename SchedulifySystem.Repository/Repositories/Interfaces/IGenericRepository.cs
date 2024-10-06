@@ -42,10 +42,14 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
 
         Task<Pagination<T>> ToPaginationIncludeAsync(
             int pageIndex = 1,
-            int pageSize = 20, 
-            Func<IQueryable<T>, 
+            int pageSize = 20,
+            Func<IQueryable<T>,
             IIncludableQueryable<T, object>>? include = null,
             Expression<Func<T, bool>> filter = null,
           Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null);
+
+        Task<T?> GetByIdAsync(int id,
+    Func<IQueryable<T>, IQueryable<T>>? include = null,
+    Expression<Func<T, bool>> filter = null);
     }
 }

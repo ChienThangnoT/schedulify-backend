@@ -26,30 +26,41 @@ namespace SchedulifySystem.API.Controllers
         }
 
 
-        [HttpGet("{id}")]
+        [HttpGet("{classGroupId}")]
         [Authorize]
-        public Task<IActionResult> GetStudentClassById(int id)
+        public Task<IActionResult> GetStudentClassById(int classGroupId)
         {
-            return ValidateAndExecute(() => _studentClassService.GetStudentClassById(id));
+            return ValidateAndExecute(() => _studentClassService.GetStudentClassById(classGroupId));
         }
 
         [HttpPost]
+        [Authorize]
         public Task<IActionResult> CreateStudentClass(CreateStudentClassModel model)
         {
-            return ValidateAndExecute(() => _studentClassService.CreateStudentClass(model)); 
+            return ValidateAndExecute(() => _studentClassService.CreateStudentClass(model));
         }
 
         [HttpPost]
         [Route("add-list")]
-        public Task<IActionResult> CreateStudentClasses(List<CreateStudentClassModel> models)
+        [Authorize]
+        public Task<IActionResult> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> models)
         {
-            return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(models));
+            return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(schoolId, schoolYearId, models));
         }
 
-        [HttpPut("{id}")]
-        public Task<IActionResult> UpdateStudentClass(int id, UpdateStudentClassBusinessModel model)
+        [HttpDelete("{classGroupId}")]
+        [Authorize]
+        public Task<IActionResult> DeleteStudentClass(int classGroupId)
         {
-            return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(id, model));
+            return ValidateAndExecute(() => _studentClassService.DeleteStudentClass(classGroupId));
         }
+
+        [HttpPut("{classGroupId}")]
+        [Authorize]
+        public Task<IActionResult> UpdateStudentClass(int classGroupId, UpdateStudentClassModel model)
+        {
+            return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(classGroupId, model));
+        }
+
     }
 }

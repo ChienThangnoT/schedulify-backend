@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
 {
-    public class UpdateStudentClassBusinessModel
+    public class UpdateStudentClassModel
     {
         public string? Name { get; set; }
         public int? HomeroomTeacherId { get; set; }

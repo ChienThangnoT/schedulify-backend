@@ -18,6 +18,9 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly ITeacherRepository _teacherRepository;
         private readonly ISchoolRepository _schoolRepository;
         private readonly IStudentClassesRepository _studentClassesRepository;
+        private readonly IStudentClassInGroupRepository _studentClassInGroupRepository;
+        private readonly IClassGroupRepository _classGroupRepository;
+        private readonly ISubjectRepository _subjectRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -25,7 +28,10 @@ namespace SchedulifySystem.Service.UnitOfWork
             IRoleAssignmentRepository roleAssignmentRepository,
             ITeacherRepository teacherRepository,
             ISchoolRepository schoolRepository,
-            IStudentClassesRepository studentClassesRepository)
+            IStudentClassesRepository studentClassesRepository,
+            IStudentClassInGroupRepository studentClassInGroupRepository,
+            IClassGroupRepository classGroupRepository,
+            ISubjectRepository subjectRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -34,6 +40,9 @@ namespace SchedulifySystem.Service.UnitOfWork
             _teacherRepository = teacherRepository;
             _schoolRepository = schoolRepository;
             _studentClassesRepository = studentClassesRepository;
+            _studentClassInGroupRepository = studentClassInGroupRepository;
+            _classGroupRepository = classGroupRepository;
+            _subjectRepository = subjectRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -42,6 +51,11 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ITeacherRepository TeacherRepo => _teacherRepository;
         public ISchoolRepository SchoolRepo => _schoolRepository;
         public IStudentClassesRepository StudentClassesRepo => _studentClassesRepository;
+        public ISubjectRepository SubjectRepo => _subjectRepository;
+
+        public IStudentClassInGroupRepository StudentClassInGroupRepo => _studentClassInGroupRepository;
+
+        public IClassGroupRepository ClassGroupRepo => _classGroupRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {

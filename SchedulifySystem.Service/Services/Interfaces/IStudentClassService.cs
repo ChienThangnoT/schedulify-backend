@@ -13,8 +13,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> GetStudentClasses(int schoolId, int? SchoolYearId,bool includeDeleted, int pageIndex, int pageSize);
         Task<BaseResponseModel> GetStudentClassById(int id);
         Task<BaseResponseModel> CreateStudentClass(CreateStudentClassModel createStudentClassModel);
-        Task<BaseResponseModel> CreateStudentClasses(List<CreateStudentClassModel> createStudentClassModels);
-        Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassBusinessModel updateStudentClassBusinessModel);
-        //Task<BaseResponseModel> DeleteStudentClass(int id);
+        Task<BaseResponseModel> DeleteStudentClass(int id);
+        Task<BaseResponseModel> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> createStudentClassModels);
+        Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassModel updateStudentClassModel);
     }
 }
