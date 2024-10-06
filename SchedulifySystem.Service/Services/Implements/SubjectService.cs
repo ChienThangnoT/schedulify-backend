@@ -84,7 +84,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-
+        #region Create Subject List
         public async Task<BaseResponseModel> CreateSubjectList(int schoolId, List<SubjectAddListModel> subjectAddModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
@@ -164,11 +164,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
         }
-
-        public Task<BaseResponseModel> GetSubjectByNameFilter(string schoolName, int pageSize, int pageIndex)
-        {
-            throw new NotImplementedException();
-        }
+        #endregion
 
         #region get subject list by school id
         public async Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? schoolName, bool includeDeleted, int pageIndex, int pageSize)
