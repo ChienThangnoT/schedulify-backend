@@ -31,7 +31,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Create Subject
         public async Task<BaseResponseModel> CreateSubject(SubjectAddModel subjectAddModel)
         {
-            var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == subjectAddModel.SubjectName.ToLower())&&(t.SchoolId == subjectAddModel.SchoolId));
+            var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == subjectAddModel.SubjectName.ToLower())&&(t.SchoolId == subjectAddModel.SchoolId) && (t.IsDeleted == false));
             var existSchool = await _unitOfWork.SchoolRepo.GetByIdAsync(subjectAddModel.SchoolId) ?? throw new NotExistsException($"School is not existed with id {subjectAddModel.SchoolId}");
 
             if (existSubject.FirstOrDefault() != null)
@@ -44,7 +44,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             var baseAbbreviation = subjectAddModel.Abbreviation.ToLower();
-            var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation)&&(t.SchoolId == subjectAddModel.SchoolId)));
+            var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.SchoolId == subjectAddModel.SchoolId) && (t.IsDeleted == false)));
 
             string newAbbreviation = baseAbbreviation;
             int counter = 1;
@@ -100,7 +100,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     foreach (var createSubjectModel in subjectAddModel)
                     {
-                        var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == createSubjectModel.SubjectName.ToLower()) && (t.SchoolId == schoolId));
+                        var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == createSubjectModel.SubjectName.ToLower()) && (t.SchoolId == schoolId) && (t.IsDeleted == false));
                         if (existSubject.FirstOrDefault() != null)
                         {
                             skippedSubjects.Add($"Subject {createSubjectModel.SubjectName} is already existed");
@@ -108,7 +108,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         }
 
                         var baseAbbreviation = createSubjectModel.Abbreviation.ToLower();
-                        var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.SchoolId == schoolId)));
+                        var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.SchoolId == schoolId) && (t.IsDeleted == false)));
 
                         string newAbbreviation = baseAbbreviation;
                         int counter = 1;
@@ -166,6 +166,19 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        public async Task<BaseResponseModel> GetSubjectById(int subjectId)
+        {
+            var subjects = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException($"Not found subject with id {subjectId}");
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(subjects.SchoolId);
+            subjects.School = school;
+            var subject = _mapper.Map<SubjectViewModel>(subjects);
+            return new BaseResponseModel() 
+            { 
+                Status = StatusCodes.Status200OK, 
+                Message = "Get subject successful", 
+                Result = subject 
+            };
+        }
         #region get subject list by school id
         public async Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? schoolName, bool includeDeleted, int pageIndex, int pageSize)
         {

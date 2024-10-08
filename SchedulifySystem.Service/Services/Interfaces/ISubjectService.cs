@@ -10,8 +10,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ISubjectService
     {
-        Task<BaseResponseModel> CreateSubject(SubjectAddModel subjectAddModel);
-        Task<BaseResponseModel> CreateSubjectList(int schoolId,List<SubjectAddListModel> subjectAddModel);
+        Task<BaseResponseModel> GetSubjectById(int subjectId);
+        Task<BaseResponseModel> CreateSubjectList(int schoolId,List<SubjectAddListModel> subjectAddModel);// need update subject group
         Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? schoolName, bool includeDeleted, int pageSize, int pageIndex);
     }
 }
