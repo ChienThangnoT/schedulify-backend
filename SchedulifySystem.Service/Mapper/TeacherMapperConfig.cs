@@ -25,7 +25,7 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
             CreateMap<CreateListTeacherModel, Teacher>()
-                .ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => DateOnly.Parse(src.DateOfBirth)))
+                //.ForMember(dest => dest.DateOfBirth, opt => opt.MapFrom(src => DateOnly.Parse(src.DateOfBirth)))
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
             CreateMap<UpdateTeacherModel, Teacher>()

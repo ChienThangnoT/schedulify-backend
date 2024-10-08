@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -22,17 +23,17 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public string? Email { get; set; }
 
         [Range(0, 1, ErrorMessage = "Gender must be either 0 (male) or 1 (female).")]
-        public int Gender { get; set; }
+        public Gender Gender { get; set; }
 
         public int DepartmentId { get; set; }
 
-        [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Date of Birth must be in the format YYYY-MM-DD.")]
-        public string DateOfBirth { get; set; }
+       // [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Date of Birth must be in the format YYYY-MM-DD.")]
+        public DateOnly DateOfBirth { get; set; }
 
         public int TeacherGroupId { get; set; }
 
-        public int TeacherRole { get; set; }
+        public TeacherRole TeacherRole { get; set; }
 
-        public int Status { get; set; }
+        public AccountStatus Status { get; set; }
     }
 }
