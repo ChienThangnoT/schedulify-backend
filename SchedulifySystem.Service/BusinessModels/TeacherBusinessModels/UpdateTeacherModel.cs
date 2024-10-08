@@ -1,4 +1,5 @@
-﻿using SchedulifySystem.Service.Validations;
+﻿using SchedulifySystem.Service.Enums;
+using SchedulifySystem.Service.Validations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -21,22 +22,17 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
 
         [EmailAddress(ErrorMessage = "Invalid Email Address")]
         public string? Email { get; set; }
-
-        [Range(0, 1, ErrorMessage = "Gender must be either 0 (male) or 1 (female).")]
-        public int Gender { get; set; }
+        [EnumDataType(typeof(Gender), ErrorMessage = "Invalid gender value.")]
+        public Gender Gender { get; set; }
 
         public int DepartmentId { get; set; }
-
-        [Required(ErrorMessage = "Date of Birth is require")]
-        [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Date of Birth must be in the format YYYY-MM-DD.")]
-        [ValidDateOnly(ErrorMessage = "Date of Birth is not a valid date.")]
-        public string DateOfBirth { get; set; }
+        public DateOnly DateOfBirth { get; set; }
 
         public int SchoolId { get; set; }
 
         public int TeacherGroupId { get; set; }
-
-        public int TeacherRole { get; set; }
+        [EnumDataType(typeof(Gender), ErrorMessage = "Invalid teacher role value.")]
+        public TeacherRole TeacherRole { get; set; }
 
         public int Status { get; set; }
         public bool IsDeleted { get; set; }

@@ -1,9 +1,31 @@
+using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.API;
 using SchedulifySystem.API.Middleware;
+using SchedulifySystem.Service.Validations;
+using SchedulifySystem.Service.ViewModels.ResponseModels;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
+{
+    //custom response for invalid model
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(m => m.Value.Errors.Count > 0)
+            .SelectMany(m => m.Value.Errors)
+            .Select(e => e.ErrorMessage)
+            .ToList();
+
+        var response = new BaseResponseModel
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Message = string.Join("; ", errors)
+        };
+
+        return new BadRequestObjectResult(response);
+    };
+});
 builder.Services.AddWebAPIService(builder);
 builder.Services.AddInfractstructure(builder.Configuration);
 

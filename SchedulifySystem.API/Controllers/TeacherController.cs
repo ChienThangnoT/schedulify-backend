@@ -24,15 +24,9 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _teacherService.GetTeachers(schoolId, includeDeleted, pageIndex, pageSize));
         }
 
-        [HttpPost]
-        //[Authorize]
-        public Task<IActionResult> CreateTeacher(CreateTeacherModel model)
-        {
-            return ValidateAndExecute(() => _teacherService.CreateTeacher(model));
-        }
 
         [HttpPost]
-        //[Authorize]
+        [Authorize]
         [Route("add-list")]
         public Task<IActionResult> CreateTeachers(int schoolId, List<CreateListTeacherModel> models)
         {
