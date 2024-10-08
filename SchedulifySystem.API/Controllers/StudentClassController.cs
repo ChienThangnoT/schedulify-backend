@@ -62,5 +62,12 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(classGroupId, model));
         }
 
+        [HttpPut()]
+        [Route("assign-homeroom-teacher")]
+        public Task<IActionResult> AssignHomeroomTeacherToClasses(AssignListStudentClassModel models)
+        {
+            return ValidateAndExecute(() => _studentClassService.AssignHomeroomTeacherToClasses(models));
+        }
+
     }
 }

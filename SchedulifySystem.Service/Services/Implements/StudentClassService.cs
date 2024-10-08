@@ -182,6 +182,45 @@ namespace SchedulifySystem.Service.Services.Implements
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Update class success!" };
         }
+
+        #endregion
+
+        #region AssignHomeroomTeacherToClasses
+        public async Task<BaseResponseModel> AssignHomeroomTeacherToClasses(AssignListStudentClassModel assignListStudentClassModel)
+        {
+            if(assignListStudentClassModel.HasDuplicateClassId())
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = "Class id was duplicated!" };
+            }
+
+            if (assignListStudentClassModel.HasDuplicateTeacherId())
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = "Each teacher can only assign to a class!", Result = assignListStudentClassModel.GetDuplicateAssigns() };
+            }
+            
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    foreach(AssignStudentClassModel assign in assignListStudentClassModel)
+                    {
+                        var existClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(assign.ClassId) ?? throw new NotExistsException($"Class {assign.ClassId} is not found!");
+                        var _ = await _unitOfWork.TeacherRepo.GetByIdAsync(assign.TeacherId) ?? throw new NotExistsException($"Teacher {assign.TeacherId} is not found!");
+                        existClass.HomeroomTeacherId = assign.TeacherId;
+                        existClass.UpdateDate = DateTime.UtcNow;
+                    }
+                    await _unitOfWork.SaveChangesAsync();
+                    transaction.Commit();
+                    return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Assign success!" };
+
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+        }
         #endregion
     }
 }
