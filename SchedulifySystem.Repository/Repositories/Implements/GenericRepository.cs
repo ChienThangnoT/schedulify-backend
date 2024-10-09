@@ -218,5 +218,25 @@ namespace SchedulifySystem.Repository.Repositories.Implements
 
             return result;
         }
+
+        public async Task<T?> GetByIdAsync(int id,
+    Func<IQueryable<T>, IQueryable<T>>? include = null,
+    Expression<Func<T, bool>> filter = null)
+        {
+            IQueryable<T> query = _dbSet;
+
+            // Apply include if provided
+            if (include != null)
+            {
+                query = include(query);
+            }
+
+            // Apply filter if provided
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            return await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
+        }
     }
 }

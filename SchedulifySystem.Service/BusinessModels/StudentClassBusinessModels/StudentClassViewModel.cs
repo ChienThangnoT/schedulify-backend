@@ -12,7 +12,12 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public string? Name { get; set; }
         public int HomeroomTeacherId { get; set; }
         public string? HomeroomTeacherName { get; set; }
+        public string? HomeroomTeacherAbbreviation { get; set; }
         public int MainSession { get; set; }
+        public string? MainSessionText { get; set; }
         public int Status { get; set; }
+        public string? GradeName { get; set; }
+        public int GradeId { get; set; }
+        public int ClassGroupId { get; set; }
     }
 }

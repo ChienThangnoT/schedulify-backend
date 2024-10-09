@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
+using System.Collections.Generic;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -17,18 +18,31 @@ namespace SchedulifySystem.API.Controllers
             _subjectService = subjectService;
         }
 
-        [HttpGet]
+        [HttpGet("{id}")]
         [Authorize]
-        public Task<IActionResult> GetSubjectListWithSchoolId(int schoolId, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetSubjectBySubjectId(int id)
         {
-            return ValidateAndExecute(()=> _subjectService.GetSubjectBySchoolId(schoolId, includeDeleted, pageSize, pageIndex));
+            return ValidateAndExecute(() => _subjectService.GetSubjectById(id));
         }
 
-        [HttpPost]
+        [HttpGet]
         [Authorize]
-        public Task <IActionResult> CreateSubject(SubjectAddModel model)
+        public Task<IActionResult> GetSubjectListWithSchoolId(int schoolId, string? schoolName, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(()=> _subjectService.CreateSubject(model));
+            return ValidateAndExecute(()=> _subjectService.GetSubjectBySchoolId(schoolId, schoolName, includeDeleted, pageSize, pageIndex));
+        }
+
+        [HttpPost("{schoolId}/subjects")]
+        [Authorize]
+        public Task<IActionResult> CreateSubjectList(int schoolId, List<SubjectAddListModel> subjectAddModel)
+        {
+            return ValidateAndExecute(() => _subjectService.CreateSubjectList(schoolId, subjectAddModel));
+        }
+
+        [HttpPut("{subjectId}")]
+        public Task<IActionResult> UpdateSubjectById(int subjectId, SubjectUpdateModel subjectUpdate)
+        {
+            return ValidateAndExecute(() => _subjectService.UpdateSubjectById(subjectId, subjectUpdate));
         }
     }
 }

@@ -5,6 +5,7 @@ using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Repository.Repositories.Interfaces;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
+using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
@@ -21,21 +22,41 @@ namespace SchedulifySystem.Service.Services.Implements
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private const int ROOT = 0;
 
         public StudentClassService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
+
         #region CreateStudentClass
         public async Task<BaseResponseModel> CreateStudentClass(CreateStudentClassModel createStudentClassModel)
         {
             string className = createStudentClassModel.Name.ToUpper();
             var existedClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == createStudentClassModel.SchoolYearId);
+
+            //check grade
+            var existedGrade = await _unitOfWork.ClassGroupRepo
+                .GetByIdAsync(id: createStudentClassModel.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == ROOT)
+                ?? throw new NotExistsException($"Grade id {createStudentClassModel.GradeId} is not found!");
+
+            //check class
             if (existedClass.FirstOrDefault() == null)
             {
                 var newClass = _mapper.Map<StudentClass>(createStudentClassModel);
                 await _unitOfWork.StudentClassesRepo.AddAsync(newClass);
+                //save to get class id
+                await _unitOfWork.SaveChangesAsync();
+
+                //create new class in group
+                var classInGroup = new StudentClassInGroup()
+                {
+                    StudentClassId = newClass.Id,
+                    ClassGroupId = existedGrade.Id,
+                    CreateDate = DateTime.UtcNow,
+                };
+                await _unitOfWork.StudentClassInGroupRepo.AddAsync(classInGroup);
                 await _unitOfWork.SaveChangesAsync();
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = $"Class {className} is created!" };
             }
@@ -45,31 +66,55 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region CreateStudentClasses
-        public async Task<BaseResponseModel> CreateStudentClasses(List<CreateStudentClassModel> createStudentClassModels)
+        public async Task<BaseResponseModel> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> createStudentClassModels)
         {
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"school id {schoolId} is not found!");
+
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    var addAbleClasses = new List<StudentClass>();
                     var addedClasses = new List<string>();
-
+                    var classInGroups = new List<StudentClassInGroup>();
                     var skippedClasses = new List<string>();
 
                     foreach (var studentClass in createStudentClassModels)
                     {
+
                         var className = studentClass.Name.ToUpper();
-                        var existedClasses = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == studentClass.SchoolYearId);
+                        var existedClasses = await _unitOfWork.StudentClassesRepo.GetAsync(filter: sc => !sc.IsDeleted && sc.Name.Equals(className) && sc.SchoolYearId == schoolYearId);
                         var existedClass = existedClasses.FirstOrDefault();
                         if (existedClass != null)
                         {
                             skippedClasses.Add($"Class {className} can not be add due to existed!");
                             continue;
                         }
-                        addedClasses.Add($"Class {className} is added!");
-                        addAbleClasses.Add(_mapper.Map<StudentClass>(studentClass));
+                        // check grade is exist
+                        var existedGrade = await _unitOfWork.ClassGroupRepo
+                            .GetByIdAsync(id: studentClass.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == ROOT);
+                        if (existedGrade == null)
+                        {
+                            skippedClasses.Add($"Class {className} can not be add due to grade id {studentClass.GradeId} do not exist!");
+                        }
+                        else
+                        {
+                            var newClass = _mapper.Map<StudentClass>(studentClass);
+                            newClass.SchoolId = schoolId;
+                            newClass.SchoolYearId = schoolYearId;
+                            await _unitOfWork.StudentClassesRepo.AddAsync(newClass);
+                            await _unitOfWork.SaveChangesAsync();
+                            var classInGroup = new StudentClassInGroup()
+                            {
+                                StudentClassId = newClass.Id,
+                                ClassGroupId = (int)studentClass.GradeId,
+                                CreateDate = DateTime.UtcNow
+                            };
+                            classInGroups.Add(classInGroup);
+                            addedClasses.Add($"Class {className} is added!");
+                        }
                     }
-                    await _unitOfWork.StudentClassesRepo.AddRangeAsync(addAbleClasses);
+
+                    await _unitOfWork.StudentClassInGroupRepo.AddRangeAsync(classInGroups);
                     await _unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new BaseResponseModel()
@@ -95,18 +140,18 @@ namespace SchedulifySystem.Service.Services.Implements
         #region GetStudentClassById
         public async Task<BaseResponseModel> GetStudentClassById(int id)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id) ?? throw new NotExistsException($"Student class id {id} is not found!");
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get class success!", Result = existedClass };
+            var existedClass = await _unitOfWork.StudentClassInGroupRepo.GetByIdAsync(id, include: query => query.Include(stig => stig.ClassGroup).Include(stig => stig.StudentClass).Include(stig => stig.StudentClass.Teacher)) ?? throw new NotExistsException($"class-group id {id} is not found!");
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get class success!", Result = _mapper.Map<StudentClassViewModel>(existedClass) };
         }
         #endregion
 
         #region GetStudentClasses
-        public async Task<BaseResponseModel> GetStudentClasses(int schoolId, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetStudentClasses(int schoolId, int? gradeId, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException("School is not found!");
-            var studentClasses = await _unitOfWork.StudentClassesRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
-                filter: tc => tc.School.Id == schoolId && (includeDeleted ? true : tc.IsDeleted == false) && (schoolYearId == null ? true : tc.SchoolYearId == schoolYearId),
-                include: query => query.Include(tc => tc.Teacher));
+            var studentClasses = await _unitOfWork.StudentClassInGroupRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
+                filter: stig => stig.StudentClass.SchoolId == schoolId && (includeDeleted ? true : stig.IsDeleted == false) && (gradeId == null ? true : stig.ClassGroup.Id == gradeId) && (stig.ClassGroup.ParentId == ROOT) && (schoolYearId == null ? true : stig.StudentClass.SchoolYearId == schoolYearId),
+                include: query => query.Include(stig => stig.ClassGroup).Include(stig => stig.StudentClass).Include(stig => stig.StudentClass.Teacher));
             var studentClassesViewModel = _mapper.Map<Pagination<StudentClassViewModel>>(studentClasses);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get student classes success!", Result = studentClassesViewModel };
 
@@ -116,11 +161,65 @@ namespace SchedulifySystem.Service.Services.Implements
         #region DeleteStudentClass
         public async Task<BaseResponseModel> DeleteStudentClass(int id)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id) ?? throw new NotExistsException($"Class id {id} is not found!");
+            var existedClass = await _unitOfWork.StudentClassInGroupRepo.GetByIdAsync(id, include: query => query.Include(c => c.StudentClass)) ?? throw new NotExistsException($"class-group id {id} is not found!");
             existedClass.IsDeleted = true;
-            _unitOfWork.StudentClassesRepo.Update(existedClass);
+            existedClass.StudentClass.IsDeleted = true;
+            _unitOfWork.StudentClassInGroupRepo.Update(existedClass);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Class delete success!"};
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Class delete success!" };
+        }
+        #endregion
+
+        #region UpdateStudentClass
+        public async Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassModel updateStudentClassModel)
+        {
+            var existedClass = await _unitOfWork.StudentClassInGroupRepo.GetByIdAsync(id, include: query => query.Include(c => c.StudentClass).Include(c => c.ClassGroup)) ?? throw new NotExistsException($"class-group id {id} is not found!");
+            var existedGroup = await _unitOfWork.ClassGroupRepo
+                           .GetByIdAsync(id: updateStudentClassModel.GradeId ?? 0, filter: g => !g.IsDeleted && g.ParentId == ROOT)
+                           ?? throw new NotExistsException($"Grade id {updateStudentClassModel.GradeId} is not found!");
+            _mapper.Map(updateStudentClassModel, existedClass);
+            _unitOfWork.StudentClassInGroupRepo.Update(existedClass);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Update class success!" };
+        }
+
+        #endregion
+
+        #region AssignHomeroomTeacherToClasses
+        public async Task<BaseResponseModel> AssignHomeroomTeacherToClasses(AssignListStudentClassModel assignListStudentClassModel)
+        {
+            if(assignListStudentClassModel.HasDuplicateClassId())
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = "Class id was duplicated!" };
+            }
+
+            if (assignListStudentClassModel.HasDuplicateTeacherId())
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = "Each teacher can only assign to a class!", Result = assignListStudentClassModel.GetDuplicateAssigns() };
+            }
+            
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    foreach(AssignStudentClassModel assign in assignListStudentClassModel)
+                    {
+                        var existClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(assign.ClassId) ?? throw new NotExistsException($"Class {assign.ClassId} is not found!");
+                        var _ = await _unitOfWork.TeacherRepo.GetByIdAsync(assign.TeacherId) ?? throw new NotExistsException($"Teacher {assign.TeacherId} is not found!");
+                        existClass.HomeroomTeacherId = assign.TeacherId;
+                        existClass.UpdateDate = DateTime.UtcNow;
+                    }
+                    await _unitOfWork.SaveChangesAsync();
+                    transaction.Commit();
+                    return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Assign success!" };
+
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
         }
         #endregion
     }
