@@ -261,7 +261,6 @@ namespace SchedulifySystem.Service.Services.Implements
                         JwtToken = new JwtSecurityTokenHandler().WriteToken(newAccessToken),
                         Expired = TimeZoneInfo.ConvertTimeFromUtc(newAccessToken.ValidTo, TimeZoneInfo.Local),
                         JwtRefreshToken = new JwtSecurityTokenHandler().WriteToken(newRefreshToken),
-                        AccountId = existUser.Id
                     };
                 }
 
@@ -287,7 +286,8 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var authClaims = new List<Claim>
             {
-                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim("accountId", user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -299,7 +299,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             foreach (var role in userRoles)
             {
-                authClaims.Add(new Claim(ClaimTypes.Role, role.Name));
+                authClaims.Add(new Claim("role", role.Name));
             }
 
             return authClaims;
@@ -310,7 +310,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var authClaims = new List<Claim>
             {
-                new(ClaimTypes.Email, user.Email),
+                new(JwtRegisteredClaimNames.Email, user.Email),
             };
 
             return authClaims;
@@ -330,7 +330,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 JwtToken = new JwtSecurityTokenHandler().WriteToken(token),
                 Expired = TimeZoneInfo.ConvertTimeFromUtc(token.ValidTo, TimeZoneInfo.Local),
                 JwtRefreshToken = new JwtSecurityTokenHandler().WriteToken(refreshToken).ToString(),
-                AccountId = account.Id
             };
         }
 

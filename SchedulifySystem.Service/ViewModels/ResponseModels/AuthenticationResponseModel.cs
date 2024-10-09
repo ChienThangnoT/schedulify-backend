@@ -20,6 +20,5 @@ namespace SchedulifySystem.Service.ViewModels.ResponseModels
         public bool IschangePasswordDefault { get; set; }
         public DateTime? Expired { get; set; }
         public string JwtRefreshToken { get; set; }
-        public object? AccountId { get; set; }
     }
 }
