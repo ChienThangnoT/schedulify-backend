@@ -21,6 +21,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IStudentClassInGroupRepository _studentClassInGroupRepository;
         private readonly IClassGroupRepository _classGroupRepository;
         private readonly ISubjectRepository _subjectRepository;
+        private readonly IBuildingRepository _buildingRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -31,7 +32,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             IStudentClassesRepository studentClassesRepository,
             IStudentClassInGroupRepository studentClassInGroupRepository,
             IClassGroupRepository classGroupRepository,
-            ISubjectRepository subjectRepository)
+            ISubjectRepository subjectRepository,
+            IBuildingRepository buildingRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -43,6 +45,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             _studentClassInGroupRepository = studentClassInGroupRepository;
             _classGroupRepository = classGroupRepository;
             _subjectRepository = subjectRepository;
+            _buildingRepository = buildingRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -56,6 +59,8 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IStudentClassInGroupRepository StudentClassInGroupRepo => _studentClassInGroupRepository;
 
         public IClassGroupRepository ClassGroupRepo => _classGroupRepository;
+
+        public IBuildingRepository BuildingRepo => _buildingRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {

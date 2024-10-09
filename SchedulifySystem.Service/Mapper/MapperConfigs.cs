@@ -32,6 +32,9 @@ namespace SchedulifySystem.Service.Mapper
 
             //add class group mapper config
             ClassGroupMapperConfig();
+
+            //add building mapper config
+            BuildingMapperConfig();
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
@@ -39,5 +42,6 @@ namespace SchedulifySystem.Service.Mapper
         partial void StudentClassMapperConfig();
         partial void SubjectMapperConfig();
         partial void ClassGroupMapperConfig();
+        partial void BuildingMapperConfig();
     }
 }
