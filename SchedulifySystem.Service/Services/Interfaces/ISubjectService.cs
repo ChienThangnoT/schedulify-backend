@@ -13,5 +13,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> GetSubjectById(int subjectId);
         Task<BaseResponseModel> CreateSubjectList(int schoolId,List<SubjectAddListModel> subjectAddModel);// need update subject group
         Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? schoolName, bool includeDeleted, int pageSize, int pageIndex);
+        Task<BaseResponseModel> UpdateSubjectById(int subjectId, SubjectUpdateModel subjectUpdateModel);
+
     }
 }

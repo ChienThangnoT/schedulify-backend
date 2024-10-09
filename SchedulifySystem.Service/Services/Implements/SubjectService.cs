@@ -166,6 +166,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region Get subject by id
         public async Task<BaseResponseModel> GetSubjectById(int subjectId)
         {
             var subjects = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException($"Not found subject with id {subjectId}");
@@ -179,6 +180,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = subject 
             };
         }
+        #endregion
         #region get subject list by school id
         public async Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? schoolName, bool includeDeleted, int pageIndex, int pageSize)
         {
@@ -203,6 +205,24 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 Status = StatusCodes.Status200OK,
                 Message = "Get subject list successful",
+                Result = result
+            };
+        }
+
+        #endregion
+
+        #region update subject by id
+        public async Task<BaseResponseModel> UpdateSubjectById(int subjectId, SubjectUpdateModel subjectUpdateModel)
+        {
+            var subject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException($"Subject not found with id {subjectId}");
+            var subjectUpdate = _mapper.Map(subjectUpdateModel, subject);
+            _unitOfWork.SubjectRepo.Update(subjectUpdate);
+            await _unitOfWork.SaveChangesAsync();
+            var result = _mapper.Map<SubjectViewModel>(subjectUpdate);
+            return new BaseResponseModel() 
+            { 
+                Status = StatusCodes.Status200OK, 
+                Message = "Update subject successful",
                 Result = result
             };
         }

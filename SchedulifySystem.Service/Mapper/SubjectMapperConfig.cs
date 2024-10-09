@@ -16,6 +16,9 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<SubjectAddModel, Subject>()
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ReverseMap();
+            CreateMap<SubjectUpdateModel, Subject>()
+                .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ReverseMap();
             CreateMap<SubjectAddListModel, Subject>()
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ReverseMap();
