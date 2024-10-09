@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.BuildingBusinessModels
 {
-    public class BuildingViewModel
+    public class BuildingViewModel : BaseEntity
     {
         public string? Name { get; set; }
         public string? Description { get; set; }

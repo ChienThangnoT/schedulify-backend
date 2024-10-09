@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
@@ -27,6 +28,7 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
+        #region AddBuildings
         public async Task<BaseResponseModel> AddBuildings(int schoolId, List<AddBuildingModel> models)
         {
             var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School id {schoolId} is not found!");
@@ -41,7 +43,9 @@ namespace SchedulifySystem.Service.Services.Implements
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Add success" };
         }
+        #endregion
 
+        #region CheckValidDataAddBuilding
         public async Task<BaseResponseModel> CheckValidDataAddBuilding(int schoolId, List<AddBuildingModel> models)
         {
             var ValidList = new List<AddBuildingModel>();
@@ -83,12 +87,20 @@ namespace SchedulifySystem.Service.Services.Implements
                     Result = new { ValidList, errorList }
                 };
         }
+        #endregion
 
-        public Task<BaseResponseModel> DeleteBuildings(int buildingId)
+        #region DeleteBuildings
+        public async Task<BaseResponseModel> DeleteBuildings(int buildingId)
         {
-            throw new NotImplementedException();
+            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException($"Building id {buildingId} is not found!");
+            existed.IsDeleted = true;
+            _unitOfWork.BuildingRepo.Update(existed);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Delete building success!" };
         }
+        #endregion
 
+        #region GetBuildings
         public async Task<BaseResponseModel> GetBuildings(int schoolId, bool? includeRoom = false, int pageIndex = 1, int pageSize = 20)
         {
             var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School id {schoolId} is not found!");
@@ -97,10 +109,30 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get building success!", Result = response };
 
         }
+        #endregion
 
-        public Task<BaseResponseModel> UpdateBuildings(int buildingId, UpdateBuildingModel model)
+
+        #region UpdateBuildings
+        public async Task<BaseResponseModel> UpdateBuildings(int buildingId, UpdateBuildingModel model)
         {
-            throw new NotImplementedException();
+            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException($"Building id {buildingId} is not found!");
+
+            // Check duplicates in the database
+            var foundBuildings = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(
+                filter: b => b.SchoolId == existed.SchoolId && !b.IsDeleted && model.Name.Equals(b.Name.ToLower()));
+            if (foundBuildings.Items.Any())
+            {
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Duplicate building name found in the database!"
+                };
+            }
+            _mapper.Map(model, existed);
+            _unitOfWork.BuildingRepo.Update(existed);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Update building success!" };
         }
+        #endregion
     }
 }
