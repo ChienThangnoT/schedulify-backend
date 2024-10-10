@@ -130,9 +130,6 @@ public partial class SchedulifyContext : DbContext
             .Property(b => b.Description)
             .HasMaxLength(250);
         modelBuilder.Entity<Building>()
-            .Property(b => b.Address)
-            .HasMaxLength(250);
-        modelBuilder.Entity<Building>()
             .HasOne(b => b.School)
             .WithMany(s => s.Buildings)
             .HasForeignKey(b => b.SchoolId);

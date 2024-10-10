@@ -9,6 +9,7 @@ namespace SchedulifySystem.Service.BusinessModels.ClassGroupBusinessModels
     public class GradeViewModel
     {
         public string? Name { get; set; }
+        public string? ClassGroupCode { get; set; }
         public int Id { get; set; }
     }
 }

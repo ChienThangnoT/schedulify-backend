@@ -35,5 +35,6 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public TeacherRole TeacherRole { get; set; }
 
         public AccountStatus Status { get; set; }
+        public string? Phone { get; set; }
     }
 }

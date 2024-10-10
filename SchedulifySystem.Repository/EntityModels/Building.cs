@@ -11,7 +11,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Name { get; set; }
         public string? Description { get; set; }
         public int Floor {  get; set; }
-        public string? Address { get; set; }
         public int SchoolId { get; set; }
 
         public School? School { get; set; }
