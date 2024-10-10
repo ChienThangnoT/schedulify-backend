@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.EntityModels
 {
-    public class EducationDepartment : BaseEntity
+    public class District : BaseEntity
     {
         public int ProvinceId { get; set; }
         public string? Name { get; set; }

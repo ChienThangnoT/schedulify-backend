@@ -10,6 +10,6 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string? Name { get; set; }
 
-        public ICollection<EducationDepartment> EducationDepartments { get; set; } = new List<EducationDepartment>();
+        public ICollection<District> Districts { get; set; } = new List<District>();
     }
 }

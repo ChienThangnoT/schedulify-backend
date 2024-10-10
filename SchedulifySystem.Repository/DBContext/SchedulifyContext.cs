@@ -53,7 +53,7 @@ public partial class SchedulifyContext : DbContext
     public DbSet<RoleAssignment> RoleAssignments { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Notification> Notifications { get; set; }
-    public DbSet<EducationDepartment> EducationDepartments { get; set; }
+    public DbSet<District> Districts { get; set; }
     public DbSet<Province> Provinces { get; set; }
     public DbSet<SubmitRequest> SubmitsRequests { get; set; }
 
@@ -116,6 +116,10 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<Notification>()
             .HasOne(b => b.Account)
             .WithMany(s => s.Notifications)
+            .HasForeignKey(b => b.AccountId);
+        modelBuilder.Entity<OTP>()
+            .HasOne(b => b.Account)
+            .WithMany(s => s.OTPs)
             .HasForeignKey(b => b.AccountId);
 
         // Building Entity
@@ -318,9 +322,9 @@ public partial class SchedulifyContext : DbContext
             .IsRequired()
             .HasMaxLength(100);
         modelBuilder.Entity<School>()
-            .HasOne(s => s.EducationDepartment)
+            .HasOne(s => s.District)
             .WithMany(ed => ed.Schools)
-            .HasForeignKey(s => s.EducationDepartmentId);
+            .HasForeignKey(s => s.DistrictId);
 
         // SchoolSchedule Entity
         modelBuilder.Entity<SchoolSchedule>()
@@ -568,15 +572,15 @@ public partial class SchedulifyContext : DbContext
             .HasForeignKey(ts => ts.SchoolId);
 
         // EducationDepartment Entity
-        modelBuilder.Entity<EducationDepartment>()
+        modelBuilder.Entity<District>()
             .HasKey(ed => ed.Id);
-        modelBuilder.Entity<EducationDepartment>()
+        modelBuilder.Entity<District>()
             .Property(ts => ts.Name)
             .IsRequired()
             .HasMaxLength(50);
-        modelBuilder.Entity<EducationDepartment>()
+        modelBuilder.Entity<District>()
             .HasOne(ed => ed.Province)
-            .WithMany(p => p.EducationDepartments)
+            .WithMany(p => p.Districts)
             .HasForeignKey(ed => ed.ProvinceId);
 
         // Province Entity

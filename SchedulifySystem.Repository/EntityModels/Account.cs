@@ -24,6 +24,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public School? School { get; set; }
         public ICollection<RoleAssignment> RoleAssignments { get; set; } = new List<RoleAssignment>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public ICollection<OTP> OTPs { get; set; } = new List<OTP>();
     }
 
 }
