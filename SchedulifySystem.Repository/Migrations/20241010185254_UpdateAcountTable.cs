@@ -19,9 +19,6 @@ namespace SchedulifySystem.Repository.Migrations
             migrationBuilder.DropTable(
                 name: "EducationDepartments");
 
-            migrationBuilder.DropColumn(
-                name: "Address",
-                table: "Building");
 
             migrationBuilder.RenameColumn(
                 name: "EducationDepartmentId",
@@ -33,35 +30,6 @@ namespace SchedulifySystem.Repository.Migrations
                 table: "Schools",
                 newName: "IX_Schools_DistrictId");
 
-            migrationBuilder.AddColumn<string>(
-                name: "Phone",
-                table: "Teachers",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "Name",
-                table: "SubjectGroupType",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "GroupCode",
-                table: "SubjectGroups",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "SchoolYearCode",
-                table: "SchoolYears",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "ClassGroupCode",
-                table: "ClassGroup",
-                type: "text",
-                nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "Districts",
@@ -150,18 +118,6 @@ namespace SchedulifySystem.Repository.Migrations
             migrationBuilder.DropColumn(
                 name: "Name",
                 table: "SubjectGroupType");
-
-            migrationBuilder.DropColumn(
-                name: "GroupCode",
-                table: "SubjectGroups");
-
-            migrationBuilder.DropColumn(
-                name: "SchoolYearCode",
-                table: "SchoolYears");
-
-            migrationBuilder.DropColumn(
-                name: "ClassGroupCode",
-                table: "ClassGroup");
 
             migrationBuilder.RenameColumn(
                 name: "DistrictId",
