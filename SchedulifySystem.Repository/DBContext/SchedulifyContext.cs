@@ -392,7 +392,7 @@ public partial class SchedulifyContext : DbContext
             .HasMaxLength(150);
         modelBuilder.Entity<Subject>()
             .HasOne(s => s.School)
-            .WithMany(s => s.Subjects)
+            .WithMany(s => s.Subject)
             .HasForeignKey(s => s.SchoolId);
 
         // SubjectConfig Entity
