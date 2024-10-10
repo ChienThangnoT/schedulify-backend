@@ -23,7 +23,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public TeacherRole TeacherRole { get; set; }
         public int Status { get; set; }
         public bool IsDeleted { get; set; }
-        public string? Phone {  get; set; }
+        public string? Phone { get; set; }
         public List<string> TeachableSubjects { get; set; } = new List<string>();
         
     }

@@ -10,7 +10,7 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public int DefaultSlotPerTerm { get; set; }
         public string? Description { get; set; } 
-
+        public string? Name { get; set; }
         public ICollection<SubjectGroup> subjectGroups { get; set; } = new List<SubjectGroup>();    
     }
 }
