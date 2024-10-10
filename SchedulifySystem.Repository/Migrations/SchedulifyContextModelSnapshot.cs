@@ -458,7 +458,7 @@ namespace SchedulifySystem.Repository.Migrations
 
                     b.HasIndex("ProvinceId");
 
-                    b.ToTable("EducationDepartments", (string)null);
+                    b.ToTable("Districts", (string)null);
                 });
 
             modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.Holiday", b =>
@@ -584,7 +584,7 @@ namespace SchedulifySystem.Repository.Migrations
 
                     b.HasIndex("AccountId");
 
-                    b.ToTable("OTP");
+                    b.ToTable("OTP", (string)null);
                 });
 
             modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.Province", b =>
