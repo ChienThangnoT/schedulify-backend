@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
-using SchedulifySystem.Service.BusinessModels.BuildingBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using System;
 using System.Collections.Generic;
@@ -17,10 +16,10 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<AddRoomModel, Room>()
                 .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
 
-            CreateMap<UpdateBuildingModel, Building>()
+            CreateMap<UpdateRoomModel, Room>()
                 .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow));
 
-            CreateMap<Building, BuildingViewModel>();
+            CreateMap<Room, RoomViewModel > ();
         }
 
     }

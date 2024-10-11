@@ -11,7 +11,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface IRoomService
     {
-        Task<BaseResponseModel> GetRooms(int schoolId, int buildingId, int pageIndex = 1, int pageSize = 20);
+        Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId,int? roomTypeId, int pageIndex = 1, int pageSize = 20);
         Task<BaseResponseModel> AddRooms(int schoolId, List<AddRoomModel> models);
         Task<BaseResponseModel> CheckValidDataAddRooms(int schoolId, List<AddRoomModel> models);
         Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model);

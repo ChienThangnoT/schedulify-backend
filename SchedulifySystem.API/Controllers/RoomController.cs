@@ -23,9 +23,11 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        public Task<IActionResult> GetRooms(int schoolId, int buildingId, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetRooms(int schoolId, int? buildingId,int? RoomTypeId, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _roomService.GetRooms(schoolId, buildingId, pageIndex, pageSize));
+            return ValidateAndExecute(() => _roomService.GetRooms(schoolId, buildingId,RoomTypeId, pageIndex, pageSize));
         }
+
+        
     }
 }

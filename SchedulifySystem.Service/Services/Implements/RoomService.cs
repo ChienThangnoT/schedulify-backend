@@ -62,7 +62,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             //check have building in db
-            foreach(AddRoomModel model in  models)
+            foreach (AddRoomModel model in models)
             {
                 var found = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(filter: b => b.SchoolId == schoolId && !b.IsDeleted && b.Name.ToLower().Equals(model.BuildingName.ToLower()));
                 if (!found.Items.Any())
@@ -105,7 +105,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Check room duplicates in the database
             var foundRooms = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
-                filter: b =>  b.Building.SchoolId == schoolId && !b.IsDeleted && modelNames.Contains(b.Name.ToLower()));
+                filter: b => b.Building.SchoolId == schoolId && !b.IsDeleted && modelNames.Contains(b.Name.ToLower()));
 
             errorList = _mapper.Map<List<AddRoomModel>>(foundRooms.Items);
             ValidList = models.Where(m => !errorList.Any(e => e.Name.Equals(m.Name, StringComparison.OrdinalIgnoreCase))).ToList();
@@ -130,14 +130,24 @@ namespace SchedulifySystem.Service.Services.Implements
             throw new NotImplementedException();
         }
 
-        public async Task<BaseResponseModel> GetRooms(int schoolId, int buildingId, int pageIndex = 1, int pageSize = 20)
+        public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, int? roomTypeId, int pageIndex = 1, int pageSize = 20)
         {
-            //var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School id {schoolId} is not found!");
-            //var __ = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException($"Building id {buildingId} is not found!");
-            //var found = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(pageIndex, pageSize,filter: r => r.Building.SchoolId == schoolId && r.Building.Id == buildingId && !r.IsDeleted);
-            //var response = _mapper.Map<Pagination<RoomViewModel>>(found);
-            //return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get building success!", Result = response };
-            throw new NotImplementedException();
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"school id {schoolId} is not found!");
+            if (buildingId != null)
+            {
+                var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId) ?? throw new NotExistsException($"building id {buildingId} is not found!");
+            }
+            if (roomTypeId != null)
+            {
+                var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync((int)roomTypeId) ?? throw new NotExistsException($"Room type id {roomTypeId} is not found!");
+            }
+            var found = await _unitOfWork.RoomRepo
+                .ToPaginationIncludeAsync(
+                    pageIndex, pageSize,
+                    filter: r => r.Building.SchoolId == schoolId && (buildingId == null ? true : r.Building.Id == buildingId) && (roomTypeId == null ? true : r.RoomTypeId == roomTypeId) && !r.IsDeleted
+                );
+            var response = _mapper.Map<Pagination<RoomViewModel>>(found);
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get building success!", Result = response };
         }
 
         public Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model)
