@@ -28,6 +28,16 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _roomService.GetRooms(schoolId, buildingId,RoomTypeId, pageIndex, pageSize));
         }
 
-        
+        [HttpDelete("{id}")]
+        public Task<IActionResult> DeleteRoom(int id)
+        {
+            return ValidateAndExecute(() => _roomService.DeleteRoom(id));
+        }
+
+        [HttpPut("{id}")]
+        public Task<IActionResult> UpdateRoom(int id, UpdateRoomModel model)
+        {
+            return ValidateAndExecute(() => _roomService.UpdateRoom(id, model));
+        }
     }
 }

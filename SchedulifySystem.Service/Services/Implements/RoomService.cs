@@ -125,9 +125,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
         }
 
-        public Task<BaseResponseModel> DeleteRoom(int RoomId)
+        public async Task<BaseResponseModel> DeleteRoom(int RoomId)
         {
-            throw new NotImplementedException();
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException($"Room id {RoomId} is not found!");
+            room.IsDeleted = true;
+            _unitOfWork.RoomRepo.Update(room);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Delete room success!" };
         }
 
         public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, int? roomTypeId, int pageIndex = 1, int pageSize = 20)
