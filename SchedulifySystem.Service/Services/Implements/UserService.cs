@@ -67,9 +67,13 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     schoolManager.IsConfirmSchoolManager = true;
                     schoolManager.Status = (int)accountStatus;
+                    if(schoolManager.Status == 1)
+                    {
+                        school.Status = 1;
+                    }
                     _unitOfWork.UserRepo.Update(schoolManager);
                     await _unitOfWork.SaveChangesAsync();
-                    
+
                     var messageRequest = new EmailRequest
                     {
                         To = schoolManager.Email,
@@ -92,6 +96,61 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
         #endregion
+
+        #region sign up - create admin
+        public async Task<BaseResponseModel> CreateAdminAccount(CreateAdmin createSchoolManagerModel)
+        {
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var account = _mapper.Map<Account>(createSchoolManagerModel);
+                    account.Password = AuthenticationUtils.HashPassword(createSchoolManagerModel.Password);
+                    account.CreateDate = DateTime.UtcNow;
+                    account.IsConfirmSchoolManager = false;
+                    account.Status = (int)AccountStatus.Active;
+                    await _unitOfWork.UserRepo.AddAsync(account);
+                    await _unitOfWork.SaveChangesAsync();
+                    var role = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.Admin.ToString());
+                    if (role == null)
+                    {
+                        Role newRole = new()
+                        {
+                            Name = RoleEnum.Admin.ToString()
+                        };
+                        await _unitOfWork.RoleRepo.AddAsync(newRole);
+                        await _unitOfWork.SaveChangesAsync();
+                        role = newRole;
+                    }
+
+                    var accountRoleModel = new RoleAssigntmentAddModel
+                    {
+                        AccountId = account.Id,
+                        RoleId = role.Id
+                    };
+                    var accountRoleEntyties = _mapper.Map<RoleAssignment>(accountRoleModel);
+                    await _unitOfWork.RoleAssignmentRepo.AddAsync(accountRoleEntyties);
+                    await _unitOfWork.SaveChangesAsync();
+
+                    var result = _mapper.Map<AccountViewModel>(account);
+                    await transaction.CommitAsync();
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status201Created,
+                        Message = "Create admin successful!",
+                        Result = result
+                    };
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+
+            }
+        }
+        #endregion
+
         #region sign up - create school manager account
         public async Task<BaseResponseModel> CreateSchoolManagerAccount(CreateSchoolManagerModel createSchoolManagerModel)
         {
@@ -110,8 +169,8 @@ namespace SchedulifySystem.Service.Services.Implements
                         throw new NotExistsException("Not found school");
                     }
 
-                    var schoolsInAccount = _unitOfWork.UserRepo.GetAsync(filter: t => t.SchoolId == createSchoolManagerModel.SchoolId);
-                    if(schoolsInAccount != null)
+                    var schoolsInAccount = await _unitOfWork.UserRepo.GetAsync(filter: t => t.SchoolId == createSchoolManagerModel.SchoolId);
+                    if (schoolsInAccount != null && schoolsInAccount.Any())
                     {
                         return new BaseResponseModel
                         {
@@ -146,7 +205,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var accountRoleEntyties = _mapper.Map<RoleAssignment>(accountRoleModel);
                     await _unitOfWork.RoleAssignmentRepo.AddAsync(accountRoleEntyties);
                     await _unitOfWork.SaveChangesAsync();
-                    
+
                     account.School = school;
                     var result = _mapper.Map<AccountViewModel>(account);
                     await transaction.CommitAsync();

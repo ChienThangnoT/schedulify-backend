@@ -11,5 +11,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Name { get; set; }
 
         public ICollection<District> Districts { get; set; } = new List<District>();
+        public ICollection<School> Schools { get; set; } = new List<School>();
     }
 }

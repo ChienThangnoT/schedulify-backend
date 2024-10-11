@@ -31,27 +31,24 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetListAccount(AccountStatus? accountStatus, int pageIndex, int pageSize)
         {
-
-            Expression<Func<Account, bool>> filter;
-
-            if (accountStatus == null)
+            Expression<Func<Account, bool>>? filter = accountStatus switch
             {
-                filter = null;
-            }
-            else
-            {
-                filter = u => u.Status == (int)accountStatus.Value;
-            }
+                0 => u => u.RoleAssignments.Any(ra => ra.RoleId == 2),
+                _ => u => u.Status == (int)accountStatus.Value && u.RoleAssignments.Any(ra => ra.RoleId == 2)
+            };
 
             var accounts = await _unitOfWork.UserRepo.ToPaginationIncludeAsync(
-            pageIndex, pageSize,
-            query => query.Include(s => s.School),
-            filter: filter
+                pageIndex, pageSize,
+                query => query.Include(s => s.School)
+                              .Include(u => u.RoleAssignments),
+                filter: filter
             );
+
             if (accounts.Items.Count == 0)
             {
                 throw new NotExistsException("Account list not exist");
             }
+
             var result = _mapper.Map<Pagination<AccountViewModel>>(accounts);
             return new BaseResponseModel()
             {
@@ -59,5 +56,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = result
             };
         }
+
     }
 }

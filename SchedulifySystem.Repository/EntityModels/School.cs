@@ -10,10 +10,10 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string? Name { get; set; }
         public string? Address { get; set; }
-        public string? PrincipalName { get; set; }
-        public int DistrictId { get; set; }
-        public District? District { get; set; }
-
+        public int DistrictCode { get; set; }
+        public int ProvinceId { get; set; }
+        public int? Status { get; set; }
+        public Province? Province { get; set; }
         public ICollection<TeacherGroup> TeacherGroups { get; set; } = new List<TeacherGroup>();
         public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
         public ICollection<SubjectGroup> SubjectGroups { get; set; } = new List<SubjectGroup>();

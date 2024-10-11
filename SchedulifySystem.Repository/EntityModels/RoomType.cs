@@ -11,6 +11,8 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public int SchoolId { get; set; }
         public string? Name { get; set; }
+        public string? RoomTypeCode { get; set; }
+
         public School? School { get; set; }
         public ICollection<Room> Rooms { get; set; } = new List<Room>();
     }

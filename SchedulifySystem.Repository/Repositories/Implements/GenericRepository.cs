@@ -37,6 +37,17 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             return await _dbSet.FindAsync(id);
         }
 
+        public virtual async Task<List<T>> GetAllAsync(Expression<Func<T, bool>> filter = null)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            return await query.ToListAsync();
+        }
 
         public void Remove(T entity)
         {

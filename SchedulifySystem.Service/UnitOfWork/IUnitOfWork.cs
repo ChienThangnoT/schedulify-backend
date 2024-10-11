@@ -20,6 +20,8 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IClassGroupRepository ClassGroupRepo { get; }
         public ISubjectRepository SubjectRepo{ get; }
         public IBuildingRepository BuildingRepo { get; }
+        public ISubjectGroupRepository SubjectGroupRepo { get; }
+        public IDistrictRepository DistrictRepo { get; }
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

@@ -102,5 +102,32 @@ namespace SchedulifySystem.API.Controllers
                 return BadRequest(res);
             }
         }
+
+
+        //[HttpPost("admin-register")]
+        //public async Task<IActionResult> SignupAccountAdmin(CreateAdmin createSchoolManagerModel)
+        //{
+        //    try
+        //    {
+        //        if (ModelState.IsValid)
+        //        {
+        //            var result = await _userService.CreateAdminAccount(createSchoolManagerModel);
+        //            return Ok(result);
+        //        }
+        //        return ValidationProblem(ModelState);
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        var res = new BaseResponseModel()
+        //        {
+        //            Status = StatusCodes.Status400BadRequest,
+        //            Message = ex.Message.ToString()
+        //        };
+        //        return BadRequest(res);
+
+        //    }
+        //}
+
     }
 }

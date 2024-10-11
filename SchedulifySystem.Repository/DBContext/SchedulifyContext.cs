@@ -322,9 +322,9 @@ public partial class SchedulifyContext : DbContext
             .IsRequired()
             .HasMaxLength(100);
         modelBuilder.Entity<School>()
-            .HasOne(s => s.District)
-            .WithMany(ed => ed.Schools)
-            .HasForeignKey(s => s.DistrictId);
+            .HasOne(ed => ed.Province)
+            .WithMany(p => p.Schools)
+            .HasForeignKey(ed => ed.ProvinceId);
 
         // SchoolSchedule Entity
         modelBuilder.Entity<SchoolSchedule>()
@@ -571,7 +571,7 @@ public partial class SchedulifyContext : DbContext
             .WithMany(s => s.TimeSlots)
             .HasForeignKey(ts => ts.SchoolId);
 
-        // EducationDepartment Entity
+        // district Entity
         modelBuilder.Entity<District>()
             .HasKey(ed => ed.Id);
         modelBuilder.Entity<District>()

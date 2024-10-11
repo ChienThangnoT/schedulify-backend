@@ -11,7 +11,7 @@ namespace SchedulifySystem.Service.BusinessModels.AccountBusinessModels
     public class AccountViewModel
     {
         public int Id { get; set; }
-        public int SchoolId { get; set; }
+        public int? SchoolId { get; set; }
         public string? SchoolName { get; set; }
         public string? Email { get; set; }
         public string? Phone { get; set; }
