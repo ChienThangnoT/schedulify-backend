@@ -39,8 +39,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             ISubjectRepository subjectRepository,
             IBuildingRepository buildingRepository,
             IRoomRepository roomRepository,
-            IRoomTypeRepository roomTypeRepository)
-            IBuildingRepository buildingRepository,
+            IRoomTypeRepository roomTypeRepository,
             ISubjectGroupRepository subjectGroupRepository,
             IDistrictRepository districtRepository)
         {
