@@ -24,6 +24,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IBuildingRepository _buildingRepository;
         private readonly IRoomRepository _roomRepository;
         private readonly IRoomTypeRepository _roomTypeRepository;
+        private readonly IProvinceRepository _provinceRepository;
         private readonly ISubjectGroupRepository _subjectGroupRepository;
         private readonly IDistrictRepository _districtRepository;
 
@@ -41,7 +42,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             IRoomRepository roomRepository,
             IRoomTypeRepository roomTypeRepository,
             ISubjectGroupRepository subjectGroupRepository,
-            IDistrictRepository districtRepository)
+            IDistrictRepository districtRepository,
+            IProvinceRepository provinceRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -58,6 +60,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             _districtRepository = districtRepository;
             _roomRepository = roomRepository;
             _roomTypeRepository = roomTypeRepository;
+            _provinceRepository = provinceRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -72,6 +75,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IBuildingRepository BuildingRepo => _buildingRepository;
         public ISubjectGroupRepository SubjectGroupRepo => _subjectGroupRepository;
         public IDistrictRepository DistrictRepo=> _districtRepository;
+        public IProvinceRepository ProvinceRepo => _provinceRepository;
 
         public IRoomRepository RoomRepo => _roomRepository;
 

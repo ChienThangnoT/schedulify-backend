@@ -182,6 +182,10 @@ namespace SchedulifySystem.API
             services.AddTransient<IRoomTypeRepository, RoomTypeRepository>();
             //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
 
+            //config province service and repo
+            services.AddTransient<IProvinceRepository, ProvinceRepository>();
+            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
+
             #endregion
 
             #region add db context

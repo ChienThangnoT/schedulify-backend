@@ -17,9 +17,9 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        public Task<IActionResult> GetSchools( int districtId, SchoolStatus schoolStatus, int provinceId, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetSchools(SchoolStatus schoolStatus, int districtCode,  int provinceId, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _schoolService.GetSchools(pageIndex, pageSize, districtId, provinceId,schoolStatus));
+            return ValidateAndExecute(() => _schoolService.GetSchools(pageIndex, pageSize, districtCode, provinceId,schoolStatus));
         }
     }
 }

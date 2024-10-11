@@ -10,6 +10,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ISchoolService
     {
-        Task<BaseResponseModel> GetSchools(int pageIndex, int pageSize, int districtId, int provinceId, SchoolStatus schoolStatus);
+        Task<BaseResponseModel> GetSchools(int pageIndex, int pageSize, int? districtCode, int? provinceId, SchoolStatus? schoolStatus);
     }
 }

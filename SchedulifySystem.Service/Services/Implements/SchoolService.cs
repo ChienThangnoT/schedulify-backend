@@ -30,26 +30,16 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
-        public async Task<BaseResponseModel> GetSchools(int pageIndex, int pageSize, int districtId, int provinceId, SchoolStatus schoolStatus)
+        public async Task<BaseResponseModel> GetSchools(int pageIndex, int pageSize, int? districtCode, int? provinceId, SchoolStatus? schoolStatus)
         {
-            Expression<Func<School, bool>>? filter = schoolStatus switch
-            {
-                // if districtId = 0, filter by schoolStatus
-                0 when districtId == 0 => null,
-
-                // if districtId != 0 và dont have schoolStatus, only filter DistrictId
-                //0 => u => u.DistrictId == districtId,
-
-                // if districtId != 0 and exist schoolStatus, filter districtId & status
-                _ when districtId == 0 => u => u.Status == (int)schoolStatus,
-
-                // filter with districtId & status
-               // _ => u => u.DistrictId == districtId && u.Status == (int)schoolStatus
-            };
+            Expression<Func<School, bool>>? filter = s =>
+                (provinceId == null || provinceId == 0 || s.ProvinceId == provinceId) && //skip if  ProvinceId is null or 0
+                (districtCode == null || districtCode == 0 || s.DistrictCode == districtCode) &&  // skip if DistrictCode is null or 0
+                (schoolStatus == null || s.Status == (int)schoolStatus || schoolStatus == 0); // skip if schoolStatus null
 
             var schools = await _unitOfWork.SchoolRepo.ToPaginationIncludeAsync(
                 pageIndex, pageSize,
-                //query => query.Include(s => s.District),
+                query => query.Include(s => s.Province),
                 filter: filter
             );
 
