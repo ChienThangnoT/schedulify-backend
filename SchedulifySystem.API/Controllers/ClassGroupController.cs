@@ -5,7 +5,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/class-groups")]
     [ApiController]
     public class ClassGroupController : BaseController
     {
