@@ -173,6 +173,10 @@ namespace SchedulifySystem.API
             services.AddTransient<ISubjectGroupRepository, SubjectGroupRepository>();
             services.AddTransient<ISubjectGroupService, SubjectGroupService>();
 
+            //config room type service and repo
+            services.AddTransient<IRoomTypeRepository, RoomTypeRepository>();
+            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
+
             #endregion
 
             #region add db context

@@ -21,6 +21,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubjectRepository SubjectRepo{ get; }
         public IBuildingRepository BuildingRepo { get; }
         public IRoomRepository RoomRepo { get; }
+        public IRoomTypeRepository RoomTypeRepo { get; }
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }
