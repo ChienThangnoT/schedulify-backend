@@ -154,9 +154,15 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get building success!", Result = response };
         }
 
-        public Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model)
+        public async Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model)
         {
-            throw new NotImplementedException();
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException($"Room id {RoomId} is not found!");
+            var _ = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId) ?? throw new NotExistsException($"Building id {model.BuildingId} is not found!");
+            var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync(model.RoomTypeId) ?? throw new NotExistsException($"Room Type id {model.RoomTypeId} is not found!");
+            var newRoom =_mapper.Map(model,room);
+            _unitOfWork.RoomRepo.Update(newRoom);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = $"Update Room {RoomId} Success!" };
         }
     }
 }
