@@ -13,7 +13,10 @@ namespace SchedulifySystem.Service.Mapper
     {
         partial void SchoolMapperConfig()
         {
-            CreateMap<School, SchoolViewModel>().ReverseMap();
+            CreateMap<School,SchoolViewModel>()
+                .ForMember(dest => dest.ProvinceName,
+                    opt => opt.MapFrom(src => src.Province != null ? src.Province.Name : string.Empty))
+                .ReverseMap();
         }
     }
 }

@@ -71,6 +71,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     {
                         school.Status = 1;
                     }
+                    schoolManager.UpdateDate = DateTime.UtcNow;
                     _unitOfWork.UserRepo.Update(schoolManager);
                     await _unitOfWork.SaveChangesAsync();
 
