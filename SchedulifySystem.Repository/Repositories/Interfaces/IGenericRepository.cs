@@ -12,6 +12,7 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
     public interface IGenericRepository<T> where T : class
     {
 
+        Task<bool> ExistsAsync(Expression<Func<T, bool>> filter);
         Task<T> GetByIdAsync(int id);
         Task AddAsync(T entity);
         void Update(T entity);
@@ -24,13 +25,6 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
             string includeProperties = "",
             int? pageIndex = 1,
             int? pageSize = 20);
-        //Task<IEnumerable<T>> GetIncludeAsync(
-        //    Expression<Func<T, bool>> filter = null,
-        //    Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
-        //    Func<IQueryable<T>,
-        //    IIncludableQueryable<T, object>>? include = null,
-        //    int? pageIndex = 1,
-        //    int? pageSize = 20);
         Task<Pagination<T>> ToPaginationAsync(int pageIndex = 1, int pageSize = 20);
 
         Task<Pagination<T>> GetPaginationAsync(

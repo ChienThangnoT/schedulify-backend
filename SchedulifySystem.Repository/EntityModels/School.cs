@@ -10,10 +10,10 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string? Name { get; set; }
         public string? Address { get; set; }
-        public string? PrincipalName { get; set; }
-        public int EducationDepartmentId { get; set; }
-        public EducationDepartment? EducationDepartment { get; set; }
-
+        public int DistrictCode { get; set; }
+        public int ProvinceId { get; set; }
+        public int? Status { get; set; }
+        public Province? Province { get; set; }
         public ICollection<TeacherGroup> TeacherGroups { get; set; } = new List<TeacherGroup>();
         public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
         public ICollection<SubjectGroup> SubjectGroups { get; set; } = new List<SubjectGroup>();
@@ -28,6 +28,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();
         public ICollection<Account> Accounts { get; set; } = new List<Account>();
         public ICollection<Holiday> Holidays { get; set; } = new List<Holiday>();
-        public ICollection<Subject> Subjects { get; set; } = new List<Subject>();
+        public ICollection<Subject> Subject { get; set; } = new List<Subject>();
     }
 }

@@ -154,7 +154,7 @@ namespace SchedulifySystem.API
 
             //config school service and repo
             services.AddTransient<ISchoolRepository, SchoolRepository>();
-            //services.AddTransient<ISchoolService, SchoolService>();
+            services.AddTransient<ISchoolService, SchoolService>();
 
             //config subject service and repo
             services.AddTransient<ISubjectRepository, SubjectRepository>();
@@ -163,6 +163,28 @@ namespace SchedulifySystem.API
             //config building service and repo
             services.AddTransient<IBuildingRepository, BuildingRepository>();
             services.AddTransient<IBuildingService, BuildingService>();
+
+
+            //config room service and repo
+            services.AddTransient<IRoomRepository, RoomRepository>();
+            services.AddTransient<IRoomService, RoomService>();
+
+            //config subject group service and repo
+            services.AddTransient<ISubjectGroupRepository, SubjectGroupRepository>();
+            services.AddTransient<ISubjectGroupService, SubjectGroupService>();
+            
+
+            //config district service and repo
+            services.AddTransient<IDistrictRepository, DistrictRepository>();
+            //services.AddTransient<IDistrictService, IDistrictService>();
+
+            //config room type service and repo
+            services.AddTransient<IRoomTypeRepository, RoomTypeRepository>();
+            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
+
+            //config province service and repo
+            services.AddTransient<IProvinceRepository, ProvinceRepository>();
+            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
 
             #endregion
 

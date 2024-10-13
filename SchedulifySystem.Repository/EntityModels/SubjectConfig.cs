@@ -12,7 +12,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public int CurriculumId { get; set; }
         public int StudentClassId { get; set; }
         public int SchoolScheduleId { get; set; }
-        public bool IsMainSession { get; set; }
         public int Value { get; set; }
         public int ConfigAttributeId { get; set; }
 

@@ -14,7 +14,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int MaxClassPerTime { get; set; }
         public int BuildingId { get; set; }
         public int AvailabilityeStatus { get; set; }
-
+        public string? RoomCode { get; set; }
         public RoomType? RoomType { get; set; }
         public Building? Building { get; set; }
         public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();

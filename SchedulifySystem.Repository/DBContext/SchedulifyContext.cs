@@ -53,7 +53,7 @@ public partial class SchedulifyContext : DbContext
     public DbSet<RoleAssignment> RoleAssignments { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Notification> Notifications { get; set; }
-    public DbSet<EducationDepartment> EducationDepartments { get; set; }
+    public DbSet<District> Districts { get; set; }
     public DbSet<Province> Provinces { get; set; }
     public DbSet<SubmitRequest> SubmitsRequests { get; set; }
 
@@ -117,6 +117,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(b => b.Account)
             .WithMany(s => s.Notifications)
             .HasForeignKey(b => b.AccountId);
+        modelBuilder.Entity<OTP>()
+            .HasOne(b => b.Account)
+            .WithMany(s => s.OTPs)
+            .HasForeignKey(b => b.AccountId);
 
         // Building Entity
         modelBuilder.Entity<Building>()
@@ -128,9 +132,6 @@ public partial class SchedulifyContext : DbContext
             .HasMaxLength(50);
         modelBuilder.Entity<Building>()
             .Property(b => b.Description)
-            .HasMaxLength(250);
-        modelBuilder.Entity<Building>()
-            .Property(b => b.Address)
             .HasMaxLength(250);
         modelBuilder.Entity<Building>()
             .HasOne(b => b.School)
@@ -321,9 +322,9 @@ public partial class SchedulifyContext : DbContext
             .IsRequired()
             .HasMaxLength(100);
         modelBuilder.Entity<School>()
-            .HasOne(s => s.EducationDepartment)
-            .WithMany(ed => ed.Schools)
-            .HasForeignKey(s => s.EducationDepartmentId);
+            .HasOne(ed => ed.Province)
+            .WithMany(p => p.Schools)
+            .HasForeignKey(ed => ed.ProvinceId);
 
         // SchoolSchedule Entity
         modelBuilder.Entity<SchoolSchedule>()
@@ -391,7 +392,7 @@ public partial class SchedulifyContext : DbContext
             .HasMaxLength(150);
         modelBuilder.Entity<Subject>()
             .HasOne(s => s.School)
-            .WithMany(s => s.Subjects)
+            .WithMany(s => s.Subject)
             .HasForeignKey(s => s.SchoolId);
 
         // SubjectConfig Entity
@@ -570,16 +571,16 @@ public partial class SchedulifyContext : DbContext
             .WithMany(s => s.TimeSlots)
             .HasForeignKey(ts => ts.SchoolId);
 
-        // EducationDepartment Entity
-        modelBuilder.Entity<EducationDepartment>()
+        // district Entity
+        modelBuilder.Entity<District>()
             .HasKey(ed => ed.Id);
-        modelBuilder.Entity<EducationDepartment>()
+        modelBuilder.Entity<District>()
             .Property(ts => ts.Name)
             .IsRequired()
             .HasMaxLength(50);
-        modelBuilder.Entity<EducationDepartment>()
+        modelBuilder.Entity<District>()
             .HasOne(ed => ed.Province)
-            .WithMany(p => p.EducationDepartments)
+            .WithMany(p => p.Districts)
             .HasForeignKey(ed => ed.ProvinceId);
 
         // Province Entity

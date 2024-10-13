@@ -14,6 +14,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int ParentId { get; set; }
         public int SchoolId { get; set; }
         public int SubjectGroupId { get; set; }
+        public string? ClassGroupCode { get; set; }
 
         public School? School { get; set; }
         public SchoolYear? SchoolYear { get; set; }

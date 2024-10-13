@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SchedulifySystem.Repository.DBContext;
 using System.Linq.Expressions;
+using Org.BouncyCastle.Asn1;
 
 namespace SchedulifySystem.Repository.Repositories.Implements
 {
@@ -16,9 +17,15 @@ namespace SchedulifySystem.Repository.Repositories.Implements
     {
         internal DbSet<T> _dbSet;
 
+
         public GenericRepository(SchedulifyContext context)
         {
             _dbSet = context.Set<T>();
+        }
+
+        public async Task<bool> ExistsAsync(Expression<Func<T, bool>> filter)
+        {
+            return await _dbSet.AnyAsync(filter);
         }
 
         public async Task AddAsync(T entity)
@@ -37,6 +44,17 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             return await _dbSet.FindAsync(id);
         }
 
+        public virtual async Task<List<T>> GetAllAsync(Expression<Func<T, bool>> filter = null)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            return await query.ToListAsync();
+        }
 
         public void Remove(T entity)
         {

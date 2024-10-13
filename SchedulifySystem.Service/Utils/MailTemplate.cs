@@ -19,7 +19,7 @@ namespace SchedulifySystem.Service.Utils
                 <body>
                     <div style=""container"">
                         <div style=""header"">
-                            <img src=""https://play-lh.googleusercontent.com/wXmHIBYQOvI_NXe25daGUPFd6-ZCb5a5V2pWT3o-tsBUA7Br_c_ZSRtkMGXP4DTV0g""alt=""Logo"" style=""width:120px;"">
+                            <img src=""https://firebasestorage.googleapis.com/v0/b/schedulify-70161.appspot.com/o/logo.jpg?alt=media&token=3a838eda-3add-46cf-bbdc-40adc1d5fb9a""alt=""Logo"" style=""width:120px;"">
                         </div>
                         <div style=""content"">
                             <h3>Đăng ký tài khoản thành công</h3>

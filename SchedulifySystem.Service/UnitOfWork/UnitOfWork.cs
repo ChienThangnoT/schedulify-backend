@@ -22,6 +22,11 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IClassGroupRepository _classGroupRepository;
         private readonly ISubjectRepository _subjectRepository;
         private readonly IBuildingRepository _buildingRepository;
+        private readonly IRoomRepository _roomRepository;
+        private readonly IRoomTypeRepository _roomTypeRepository;
+        private readonly IProvinceRepository _provinceRepository;
+        private readonly ISubjectGroupRepository _subjectGroupRepository;
+        private readonly IDistrictRepository _districtRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -33,7 +38,12 @@ namespace SchedulifySystem.Service.UnitOfWork
             IStudentClassInGroupRepository studentClassInGroupRepository,
             IClassGroupRepository classGroupRepository,
             ISubjectRepository subjectRepository,
-            IBuildingRepository buildingRepository)
+            IBuildingRepository buildingRepository,
+            IRoomRepository roomRepository,
+            IRoomTypeRepository roomTypeRepository,
+            ISubjectGroupRepository subjectGroupRepository,
+            IDistrictRepository districtRepository,
+            IProvinceRepository provinceRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -46,6 +56,11 @@ namespace SchedulifySystem.Service.UnitOfWork
             _classGroupRepository = classGroupRepository;
             _subjectRepository = subjectRepository;
             _buildingRepository = buildingRepository;
+            _subjectGroupRepository = subjectGroupRepository;
+            _districtRepository = districtRepository;
+            _roomRepository = roomRepository;
+            _roomTypeRepository = roomTypeRepository;
+            _provinceRepository = provinceRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -55,12 +70,16 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISchoolRepository SchoolRepo => _schoolRepository;
         public IStudentClassesRepository StudentClassesRepo => _studentClassesRepository;
         public ISubjectRepository SubjectRepo => _subjectRepository;
-
         public IStudentClassInGroupRepository StudentClassInGroupRepo => _studentClassInGroupRepository;
-
         public IClassGroupRepository ClassGroupRepo => _classGroupRepository;
-
         public IBuildingRepository BuildingRepo => _buildingRepository;
+        public ISubjectGroupRepository SubjectGroupRepo => _subjectGroupRepository;
+        public IDistrictRepository DistrictRepo=> _districtRepository;
+        public IProvinceRepository ProvinceRepo => _provinceRepository;
+
+        public IRoomRepository RoomRepo => _roomRepository;
+
+        public IRoomTypeRepository RoomTypeRepo => _roomTypeRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
