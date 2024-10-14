@@ -10,6 +10,7 @@ namespace SchedulifySystem.Service.BusinessModels.BuildingBusinessModels
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
+        public string? BuildingCode { get; set; }
         public int Floor { get; set; }
     }
 }

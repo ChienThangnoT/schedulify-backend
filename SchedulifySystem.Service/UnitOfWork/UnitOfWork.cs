@@ -25,6 +25,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IRoomRepository _roomRepository;
         private readonly IRoomTypeRepository _roomTypeRepository;
         private readonly IProvinceRepository _provinceRepository;
+        private readonly IOtpRepository _otpRepository;
         private readonly ISubjectGroupRepository _subjectGroupRepository;
         private readonly IDistrictRepository _districtRepository;
 
@@ -43,7 +44,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             IRoomTypeRepository roomTypeRepository,
             ISubjectGroupRepository subjectGroupRepository,
             IDistrictRepository districtRepository,
-            IProvinceRepository provinceRepository)
+            IProvinceRepository provinceRepository,
+            IOtpRepository otpRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -61,6 +63,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             _roomRepository = roomRepository;
             _roomTypeRepository = roomTypeRepository;
             _provinceRepository = provinceRepository;
+            _otpRepository = otpRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -76,10 +79,9 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubjectGroupRepository SubjectGroupRepo => _subjectGroupRepository;
         public IDistrictRepository DistrictRepo=> _districtRepository;
         public IProvinceRepository ProvinceRepo => _provinceRepository;
-
         public IRoomRepository RoomRepo => _roomRepository;
-
         public IRoomTypeRepository RoomTypeRepo => _roomTypeRepository;
+        public IOtpRepository OTPRepo => _otpRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {

@@ -12,6 +12,7 @@ using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils;
+using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -31,13 +32,15 @@ namespace SchedulifySystem.Service.Services.Implements
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly IMailService _mailService;
+        private readonly IOtpService _otpService;
 
-        public UserService(IMapper mapper, IUnitOfWork unitOfWork, IConfiguration configuration, IMailService mailService)
+        public UserService(IMapper mapper, IUnitOfWork unitOfWork, IConfiguration configuration, IMailService mailService, IOtpService otpService)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
             _mailService = mailService;
+            _otpService = otpService;
         }
         #region confirm create account
         public async Task<BaseResponseModel> ConfirmCreateSchoolManagerAccount(int schoolManagerId, int schoolId, AccountStatus accountStatus)
@@ -167,7 +170,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var school = await _unitOfWork.SchoolRepo.GetByIdAsync(createSchoolManagerModel.SchoolId);
                     if (school == null)
                     {
-                        throw new NotExistsException("Not found school");
+                        throw new NotExistsException(ConstantRespones.SCHOOL_NOT_FOUND);
                     }
 
                     var schoolsInAccount = await _unitOfWork.UserRepo.GetAsync(filter: t => t.SchoolId == createSchoolManagerModel.SchoolId);
@@ -176,7 +179,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         return new BaseResponseModel
                         {
                             Status = StatusCodes.Status409Conflict,
-                            Message = "School has been assigned to another account!",
+                            Message = ConstantRespones.SCHOOL_ALREADY_ASSIGNED,
                         };
                     }
 
@@ -213,7 +216,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new BaseResponseModel
                     {
                         Status = StatusCodes.Status201Created,
-                        Message = "Create school manager successful!",
+                        Message = ConstantRespones.SCHOOL_MANAGER_CREAT_SUCCESSFUL,
                         Result = result
                     };
                 }
@@ -234,16 +237,16 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(signInModel.email);
+                    var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(signInModel.Email);
                     if (existUser == null)
                     {
                         return new AuthenticationResponseModel
                         {
                             Status = StatusCodes.Status401Unauthorized,
-                            Message = "Account not exist!"
+                            Message = ConstantRespones.ACCOUNT_NOT_EXIST
                         };
                     }
-                    var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.password, existUser.Password);
+                    var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.Password, existUser.Password);
                     if (verifyUser)
                     {
                         if (existUser.Status == (int)AccountStatus.Inactive
@@ -253,10 +256,9 @@ namespace SchedulifySystem.Service.Services.Implements
                             return new AuthenticationResponseModel
                             {
                                 Status = StatusCodes.Status401Unauthorized,
-                                Message = "Account can not access!"
+                                Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
                             };
                         }
-
 
                         await transaction.CommitAsync();
 
@@ -265,7 +267,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new AuthenticationResponseModel
                     {
                         Status = StatusCodes.Status400BadRequest,
-                        Message = "Password incorrect"
+                        Message = ConstantRespones.PASSWORD_INCORRECT
                     };
                 }
                 catch
@@ -393,6 +395,82 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
+        #endregion
+
+        #region request reset password
+        public async Task<BaseResponseModel> RequestResetPassword(string gmail)
+        {
+            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            if (existUser.Status != (int)AccountStatus.Active)
+            {
+                return new BaseResponseModel() 
+                { 
+                    Status = StatusCodes.Status400BadRequest, 
+                    Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
+                };
+            }
+
+            var sendOtp = await _otpService.SendOTPResetPassword(existUser.Id ,gmail);
+            if(sendOtp != false)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = ConstantRespones.REQUEST_RESET_PASSWORD_SUCCESSFUL
+                };
+            }
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Message = ConstantRespones.REQUEST_RESET_PASSWORD_FAILED
+            };
+        }
+        #endregion
+
+        #region Confirm reset password
+        public async Task<BaseResponseModel> ConfirmResetPassword(string gmail, int code)
+        {
+            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            if (existUser.Status != (int)AccountStatus.Active)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
+                };
+            }
+
+            var sendOtp = await _otpService.ConfirmResetPassword(existUser.Id, code);
+            if (sendOtp != false)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = ConstantRespones.CONFIRM_RESET_PASSWORD_SUCCESSFUL
+                };
+            }
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Message = ConstantRespones.OTP_NOT_VALID
+            };
+        }
+        #endregion
+
+        #region excute reset password
+        public async Task<BaseResponseModel> ExcuteResetPassword(ResetPasswordModel resetPasswordModel)
+        {
+            var existedUser = await _unitOfWork.UserRepo.GetAccountByEmail(resetPasswordModel.Email) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            existedUser.Password = AuthenticationUtils.HashPassword(resetPasswordModel.Password);
+            existedUser.UpdateDate = DateTime.UtcNow;
+            _unitOfWork.UserRepo.Update(existedUser);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantRespones.RESET_PASSWORD_SUCCESS
+            };
+        }
         #endregion
     }
 }
