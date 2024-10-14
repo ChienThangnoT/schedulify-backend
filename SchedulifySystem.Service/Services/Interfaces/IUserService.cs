@@ -16,5 +16,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> CreateSchoolManagerAccount(CreateSchoolManagerModel createSchoolManagerModel);
         Task<BaseResponseModel> CreateAdminAccount(CreateAdmin createSchoolManagerModel);
         Task<BaseResponseModel> ConfirmCreateSchoolManagerAccount(int schoolManagerId, int schoolId, AccountStatus accountStatus);
+        Task<BaseResponseModel> RequestResetPassword(string gmail);
     }
 }
