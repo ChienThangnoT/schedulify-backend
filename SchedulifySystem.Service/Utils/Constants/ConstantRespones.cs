@@ -16,5 +16,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SCHOOL_MANAGER_CREAT_SUCCESSFUL = "Create school manager successful.";
         public const string REQUEST_RESET_PASSWORD_SUCCESSFUL = "Send otp reset password success.";
         public const string REQUEST_RESET_PASSWORD_FAILED = "Send otp reset password failed.";
+        public const string OTP_NOT_VALID = "OTP unvalid.";
+        public const string CONFIRM_RESET_PASSWORD_SUCCESSFUL = "Confirm otp reset password success. You can reset password now.";
+        public const string RESET_PASSWORD_SUCCESS = "Reset password success.";
     }
 }
