@@ -53,6 +53,7 @@ public partial class SchedulifyContext : DbContext
     public DbSet<RoleAssignment> RoleAssignments { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<OTP> OTPs { get; set; }
     public DbSet<District> Districts { get; set; }
     public DbSet<Province> Provinces { get; set; }
     public DbSet<SubmitRequest> SubmitsRequests { get; set; }
@@ -117,6 +118,7 @@ public partial class SchedulifyContext : DbContext
             .HasOne(b => b.Account)
             .WithMany(s => s.Notifications)
             .HasForeignKey(b => b.AccountId);
+
         modelBuilder.Entity<OTP>()
             .HasOne(b => b.Account)
             .WithMany(s => s.OTPs)
