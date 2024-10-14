@@ -11,9 +11,10 @@ namespace SchedulifySystem.Service.BusinessModels.RoomBusinessModels
     public class AddRoomModel
     {
         public string? Name { get; set; }
-        public string? RoomTypeName { get; set; }
+        public string? RoomCode { get; set; }
+        public string? RoomTypeCode { get; set; }
         public int MaxClassPerTime { get; set; }
-        public string? BuildingName { get; set; }
+        public string? BuildingCode { get; set; }
 
         [JsonIgnore]
         public int? buildingId { get; set; }

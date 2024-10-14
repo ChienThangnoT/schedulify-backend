@@ -16,10 +16,13 @@ namespace SchedulifySystem.Service.Mapper
         {
             CreateMap<AddBuildingModel, Building>()
                 .ForMember(dest => dest.SchoolId, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["schoolId"]))
-                .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
+                .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.BuildingCode, otp => otp.MapFrom(src => src.BuildingCode.ToUpper()))
+                .ReverseMap();
 
             CreateMap<UpdateBuildingModel, Building>()
-                .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow));
+                .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.BuildingCode, otp => otp.MapFrom(src => src.BuildingCode.ToUpper()));
 
             CreateMap<Building, BuildingViewModel>();
         }

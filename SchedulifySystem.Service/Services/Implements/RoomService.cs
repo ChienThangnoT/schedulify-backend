@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
@@ -61,10 +62,22 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate room name {duplicateNameRooms.First().Name}!", Result = duplicateNameRooms };
             }
 
+            //check duplicate code in list
+            var duplicateCodeRooms = models
+             .GroupBy(b => b.RoomCode, StringComparer.OrdinalIgnoreCase)
+             .Where(g => g.Count() > 1)
+             .SelectMany(g => g)
+             .ToList();
+
+            if (duplicateCodeRooms.Any())
+            {
+                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate room code {duplicateNameRooms.First().RoomCode}!", Result = duplicateNameRooms };
+            }
+
             //check have building in db
             foreach (AddRoomModel model in models)
             {
-                var found = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(filter: b => b.SchoolId == schoolId && !b.IsDeleted && b.Name.ToLower().Equals(model.BuildingName.ToLower()));
+                var found = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(filter: b => b.SchoolId == schoolId && !b.IsDeleted && b.BuildingCode.Equals(model.BuildingCode.ToUpper()));
                 if (!found.Items.Any())
                 {
                     errorList.Add(model);
@@ -77,13 +90,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "Building name is not found!", Result = errorList };
+                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "Building code is not found!", Result = errorList };
             }
 
             //check have room type in db
             foreach (AddRoomModel model in models)
             {
-                var found = await _unitOfWork.RoomTypeRepo.ToPaginationIncludeAsync(filter: rt => rt.SchoolId == schoolId && !rt.IsDeleted && rt.Name.ToLower().Equals(model.RoomTypeName.ToLower()));
+                var found = await _unitOfWork.RoomTypeRepo.ToPaginationIncludeAsync(filter: rt => rt.SchoolId == schoolId && !rt.IsDeleted && rt.RoomTypeCode.Equals(model.RoomTypeCode.ToUpper()));
                 if (!found.Items.Any())
                 {
                     errorList.Add(model);
@@ -96,16 +109,18 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "Room type name is not found!", Result = errorList };
+                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "Room type code is not found!", Result = errorList };
             }
 
 
-            // List of room names to check in the database
+            // List of room names && code to check in the database
             var modelNames = models.Select(m => m.Name.ToLower()).ToList();
+            var modelCodes = models.Select(m => m.RoomCode.ToUpper()).ToList();
 
             // Check room duplicates in the database
             var foundRooms = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
-                filter: b => b.Building.SchoolId == schoolId && !b.IsDeleted && modelNames.Contains(b.Name.ToLower()));
+                filter: b => b.Building.SchoolId == schoolId && !b.IsDeleted &&
+                (modelNames.Contains(b.Name.ToLower()) || modelCodes.Contains(b.RoomCode)));
 
             errorList = _mapper.Map<List<AddRoomModel>>(foundRooms.Items);
             ValidList = models.Where(m => !errorList.Any(e => e.Name.Equals(m.Name, StringComparison.OrdinalIgnoreCase))).ToList();
@@ -114,7 +129,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 ? new BaseResponseModel
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Duplicate room name found in the database!",
+                    Message = "Duplicate room name or code found in the database!",
                     Result = new { ValidList, errorList }
                 }
                 : new BaseResponseModel
@@ -159,7 +174,20 @@ namespace SchedulifySystem.Service.Services.Implements
             var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException($"Room id {RoomId} is not found!");
             var _ = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId) ?? throw new NotExistsException($"Building id {model.BuildingId} is not found!");
             var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync(model.RoomTypeId) ?? throw new NotExistsException($"Room Type id {model.RoomTypeId} is not found!");
-            var newRoom =_mapper.Map(model,room);
+            
+            //check existed name or code
+            var foundRooms = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
+                filter: b => !b.IsDeleted && b.Id != room.Id &&
+                (model.Name.ToLower().Equals(b.Name.ToLower())) || model.RoomCode.ToUpper().Equals(b.RoomCode));
+            if(foundRooms.Items.Any())
+            {
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Duplicate room name or code found in the database!",
+                };
+            }
+            var newRoom = _mapper.Map(model, room);
             _unitOfWork.RoomRepo.Update(newRoom);
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = $"Update Room {RoomId} Success!" };
