@@ -103,6 +103,11 @@ namespace SchedulifySystem.API.Controllers
             }
         }
 
+        [HttpPost("request-reset-password")]
+        public Task<IActionResult> RequestResetPassword(string email)
+        {
+            return ValidateAndExecute(() => _userService.RequestResetPassword(email));
+        }
 
         //[HttpPost("admin-register")]
         //public async Task<IActionResult> SignupAccountAdmin(CreateAdmin createSchoolManagerModel)

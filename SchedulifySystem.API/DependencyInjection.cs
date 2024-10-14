@@ -185,6 +185,11 @@ namespace SchedulifySystem.API
             //config province service and repo
             services.AddTransient<IProvinceRepository, ProvinceRepository>();
             //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
+            
+
+            //config otp service and repo
+            services.AddTransient<IOtpRepository, OtpRepository>();
+            services.AddTransient<IOtpService, OtpService>();
 
             #endregion
 
