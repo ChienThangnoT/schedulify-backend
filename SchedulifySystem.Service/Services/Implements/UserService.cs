@@ -237,7 +237,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(signInModel.email);
+                    var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(signInModel.Email);
                     if (existUser == null)
                     {
                         return new AuthenticationResponseModel
@@ -246,7 +246,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             Message = ConstantRespones.ACCOUNT_NOT_EXIST
                         };
                     }
-                    var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.password, existUser.Password);
+                    var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.Password, existUser.Password);
                     if (verifyUser)
                     {
                         if (existUser.Status == (int)AccountStatus.Inactive
@@ -259,7 +259,6 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
                             };
                         }
-
 
                         await transaction.CommitAsync();
 
@@ -426,7 +425,52 @@ namespace SchedulifySystem.Service.Services.Implements
                 Message = ConstantRespones.REQUEST_RESET_PASSWORD_FAILED
             };
         }
+        #endregion
 
+        #region Confirm reset password
+        public async Task<BaseResponseModel> ConfirmResetPassword(string gmail, int code)
+        {
+            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            if (existUser.Status != (int)AccountStatus.Active)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
+                };
+            }
+
+            var sendOtp = await _otpService.ConfirmResetPassword(existUser.Id, code);
+            if (sendOtp != false)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = ConstantRespones.CONFIRM_RESET_PASSWORD_SUCCESSFUL
+                };
+            }
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Message = ConstantRespones.OTP_NOT_VALID
+            };
+        }
+        #endregion
+
+        #region excute reset password
+        public async Task<BaseResponseModel> ExcuteResetPassword(ResetPasswordModel resetPasswordModel)
+        {
+            var existedUser = await _unitOfWork.UserRepo.GetAccountByEmail(resetPasswordModel.Email) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            existedUser.Password = AuthenticationUtils.HashPassword(resetPasswordModel.Password);
+            existedUser.UpdateDate = DateTime.UtcNow;
+            _unitOfWork.UserRepo.Update(existedUser);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantRespones.RESET_PASSWORD_SUCCESS
+            };
+        }
         #endregion
     }
 }

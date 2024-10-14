@@ -15,6 +15,7 @@ namespace SchedulifySystem.Service.BusinessModels.RoomBusinessModels
         public int MaxClassPerTime { get; set; }
         public string? BuildingName { get; set; }
         public string? RoomTypeName { get; set; }
+        public string? RoomCode { get; set; }
         public AvailabilityStatus AvailabilityStatus { get; set; }
 
         public bool IsAvailable()

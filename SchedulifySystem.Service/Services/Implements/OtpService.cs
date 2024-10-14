@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.EmailModels;
+using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils;
+using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -25,6 +27,8 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
             _mailService = mailService;
         }
+
+        #region sent otp reset password 
         public async Task<bool> SendOTPResetPassword(int accountId, string email)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
@@ -35,7 +39,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     {
                         AccountId = accountId,
                         Code = GenerateNumberUtils.GenerateDigitNumber(),
-                        ExpiredDate = DateTime.UtcNow.AddMinutes(30),
+                        ExpiredDate = DateTime.UtcNow.AddMinutes(5),
                         CreateDate = DateTime.UtcNow,
                         IsDeleted = false,
                         isUsed = false
@@ -57,9 +61,25 @@ namespace SchedulifySystem.Service.Services.Implements
                 catch (Exception)
                 {
                     await transaction.RollbackAsync();
-                    return false; 
+                    return false;
                 }
             }
         }
+        #endregion
+
+        #region confirm reset password
+        public async Task<bool> ConfirmResetPassword(int accountId, int code)
+        {
+            var otp = await _unitOfWork.OTPRepo.GetOTPByCodeAsync(code) ?? throw new NotExistsException(ConstantRespones.OTP_NOT_VALID);
+            DateTime otpExpiryTimeInUtcPlus7 = otp.ExpiredDate.AddHours(7);
+            if (otp.AccountId == accountId && otpExpiryTimeInUtcPlus7 > DateTime.UtcNow.AddHours(7) && otp.isUsed == false)
+            {
+                otp.isUsed = true;
+                _unitOfWork.OTPRepo.Update(otp);
+                return true;
+            }
+            return false;
+        }
+        #endregion
     }
 }

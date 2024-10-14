@@ -63,12 +63,25 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate building name {duplicateNameBuildings.First().Name}!", Result = duplicateNameBuildings };
             }
 
+            //check duplicate Code in list
+            var duplicateCodeBuildings = models
+             .GroupBy(b => b.BuildingCode, StringComparer.OrdinalIgnoreCase)
+             .Where(g => g.Count() > 1)
+             .SelectMany(g => g)
+             .ToList();
+
+            if (duplicateCodeBuildings.Any())
+            {
+                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate building code {duplicateNameBuildings.First().BuildingCode}!", Result = duplicateNameBuildings };
+            }
+
             // List of names to check in the database
             var modelNames = models.Select(m => m.Name.ToLower()).ToList();
+            var modelCodes = models.Select(m => m.BuildingCode.ToUpper()).ToList();
 
             // Check duplicates in the database
             var foundBuildings = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(
-                filter: b => b.SchoolId == schoolId && !b.IsDeleted && modelNames.Contains(b.Name.ToLower()));
+                filter: b => b.SchoolId == schoolId && !b.IsDeleted && (modelNames.Contains(b.Name.ToLower()) || modelCodes.Contains(b.BuildingCode)));
 
             errorList = _mapper.Map<List<AddBuildingModel>>(foundBuildings.Items);
             ValidList = models.Where(m => !errorList.Any(e => e.Name.Equals(m.Name, StringComparison.OrdinalIgnoreCase))).ToList();
@@ -77,7 +90,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 ? new BaseResponseModel
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Duplicate building name found in the database!",
+                    Message = "Duplicate building name or code found in the database!",
                     Result = new { ValidList, errorList }
                 }
                 : new BaseResponseModel
@@ -119,13 +132,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Check duplicates in the database
             var foundBuildings = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(
-                filter: b => b.SchoolId == existed.SchoolId && !b.IsDeleted && model.Name.Equals(b.Name.ToLower()));
+                filter: b => b.SchoolId == existed.SchoolId && !b.IsDeleted && existed.Id != b.Id && (model.Name.Equals(b.Name.ToLower()) || model.BuildingCode.ToUpper().Equals(b.BuildingCode)));
             if (foundBuildings.Items.Any())
             {
                 return new BaseResponseModel
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Duplicate building name found in the database!"
+                    Message = "Duplicate building name or code existed in the database!"
                 };
             }
             _mapper.Map(model, existed);
