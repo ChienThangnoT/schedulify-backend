@@ -50,7 +50,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             IProvinceRepository provinceRepository,
             IOtpRepository otpRepository,
             ISchoolYearRepository schoolYearRepository,
-            IDepartmentRepository departmentRepository)
+            IDepartmentRepository departmentRepository,
             ISubjectGroupTypeRepository subjectGroupTypeRepository)
         {
             _context = context;
