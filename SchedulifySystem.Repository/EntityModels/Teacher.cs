@@ -18,14 +18,12 @@ namespace SchedulifySystem.Repository.EntityModels
         public int DepartmentId { get; set; }
         public DateOnly DateOfBirth { get; set; }
         public int SchoolId { get; set; }
-        public int TeacherGroupId { get; set; }
         public int TeacherRole { get; set; }
         public int Status { get; set; }
         public string? Phone {  get; set; }
 
         public Department? Department { get; set; }
         public School? School { get; set; }
-        public TeacherGroup? Group { get; set; }
         public ICollection<TeachableSubject> TeachableSubjects { get; set; } = new List<TeachableSubject>();
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();

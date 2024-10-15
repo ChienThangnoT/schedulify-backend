@@ -155,7 +155,7 @@ namespace SchedulifySystem.Service.Services.Implements
             _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false),
-                include: query => query.Include(t => t.Department).Include(t => t.Group).Include(t => t.TeachableSubjects));
+                include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects));
             var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
         }

@@ -14,7 +14,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public int ProvinceId { get; set; }
         public int? Status { get; set; }
         public Province? Province { get; set; }
-        public ICollection<TeacherGroup> TeacherGroups { get; set; } = new List<TeacherGroup>();
         public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
         public ICollection<SubjectGroup> SubjectGroups { get; set; } = new List<SubjectGroup>();
         public ICollection<Building> Buildings { get; set; } = new List<Building>();

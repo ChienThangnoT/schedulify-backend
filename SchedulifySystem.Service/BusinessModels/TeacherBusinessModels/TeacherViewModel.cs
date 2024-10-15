@@ -17,9 +17,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public Gender Gender { get; set; }
         public int DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
-        public string? TeacherGroupName { get; set; }
         public DateOnly DateOfBirth { get; set; }
-        public int TeacherGroupId { get; set; }
         public TeacherRole TeacherRole { get; set; }
         public int Status { get; set; }
         public bool IsDeleted { get; set; }
