@@ -170,7 +170,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var school = await _unitOfWork.SchoolRepo.GetByIdAsync(createSchoolManagerModel.SchoolId);
                     if (school == null)
                     {
-                        throw new NotExistsException(ConstantRespones.SCHOOL_NOT_FOUND);
+                        throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
                     }
 
                     var schoolsInAccount = await _unitOfWork.UserRepo.GetAsync(filter: t => t.SchoolId == createSchoolManagerModel.SchoolId);
@@ -179,7 +179,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         return new BaseResponseModel
                         {
                             Status = StatusCodes.Status409Conflict,
-                            Message = ConstantRespones.SCHOOL_ALREADY_ASSIGNED,
+                            Message = ConstantResponse.SCHOOL_ALREADY_ASSIGNED,
                         };
                     }
 
@@ -216,7 +216,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new BaseResponseModel
                     {
                         Status = StatusCodes.Status201Created,
-                        Message = ConstantRespones.SCHOOL_MANAGER_CREAT_SUCCESSFUL,
+                        Message = ConstantResponse.SCHOOL_MANAGER_CREAT_SUCCESSFUL,
                         Result = result
                     };
                 }
@@ -243,7 +243,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         return new AuthenticationResponseModel
                         {
                             Status = StatusCodes.Status401Unauthorized,
-                            Message = ConstantRespones.ACCOUNT_NOT_EXIST
+                            Message = ConstantResponse.ACCOUNT_NOT_EXIST
                         };
                     }
                     var verifyUser = AuthenticationUtils.VerifyPassword(signInModel.Password, existUser.Password);
@@ -256,7 +256,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             return new AuthenticationResponseModel
                             {
                                 Status = StatusCodes.Status401Unauthorized,
-                                Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
+                                Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
                             };
                         }
 
@@ -267,7 +267,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new AuthenticationResponseModel
                     {
                         Status = StatusCodes.Status400BadRequest,
-                        Message = ConstantRespones.PASSWORD_INCORRECT
+                        Message = ConstantResponse.PASSWORD_INCORRECT
                     };
                 }
                 catch
@@ -400,13 +400,13 @@ namespace SchedulifySystem.Service.Services.Implements
         #region request reset password
         public async Task<BaseResponseModel> RequestResetPassword(string gmail)
         {
-            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             if (existUser.Status != (int)AccountStatus.Active)
             {
                 return new BaseResponseModel() 
                 { 
                     Status = StatusCodes.Status400BadRequest, 
-                    Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
+                    Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
                 };
             }
 
@@ -416,13 +416,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel()
                 {
                     Status = StatusCodes.Status200OK,
-                    Message = ConstantRespones.REQUEST_RESET_PASSWORD_SUCCESSFUL
+                    Message = ConstantResponse.REQUEST_RESET_PASSWORD_SUCCESSFUL
                 };
             }
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status400BadRequest,
-                Message = ConstantRespones.REQUEST_RESET_PASSWORD_FAILED
+                Message = ConstantResponse.REQUEST_RESET_PASSWORD_FAILED
             };
         }
         #endregion
@@ -430,13 +430,13 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Confirm reset password
         public async Task<BaseResponseModel> ConfirmResetPassword(string gmail, int code)
         {
-            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             if (existUser.Status != (int)AccountStatus.Active)
             {
                 return new BaseResponseModel()
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantRespones.ACCOUNT_CAN_NOT_ACCESS
+                    Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
                 };
             }
 
@@ -446,13 +446,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel()
                 {
                     Status = StatusCodes.Status200OK,
-                    Message = ConstantRespones.CONFIRM_RESET_PASSWORD_SUCCESSFUL
+                    Message = ConstantResponse.CONFIRM_RESET_PASSWORD_SUCCESSFUL
                 };
             }
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status400BadRequest,
-                Message = ConstantRespones.OTP_NOT_VALID
+                Message = ConstantResponse.OTP_NOT_VALID
             };
         }
         #endregion
@@ -460,7 +460,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region excute reset password
         public async Task<BaseResponseModel> ExcuteResetPassword(ResetPasswordModel resetPasswordModel)
         {
-            var existedUser = await _unitOfWork.UserRepo.GetAccountByEmail(resetPasswordModel.Email) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            var existedUser = await _unitOfWork.UserRepo.GetAccountByEmail(resetPasswordModel.Email) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             existedUser.Password = AuthenticationUtils.HashPassword(resetPasswordModel.Password);
             existedUser.UpdateDate = DateTime.UtcNow;
             _unitOfWork.UserRepo.Update(existedUser);
@@ -468,7 +468,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
-                Message = ConstantRespones.RESET_PASSWORD_SUCCESS
+                Message = ConstantResponse.RESET_PASSWORD_SUCCESS
             };
         }
         #endregion
