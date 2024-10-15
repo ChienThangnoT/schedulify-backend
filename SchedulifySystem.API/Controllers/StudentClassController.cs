@@ -33,12 +33,6 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _studentClassService.GetStudentClassById(classGroupId));
         }
 
-        [HttpPost]
-        [Authorize]
-        public Task<IActionResult> CreateStudentClass(CreateStudentClassModel model)
-        {
-            return ValidateAndExecute(() => _studentClassService.CreateStudentClass(model));
-        }
 
         [HttpPost]
         [Route("add-list")]

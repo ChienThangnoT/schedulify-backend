@@ -61,5 +61,38 @@ namespace SchedulifySystem.Service.Utils.Constants
         //Room Type
         public const string ROOM_TYPE_NOT_EXIST = "The room type does not exist.";
         public const string ROOM_TYPE_CODE_NOT_EXIST = "The room type code does not exist.";
+
+        //Student Class
+        public const string CLASS_NOT_EXIST = "The class does not exist.";
+        public const string CLASS_NAME_EXISTED = "The class name already exists.";
+        public const string CLASS_NAME_DUPLICATED = "The class name is duplicated";
+        public const string CLASS_ID_DUPLICATED = "The class id is duplicated";
+        public const string ADD_CLASS_SUCCESS = "Add class success.";
+        public const string UPDATE_CLASS_SUCCESS = "Update class success.";
+        public const string DELETE_CLASS_SUCCESS = "Delete class success.";
+        public const string GET_CLASS_SUCCESS = "Get classes success.";
+        public const string HOMEROOM_TEACHER_ASSIGNED = "Homeroom teacher was assigned to other class.";
+        public const string HOMEROOM_TEACHER_LIMIT = "Each teacher can only assign to a class.";
+        public const string HOMEROOM_ASSIGN_SUCCESS = "Homeroom teacher assign success";
+
+        //School Year
+        public const string SCHOOL_YEAR_NOT_EXIST = "The school year does not exist.";
+
+        //Teacher
+        public const string TEACHER_NOT_EXIST = "The teacher does not exist.";
+        public const string TEACHER_ABBREVIATION_NOT_EXIST = "The teacher abbreviation does not exist.";
+        public const string TEACHER_ID_DUPLICATED = "The teacher id is duplicated.";
+        public const string TEACHER_EMAIL_EXISTED = "The teacher email already exists.";
+        public const string ADD_TEACHER_SUCCESS = "Add teacher success.";
+        public const string UPDATE_TEACHER_SUCCESS = "Update teacher success.";
+        public const string DELETE_TEACHER_SUCCESS = "Delete teacher success.";
+        public const string GET_TEACHER_SUCCESS = "Get teachers success.";
+
+        //Grade
+        public const string GRADE_NOT_EXIST = "The grade does not exist.";
+        public const string GRADE_CODE_NOT_EXIST = "The grade code does not exist.";
+
+        //Department
+        public const string DEPARTMENT_NOT_EXIST = "The department does not exist.";
     }
 }

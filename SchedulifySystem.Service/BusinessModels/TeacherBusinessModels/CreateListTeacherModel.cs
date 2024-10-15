@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
@@ -25,16 +26,19 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         [EnumDataType(typeof(Gender), ErrorMessage = "Invalid gender value.")]
         public Gender Gender { get; set; }
 
-        public int DepartmentId { get; set; }
+        public string? DepartmentCode { get; set; }
         
         public DateOnly DateOfBirth { get; set; }
 
-        public int TeacherGroupId { get; set; }
 
-        [EnumDataType(typeof(Gender), ErrorMessage = "Invalid teacher role value.")]
+        [EnumDataType(typeof(TeacherRole), ErrorMessage = "Invalid teacher role value.")]
         public TeacherRole TeacherRole { get; set; }
 
         public AccountStatus Status { get; set; }
         public string? Phone { get; set; }
+        [JsonIgnore]
+        public int? SchoolId { get; set; }
+        [JsonIgnore]
+        public int? DepartmentId { get; set; }
     }
 }
