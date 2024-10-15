@@ -74,7 +74,12 @@ namespace SchedulifySystem.Service.Utils.Constants
         //Teacher
         public const string TEACHER_NOT_EXIST = "The teacher does not exist.";
         public const string TEACHER_ABBREVIATION_NOT_EXIST = "The teacher abbreviation does not exist.";
-        public const string TEACHER_ID_DUPLICATED = "The teacher id is duplicated";
+        public const string TEACHER_ID_DUPLICATED = "The teacher id is duplicated.";
+        public const string TEACHER_EMAIL_EXISTED = "The teacher email already exists.";
+        public const string ADD_TEACHER_SUCCESS = "Add teacher success.";
+        public const string UPDATE_TEACHER_SUCCESS = "Update teacher success.";
+        public const string DELETE_TEACHER_SUCCESS = "Delete teacher success.";
+        public const string GET_TEACHER_SUCCESS = "Get teachers success.";
 
         //Grade
         public const string GRADE_NOT_EXIST = "The grade does not exist.";

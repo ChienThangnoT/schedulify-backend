@@ -4,12 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
-using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils;
+using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -78,91 +78,81 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #region CreateTeachers
-        public async Task<BaseResponseModel> CreateTeachers(int schoolId, List<CreateListTeacherModel> createTeacherRequestModels)
+        public async Task<BaseResponseModel> CreateTeachers(int schoolId, List<CreateListTeacherModel> models)
         {
-            // Check if the school exists
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
-                ?? throw new NotExistsException($"School with id {schoolId} is not found!");
-
-            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            var check = await CheckValidDataAddTeacher(schoolId, models);
+            if (check.Status != StatusCodes.Status200OK)
             {
-                try
-                {
-                    var addedTeachers = new List<string>();
-                    var skippedTeachers = new List<string>();
-
-                    // Retrieve all potential conflicting emails and abbreviations from the database
-                    var existingTeachers = await _unitOfWork.TeacherRepo.GetAsync(
-                        filter: t => !t.IsDeleted && t.SchoolId == schoolId &&
-                                     (createTeacherRequestModels.Select(m => m.Email).Contains(t.Email) ||
-                                      createTeacherRequestModels.Select(m => m.Abbreviation.ToLower()).Any(a => t.Abbreviation.ToLower().StartsWith(a))));
-
-                    // Create a set to track abbreviations that have been assigned during this process
-                    var assignedAbbreviations = new HashSet<string>(existingTeachers.Select(t => t.Abbreviation.ToLower()));
-
-                    foreach (var createTeacherRequestModel in createTeacherRequestModels)
-                    {
-                        // Check for duplicate emails
-                        var existedTeacher = existingTeachers.FirstOrDefault(t => t.Email == createTeacherRequestModel.Email);
-
-                        if (existedTeacher != null)
-                        {
-                            skippedTeachers.Add($"{createTeacherRequestModel.FirstName} {createTeacherRequestModel.LastName} cannot be added because the email {createTeacherRequestModel.Email} already exists.");
-                            continue;
-                        }
-
-                        // Handle Abbreviation
-                        var baseAbbreviation = createTeacherRequestModel?.Abbreviation.ToLower();
-
-                        // Generate a unique abbreviation by checking both existing abbreviations and ones already assigned in this session
-                        createTeacherRequestModel.Abbreviation = AbbreviationUtils.GenerateUniqueAbbreviation(baseAbbreviation, assignedAbbreviations);
-
-                        // Add the new abbreviation to the set to ensure no duplicates in the current batch
-                        assignedAbbreviations.Add(createTeacherRequestModel.Abbreviation);
-
-                        // Map and add the new teacher
-                        var newTeacher = _mapper.Map<Teacher>(createTeacherRequestModel);
-                        newTeacher.SchoolId = schoolId;
-                        await _unitOfWork.TeacherRepo.AddAsync(newTeacher);
-                        addedTeachers.Add($"{newTeacher.FirstName} {newTeacher.LastName} has been added.");
-                    }
-
-                    // Commit the transaction and save changes
-                    await _unitOfWork.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    return new BaseResponseModel()
-                    {
-                        Status = StatusCodes.Status200OK,
-                        Message = "Operation completed successfully",
-                        Result = new
-                        {
-                            AddedTeachers = addedTeachers,
-                            SkippedTeachers = skippedTeachers
-                        }
-                    };
-                }
-                catch (Exception ex)
-                {
-                    // Rollback the transaction in case of an error
-                    await transaction.RollbackAsync();
-                    return new BaseResponseModel()
-                    {
-                        Status = StatusCodes.Status500InternalServerError,
-                        Message = $"Error: {ex.Message}"
-                    };
-                }
+                return check;
             }
+
+            var teachers = _mapper.Map<List<Teacher>>(models);
+            await _unitOfWork.TeacherRepo.AddRangeAsync(teachers);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_TEACHER_SUCCESS };
         }
 
+        #endregion
+
+        #region check
+        public async Task<BaseResponseModel> CheckValidDataAddTeacher(int schoolId, List<CreateListTeacherModel> models)
+        {
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+
+            var ValidList = new List<CreateListTeacherModel>();
+            var errorList = new List<CreateListTeacherModel>();
 
 
+            // Retrieve all potential conflicting emails and abbreviations from the database
+            var existingTeachers = await _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => !t.IsDeleted && t.SchoolId == schoolId &&
+                             (models.Select(m => m.Email).Contains(t.Email) ||
+                              models.Select(m => m.Abbreviation.ToLower()).Any(a => t.Abbreviation.ToLower().StartsWith(a))));
+
+            // Create a set to track abbreviations that have been assigned during this process
+            var assignedAbbreviations = new HashSet<string>(existingTeachers.Select(t => t.Abbreviation.ToLower()));
+
+            foreach (var model in models)
+            {
+                // Check for duplicate emails
+                var existedTeacher = existingTeachers.FirstOrDefault(t => t.Email == model.Email);
+
+                if (existedTeacher != null)
+                {
+                    errorList.Add(model);
+                }
+                model.SchoolId = schoolId;  
+                // Handle Abbreviation
+                var baseAbbreviation = model?.Abbreviation.ToLower();
+
+                // Generate a unique abbreviation by checking both existing abbreviations and ones already assigned in this session
+                model.Abbreviation = AbbreviationUtils.GenerateUniqueAbbreviation(baseAbbreviation, assignedAbbreviations);
+
+                // Add the new abbreviation to the set to ensure no duplicates in the current batch
+                assignedAbbreviations.Add(model.Abbreviation);
+
+            }
+
+            return errorList.Any()
+                ? new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.TEACHER_EMAIL_EXISTED,
+                    Result = new { ValidList, errorList }
+                }
+                : new BaseResponseModel
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Data is valid!",
+                    Result = new { ValidList, errorList }
+                };
+        }
         #endregion
 
         #region GetTeachers
         public async Task<BaseResponseModel> GetTeachers(int schoolId, bool includeDeleted, int pageIndex, int pageSize)
         {
-            _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException("School is not found!");
+            _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false),
                 include: query => query.Include(t => t.Department).Include(t => t.Group).Include(t => t.TeachableSubjects));
@@ -182,13 +172,13 @@ namespace SchedulifySystem.Service.Services.Implements
                     var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
                     if (existedTeacher == null)
                     {
-                        return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "The teacher is not found!" };
+                        return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
                     }
                     _mapper.Map(updateTeacherRequestModel, existedTeacher);
                     _unitOfWork.TeacherRepo.Update(existedTeacher);
                     await _unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Update Teacher success" };
+                    return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_TEACHER_SUCCESS };
                 }
                 catch (Exception ex)
                 {
@@ -208,7 +198,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
                 var teachersResponse = _mapper.Map<TeacherViewModel>(teacher);
                 return teacher != null ? new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse } :
-                    new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "The teacher is not found!" };
+                    new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
             }
             catch (Exception ex)
             {
@@ -225,12 +215,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
                 if (existedTeacher == null)
                 {
-                    return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "The teacher is not found!" };
+                    return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
                 }
                 existedTeacher.IsDeleted = true;
                 _unitOfWork.TeacherRepo.Update(existedTeacher);
                 await _unitOfWork.SaveChangesAsync();
-                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Deleted Teacher success" };
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_TEACHER_SUCCESS };
             }
             catch (Exception ex)
             {
