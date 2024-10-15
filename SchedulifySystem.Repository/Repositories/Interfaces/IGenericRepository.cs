@@ -43,7 +43,7 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
           Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null);
 
         Task<T?> GetByIdAsync(int id,
-    Func<IQueryable<T>, IQueryable<T>>? include = null,
-    Expression<Func<T, bool>> filter = null);
+            Func<IQueryable<T>, IQueryable<T>>? include = null,
+            Expression<Func<T, bool>> filter = null);
     }
 }
