@@ -84,5 +84,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         //Grade
         public const string GRADE_NOT_EXIST = "The grade does not exist.";
         public const string GRADE_CODE_NOT_EXIST = "The grade code does not exist.";
+
+        //Department
+        public const string DEPARTMENT_NOT_EXIST = "The department does not exist.";
     }
 }

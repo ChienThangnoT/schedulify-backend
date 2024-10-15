@@ -26,7 +26,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         [EnumDataType(typeof(Gender), ErrorMessage = "Invalid gender value.")]
         public Gender Gender { get; set; }
 
-        public int DepartmentId { get; set; }
+        public string? DepartmentCode { get; set; }
         
         public DateOnly DateOfBirth { get; set; }
 
@@ -37,6 +37,8 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public AccountStatus Status { get; set; }
         public string? Phone { get; set; }
         [JsonIgnore]
-        public int? SchoolId { get; set; } 
+        public int? SchoolId { get; set; }
+        [JsonIgnore]
+        public int? DepartmentId { get; set; }
     }
 }

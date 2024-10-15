@@ -59,7 +59,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     // Generate a unique abbreviation using AbbreviationUtils
                     createTeacherRequestModel.Abbreviation = AbbreviationUtils.GenerateUniqueAbbreviation(baseAbbreviation, existingAbbreviations.Select(t => t.Abbreviation.ToLower()));
-                    
+
                     var newTeacher = _mapper.Map<Teacher>(createTeacherRequestModel);
                     await _unitOfWork.TeacherRepo.AddAsync(newTeacher);
                     await _unitOfWork.SaveChangesAsync();
@@ -98,7 +98,6 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> CheckValidDataAddTeacher(int schoolId, List<CreateListTeacherModel> models)
         {
             var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
-
             var ValidList = new List<CreateListTeacherModel>();
             var errorList = new List<CreateListTeacherModel>();
 
@@ -112,6 +111,27 @@ namespace SchedulifySystem.Service.Services.Implements
             // Create a set to track abbreviations that have been assigned during this process
             var assignedAbbreviations = new HashSet<string>(existingTeachers.Select(t => t.Abbreviation.ToLower()));
 
+            // Check department code exist
+            foreach (var model in models)
+            {
+
+                var department = (await _unitOfWork.DepartmentRepo.GetAsync(filter: d => d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower()))).FirstOrDefault();
+                if (department == null)
+                {
+                    errorList.Add(model);
+                }
+                else
+                {
+                    model.DepartmentId = department.Id;
+                }
+
+            }
+
+            if (errorList.Any())
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.DEPARTMENT_NOT_EXIST, Result = errorList };
+            }
+
             foreach (var model in models)
             {
                 // Check for duplicate emails
@@ -121,7 +141,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     errorList.Add(model);
                 }
-                model.SchoolId = schoolId;  
+                model.SchoolId = schoolId;
                 // Handle Abbreviation
                 var baseAbbreviation = model?.Abbreviation.ToLower();
 
