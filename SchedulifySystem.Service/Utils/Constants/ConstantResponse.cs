@@ -50,6 +50,13 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string DELETE_BUILDING_SUCCESS = "Delete building success.";
         public const string GET_BUILDING_SUCCESS = "Get buildings success.";
 
+        //subject group type
+        public const string SUBJECT_GROUP_TYPE_NOT_EXISTED = "Subject group type not exist.";
+
+        //subject group
+        public const string SUBJECT_GROUP_NAME_OR_CODE_EXISTED = "Subject group name or code already exist.";
+        public const string ADD_SUBJECT_GROUP_SUCCESS = "Add subject group success.";
+
 
         //Room Type
         public const string ROOM_TYPE_NOT_EXIST = "The room type does not exist.";
