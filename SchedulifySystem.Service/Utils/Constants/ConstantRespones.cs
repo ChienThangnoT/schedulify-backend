@@ -19,5 +19,9 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string OTP_NOT_VALID = "OTP unvalid.";
         public const string CONFIRM_RESET_PASSWORD_SUCCESSFUL = "Confirm otp reset password success. You can reset password now.";
         public const string RESET_PASSWORD_SUCCESS = "Reset password success.";
+        public const string GET_ACCOUNT_DETAIL_SUCCESS = "Get account detail success.";
+        public const string UPDATE_ACCOUNT_DETAIL_SUCCESS = "Update account detail success.";
+        public const string CHANGE_PASSWORD_SUCCESSFUL = "Change password success.";
+        public const string CHANGE_PASSWORD_FAILED = "Your password invalid. Try again.";
     }
 }
