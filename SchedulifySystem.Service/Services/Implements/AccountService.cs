@@ -35,7 +35,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region get account detail
         public async Task<BaseResponseModel> GetAccountInformation(int accountId)
         {
-            var account = await _unitOfWork.UserRepo.GetByIdAsync(accountId) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            var account = await _unitOfWork.UserRepo.GetByIdAsync(accountId) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             var school = account.SchoolId.HasValue
                 ? await _unitOfWork.SchoolRepo.GetByIdAsync(account.SchoolId.Value)
                 : null;
@@ -48,7 +48,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
-                Message = ConstantRespones.GET_ACCOUNT_DETAIL_SUCCESS,
+                Message = ConstantResponse.GET_ACCOUNT_DETAIL_SUCCESS,
                 Result = result
             };
         }
@@ -87,7 +87,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region update account info
         public async Task<BaseResponseModel> UpdateAccountInformation(int accountId, UpdateAccountModel updateAccountModel)
         {
-            var account = await _unitOfWork.UserRepo.GetByIdAsync(accountId) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            var account = await _unitOfWork.UserRepo.GetByIdAsync(accountId) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
 
             var accountUpdate = _mapper.Map(updateAccountModel, account);
             accountUpdate.UpdateDate = DateTime.UtcNow;
@@ -97,7 +97,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
-                Message = ConstantRespones.UPDATE_ACCOUNT_DETAIL_SUCCESS
+                Message = ConstantResponse.UPDATE_ACCOUNT_DETAIL_SUCCESS
             };
         }
         #endregion
@@ -105,7 +105,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region change password
         public async Task<BaseResponseModel> ChangeAccountPassword(int accountId, ChangePasswordModel changePasswordModel)
         {
-            var account = await _unitOfWork.UserRepo.GetByIdAsync(accountId) ?? throw new NotExistsException(ConstantRespones.ACCOUNT_NOT_EXIST);
+            var account = await _unitOfWork.UserRepo.GetByIdAsync(accountId) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             var verifyUser = AuthenticationUtils.VerifyPassword(changePasswordModel.OldPasswoorrdPassword, account.Password);
             if (verifyUser)
             {
@@ -116,13 +116,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel()
                 {
                     Status = StatusCodes.Status200OK,
-                    Message = ConstantRespones.CHANGE_PASSWORD_SUCCESSFUL
+                    Message = ConstantResponse.CHANGE_PASSWORD_SUCCESSFUL
                 };
             }
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status400BadRequest,
-                Message = ConstantRespones.CHANGE_PASSWORD_FAILED
+                Message = ConstantResponse.CHANGE_PASSWORD_FAILED
             };
         }
         #endregion
