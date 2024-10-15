@@ -8,6 +8,7 @@ namespace SchedulifySystem.Service.Utils.Constants
 {
     public static class ConstantResponse
     {
+        //User
         public const string ACCOUNT_NOT_EXIST = "Account not exist.";
         public const string ACCOUNT_CAN_NOT_ACCESS = "Account can not access.";
         public const string PASSWORD_INCORRECT = "Password incorrect.";
@@ -19,6 +20,10 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string OTP_NOT_VALID = "OTP unvalid.";
         public const string CONFIRM_RESET_PASSWORD_SUCCESSFUL = "Confirm otp reset password success. You can reset password now.";
         public const string RESET_PASSWORD_SUCCESS = "Reset password success.";
+        public const string GET_ACCOUNT_DETAIL_SUCCESS = "Get account detail success.";
+        public const string UPDATE_ACCOUNT_DETAIL_SUCCESS = "Update account detail success.";
+        public const string CHANGE_PASSWORD_SUCCESSFUL = "Change password success.";
+        public const string CHANGE_PASSWORD_FAILED = "Your password invalid. Try again.";
 
         //Room
         public const string ROOM_NOT_EXIST = "The room does not exist.";
