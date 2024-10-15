@@ -191,6 +191,10 @@ namespace SchedulifySystem.API
             services.AddTransient<IOtpRepository, OtpRepository>();
             services.AddTransient<IOtpService, OtpService>();
 
+            //config otp service and repo
+            services.AddTransient<ISchoolYearRepository, SchoolYearRepository>();
+            //services.AddTransient<IOtpService, OtpService>();
+
             #endregion
 
             #region add db context

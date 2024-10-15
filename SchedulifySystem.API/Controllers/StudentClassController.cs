@@ -19,7 +19,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+        //[Authorize]
         public Task<IActionResult> GetStudentClasses(int schoolId, int? gradeId = null, int? schoolYearId = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, gradeId, schoolYearId, includeDeleted, pageIndex, pageSize));
@@ -27,22 +27,16 @@ namespace SchedulifySystem.API.Controllers
 
 
         [HttpGet("{classGroupId}")]
-        [Authorize]
+        //[Authorize]
         public Task<IActionResult> GetStudentClassById(int classGroupId)
         {
             return ValidateAndExecute(() => _studentClassService.GetStudentClassById(classGroupId));
         }
 
-        [HttpPost]
-        [Authorize]
-        public Task<IActionResult> CreateStudentClass(CreateStudentClassModel model)
-        {
-            return ValidateAndExecute(() => _studentClassService.CreateStudentClass(model));
-        }
 
         [HttpPost]
         [Route("add-list")]
-        [Authorize]
+        //[Authorize]
         public Task<IActionResult> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> models)
         {
             return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(schoolId, schoolYearId, models));
@@ -56,7 +50,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPut("{classGroupId}")]
-        [Authorize]
+        //[Authorize]
         public Task<IActionResult> UpdateStudentClass(int classGroupId, UpdateStudentClassModel model)
         {
             return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(classGroupId, model));
@@ -64,7 +58,7 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPut()]
         [Route("assign-homeroom-teacher")]
-        [Authorize]
+        //[Authorize]
         public Task<IActionResult> AssignHomeroomTeacherToClasses(AssignListStudentClassModel models)
         {
             return ValidateAndExecute(() => _studentClassService.AssignHomeroomTeacherToClasses(models));
