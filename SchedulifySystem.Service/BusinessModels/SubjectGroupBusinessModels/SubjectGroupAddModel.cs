@@ -10,9 +10,9 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
     public class SubjectGroupAddModel
     {
         public string? GroupName { get; set; }
-        public string? GroupDescription { get; set; }
-        public string? SubjectGroupTypeCode { get; set; }
         public string? GroupCode { get; set; }
+        public string? GroupDescription { get; set; }
+        public int SubjectGroupTypeId { get; set; }
         [JsonIgnore]
         public DateTime? CreatedDate { get; set; } = DateTime.UtcNow;
     }

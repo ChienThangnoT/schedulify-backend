@@ -186,10 +186,21 @@ namespace SchedulifySystem.API
             services.AddTransient<IProvinceRepository, ProvinceRepository>();
             //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
             
-
             //config otp service and repo
             services.AddTransient<IOtpRepository, OtpRepository>();
             services.AddTransient<IOtpService, OtpService>();
+
+            //config school year service and repo
+            services.AddTransient<ISchoolYearRepository, SchoolYearRepository>();
+            //services.AddTransient<IOtpService, OtpService>();
+
+            //config Department service and repo
+            services.AddTransient<IDepartmentRepository, DepartmentRepository>();
+            //services.AddTransient<IOtpService, OtpService>();
+
+            //config subject group type service and repo
+            services.AddTransient<ISubjectGroupTypeRepository, SubjectGroupTypeRepository>();
+            //services.AddTransient<ISubjectGroupTypeService, SubjectGroupTypeService>();
 
             #endregion
 

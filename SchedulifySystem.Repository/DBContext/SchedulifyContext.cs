@@ -46,7 +46,6 @@ public partial class SchedulifyContext : DbContext
     public DbSet<Teacher> Teachers { get; set; }
     public DbSet<TeacherAssignment> TeacherAssignments { get; set; }
     public DbSet<TeacherConfig> TeacherConfigs { get; set; }
-    public DbSet<TeacherGroup> TeacherGroups { get; set; }
     public DbSet<TeacherUnavailability> TeacherUnavailabilities { get; set; }
     public DbSet<Term> Terms { get; set; }
     public DbSet<TimeSlot> TimeSlots { get; set; }
@@ -526,16 +525,6 @@ public partial class SchedulifyContext : DbContext
             .WithMany(ss => ss.TeacherConfigs)
             .HasForeignKey(tc => tc.SchoolScheduleId);
 
-        // TeacherGroup Entity
-        modelBuilder.Entity<TeacherGroup>()
-            .HasKey(tg => tg.Id);
-        modelBuilder.Entity<TeacherGroup>()
-            .Property(tg => tg.Name)
-            .HasMaxLength(100);
-        modelBuilder.Entity<TeacherGroup>()
-            .HasOne(tg => tg.School)
-            .WithMany(s => s.TeacherGroups)
-            .HasForeignKey(tg => tg.SchoolId);
 
         // TeacherUnavailability Entity
         modelBuilder.Entity<TeacherUnavailability>()
