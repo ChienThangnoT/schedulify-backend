@@ -33,13 +33,14 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost("{schoolId}/subjects")]
-        [Authorize]
+        [Authorize(Roles = "Admin, SchoolManager")]
         public Task<IActionResult> CreateSubjectList(int schoolId, List<SubjectAddListModel> subjectAddModel)
         {
             return ValidateAndExecute(() => _subjectService.CreateSubjectList(schoolId, subjectAddModel));
         }
 
         [HttpPut("{subjectId}")]
+        [Authorize(Roles = "Admin, SchoolManager")]
         public Task<IActionResult> UpdateSubjectById(int subjectId, SubjectUpdateModel subjectUpdate)
         {
             return ValidateAndExecute(() => _subjectService.UpdateSubjectById(subjectId, subjectUpdate));
