@@ -33,7 +33,8 @@ namespace SchedulifySystem.Service.Mapper
 
             CreateMap<CreateListStudentClassModel, StudentClass>()
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForPath(dest => dest.Name, opt => opt.MapFrom(src => src.Name.ToUpper()));
+                .ForPath(dest => dest.Name, opt => opt.MapFrom(src => src.Name.ToUpper()))
+                .ReverseMap();
 
             CreateMap<UpdateStudentClassModel, StudentClassInGroup>()
             .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
