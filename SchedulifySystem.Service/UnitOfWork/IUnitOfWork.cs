@@ -28,7 +28,6 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IOtpRepository OTPRepo { get; }
         public ISchoolYearRepository SchoolYearRepo { get; }
         public IDepartmentRepository DepartmentRepo { get; }
-        public ISubjectGroupTypeRepository SubjectGroupTypeRepo { get; }
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

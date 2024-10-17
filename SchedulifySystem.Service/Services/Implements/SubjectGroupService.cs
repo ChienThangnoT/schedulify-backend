@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
@@ -31,8 +32,6 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School not found with id {schoolId}");
 
-            var existSubjectGroupType = await _unitOfWork.SubjectGroupTypeRepo.GetByIdAsync(subjectGroupAddModel.SubjectGroupTypeId)
-                ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_TYPE_NOT_EXISTED);
             var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
                 filter: t => t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower() ||
                              t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower()
@@ -52,7 +51,6 @@ namespace SchedulifySystem.Service.Services.Implements
             subjectGroupAdd.SchoolId = schoolId;
             await _unitOfWork.SubjectGroupRepo.AddAsync(subjectGroupAdd);
             await _unitOfWork.SaveChangesAsync();
-            subjectGroupAdd.SubjectGroupType = existSubjectGroupType;
             var result = _mapper.Map<SubjectGroupViewModel>(subjectGroupAdd);
             return new BaseResponseModel()
             {
@@ -64,13 +62,12 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region get subjects
-        public async Task<BaseResponseModel> GetSubjects(int subjectId, int subjectGroupTypeId, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetSubjects(int subjectId, int pageIndex, int pageSize)
         {
             var subject = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
-            var subjectGroupType = await _unitOfWork.SubjectGroupTypeRepo.GetByIdAsync(subjectGroupTypeId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_TYPE_NOT_EXISTED);
-
+            
             var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
-                filter: t => (subjectId == 0 || t.Id == subjectId) || (subjectGroupTypeId == 0 || t.SubjectGroupTypeId == subjectGroupTypeId)
+                filter: t => (subjectId == 0 || t.Id == subjectId) || t.SubjectGroupType == (int)SubjectGroupType.SUBJECT_COMBINATION
                 );
             return new BaseResponseModel()
             {

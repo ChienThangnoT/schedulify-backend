@@ -198,9 +198,6 @@ namespace SchedulifySystem.API
             services.AddTransient<IDepartmentRepository, DepartmentRepository>();
             //services.AddTransient<IOtpService, OtpService>();
 
-            //config subject group type service and repo
-            services.AddTransient<ISubjectGroupTypeRepository, SubjectGroupTypeRepository>();
-            //services.AddTransient<ISubjectGroupTypeService, SubjectGroupTypeService>();
 
             #endregion
 

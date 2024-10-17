@@ -10,7 +10,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ISubjectGroupService
     {
-        Task<BaseResponseModel> GetSubjects(int subjectId, int subjectGroupTypeId, int pageIndex, int pageSize);
+        Task<BaseResponseModel> GetSubjects(int subjectId, int pageIndex, int pageSize);
         Task<BaseResponseModel> CreateSubjectGroup(int schoolId , SubjectGroupAddModel subjectGroupAddModel);
     }
 }

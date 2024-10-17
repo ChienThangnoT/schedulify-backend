@@ -23,5 +23,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
         public ICollection<StudentClassInGroup> StudentClassInGroups { get; set; } = new List<StudentClassInGroup>();
         public ICollection<SubjectConfig> SubjectConfigs { get; set; } = new List<SubjectConfig>();
+        public ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
     }
 }

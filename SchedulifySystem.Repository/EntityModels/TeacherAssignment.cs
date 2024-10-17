@@ -13,5 +13,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public int AssignmentType { get; set; }
         public TeachableSubject? TeachableSubject { get; set; }
         public StudentClass? StudentClass { get; set; }
+        public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();
     }
 }

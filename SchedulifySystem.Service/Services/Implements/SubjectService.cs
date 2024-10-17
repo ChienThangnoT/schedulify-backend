@@ -179,7 +179,7 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> GetSubjectById(int subjectId)
         {
             var subjects = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(subjects.SchoolId);
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(subjects.SchoolId ?? -1);
             subjects.School = school;
             var subject = _mapper.Map<SubjectViewModel>(subjects);
             return new BaseResponseModel()
@@ -278,7 +278,7 @@ namespace SchedulifySystem.Service.Services.Implements
             subjectUpdate.UpdateDate = DateTime.UtcNow;
             _unitOfWork.SubjectRepo.Update(subjectUpdate);
             await _unitOfWork.SaveChangesAsync();
-            var schoool = await _unitOfWork.SchoolRepo.GetByIdAsync(subjectUpdate.SchoolId);
+            var schoool = await _unitOfWork.SchoolRepo.GetByIdAsync(subjectUpdate.SchoolId ?? -1);
             subjectUpdate.School = schoool;
 
             var result = _mapper.Map<SubjectViewModel>(subjectUpdate);
