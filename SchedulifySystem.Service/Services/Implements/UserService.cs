@@ -50,14 +50,14 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var schoolManager = await _unitOfWork.UserRepo.GetByIdAsync(schoolManagerId) ?? throw new NotExistsException("Not found school manager!");
-                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException("Not found school");
+                    var schoolManager = await _unitOfWork.UserRepo.GetByIdAsync(schoolManagerId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_ACCOUNT_NOT_EXIST);
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
                     if (accountStatus == AccountStatus.Pending || accountStatus == 0)
                     {
                         return new BaseResponseModel
                         {
                             Status = StatusCodes.Status400BadRequest,
-                            Message = "Account status must be different than Pending status or not null"
+                            Message = ConstantResponse.CHANGE_ACCOUNT_STATUS
                         };
                     }
                     var isConfirm = schoolManager.IsConfirmSchoolManager;
@@ -66,7 +66,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         return new BaseResponseModel
                         {
                             Status = StatusCodes.Status400BadRequest,
-                            Message = "School manager has been verified!"
+                            Message = ConstantResponse.SCHOOL_MANAGERR_ALREADY_CONFIRM
                         };
                     }
                     schoolManager.IsConfirmSchoolManager = true;
@@ -74,6 +74,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     if(schoolManager.Status == 1)
                     {
                         school.Status = 1;
+                        school.UpdateDate = DateTime.UtcNow;
                     }
                     schoolManager.UpdateDate = DateTime.UtcNow;
                     _unitOfWork.UserRepo.Update(schoolManager);
@@ -90,7 +91,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new BaseResponseModel
                     {
                         Status = StatusCodes.Status200OK,
-                        Message = "Confirm create school manager account success"
+                        Message = ConstantResponse.SCHOOL_MANAGERR_CONFIRM
                     };
                 }
                 catch (Exception ex)
@@ -308,7 +309,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new AuthenticationResponseModel
                     {
                         Status = StatusCodes.Status401Unauthorized,
-                        Message = "Invalid Refresh token!"
+                        Message = ConstantResponse.INVALID_REFRESH
                     };
                 }
 
@@ -322,7 +323,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new AuthenticationResponseModel
                     {
                         Status = StatusCodes.Status200OK,
-                        Message = "Refresh token successful.",
+                        Message = ConstantResponse.REFRESH_TOKEN_SUCCESS,
                         JwtToken = new JwtSecurityTokenHandler().WriteToken(newAccessToken),
                         Expired = TimeZoneInfo.ConvertTimeFromUtc(newAccessToken.ValidTo, TimeZoneInfo.Local),
                         JwtRefreshToken = new JwtSecurityTokenHandler().WriteToken(newRefreshToken),
@@ -332,7 +333,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new AuthenticationResponseModel
                 {
                     Status = StatusCodes.Status401Unauthorized,
-                    Message = "Account not exist!"
+                    Message = ConstantResponse.ACCOUNT_NOT_EXIST_AUTH
                 };
             }
             catch
@@ -340,7 +341,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new AuthenticationResponseModel
                 {
                     Status = StatusCodes.Status401Unauthorized,
-                    Message = "Refresh token invalid or expired time"
+                    Message = ConstantResponse.REFRESH_TOKEN_INVALID
                 };
             }
         }

@@ -72,7 +72,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (accounts.Items.Count == 0)
             {
-                throw new NotExistsException("Account list not exist");
+                throw new NotExistsException(ConstantResponse.ACCOUNT_LIST_NOT_EXIST);
             }
 
             var result = _mapper.Map<Pagination<AccountViewModel>>(accounts);

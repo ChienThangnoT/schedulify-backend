@@ -10,6 +10,7 @@ namespace SchedulifySystem.Service.Utils.Constants
     {
         //User
         public const string ACCOUNT_NOT_EXIST = "Account not exist.";
+        public const string SCHOOL_ACCOUNT_NOT_EXIST = "Not found school manager!";
         public const string ACCOUNT_CAN_NOT_ACCESS = "Account can not access.";
         public const string PASSWORD_INCORRECT = "Password incorrect.";
         public const string SCHOOL_NOT_FOUND = "School Not found.";
@@ -24,6 +25,19 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string UPDATE_ACCOUNT_DETAIL_SUCCESS = "Update account detail success.";
         public const string CHANGE_PASSWORD_SUCCESSFUL = "Change password success.";
         public const string CHANGE_PASSWORD_FAILED = "Your password invalid. Try again.";
+        public const string CHANGE_ACCOUNT_STATUS = "Account status must be different than Pending status or not null";
+        public const string SCHOOL_MANAGERR_ALREADY_CONFIRM = "School manager has been verified!";
+        public const string SCHOOL_MANAGERR_CONFIRM = "Confirm create school manager account success";
+
+        public const string ACCOUNT_LIST_NOT_EXIST = "Account list not exist";
+
+
+        //auth
+        public const string INVALID_REFRESH = "Invalid Refresh token!";
+        public const string REFRESH_TOKEN_SUCCESS = "Refresh token successful.";
+        public const string REFRESH_TOKEN_INVALID = "Refresh token invalid or expired time";
+        public const string ACCOUNT_NOT_EXIST_AUTH = "Account not exist!";
+
 
         //Room
         public const string ROOM_NOT_EXIST = "The room does not exist.";
@@ -49,6 +63,24 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string UPDATE_BUILDING_SUCCESS = "Update building success.";
         public const string DELETE_BUILDING_SUCCESS = "Delete building success.";
         public const string GET_BUILDING_SUCCESS = "Get buildings success.";
+
+        //subject group type
+        public const string SUBJECT_GROUP_TYPE_NOT_EXISTED = "Subject group type not exist.";
+
+        //subject group
+        public const string SUBJECT_GROUP_NAME_OR_CODE_EXISTED = "Subject group name or code already exist.";
+        public const string ADD_SUBJECT_GROUP_SUCCESS = "Add subject group success.";
+        public const string SUBJECT_GROUP_NOT_EXISTED = "Subject group not exist.";
+        
+        //subject 
+        public const string SUBJECT_NAME_EXISTED = "Subject name already exists in school.";
+        public const string ADD_SUBJECT_SUCCESS = "Add subject success.";
+        public const string SUBJECT_NOT_EXISTED = "Subject not exist.";
+        public const string UPDATE_SUBJECT_SUCCESS = "Update subject successful";
+        public const string GET_SUBJECT_LIST_SUCCESS = "Get subject list successful";
+        public const string GET_SUBJECT_SUCCESS = "Get subject successful";
+        public const string SUBJECT_NAME_ALREADY_EXIST = "Subject name already exist.";
+        public const string ADD_SUBJECT_LIST_SUCCESS = "Operation completed";
 
 
         //Room Type
