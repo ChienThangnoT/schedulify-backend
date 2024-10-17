@@ -23,6 +23,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPut("confirm-school-manager-account")]
+        [Authorize(Roles ="Admin")]
         public Task<IActionResult> ConfirmCreateSchoolManagerAccount(int schoolManagerId, int schoolId, AccountStatus accountStatus)
         {
             return ValidateAndExecute(() => _userService.ConfirmCreateSchoolManagerAccount(schoolManagerId, schoolId, accountStatus));

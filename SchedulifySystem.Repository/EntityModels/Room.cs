@@ -18,5 +18,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public RoomType? RoomType { get; set; }
         public Building? Building { get; set; }
         public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();
+        public ICollection<RoomSubject> RoomSubjects { get; set; } = new List<RoomSubject>();
     }
 }

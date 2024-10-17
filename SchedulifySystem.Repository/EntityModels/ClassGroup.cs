@@ -10,10 +10,10 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
-        public int SchoolYearId { get; set; }
+        public int? SchoolYearId { get; set; }
         public int ParentId { get; set; }
-        public int SchoolId { get; set; }
-        public int SubjectGroupId { get; set; }
+        public int? SchoolId { get; set; }
+        public int? SubjectGroupId { get; set; }
         public string? ClassGroupCode { get; set; }
 
         public School? School { get; set; }

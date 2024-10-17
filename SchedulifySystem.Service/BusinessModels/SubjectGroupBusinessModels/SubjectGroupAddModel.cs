@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,9 +11,9 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
     public class SubjectGroupAddModel
     {
         public string? GroupName { get; set; }
-        public string? GroupDescription { get; set; }
-        public string? SubjectGroupTypeCode { get; set; }
         public string? GroupCode { get; set; }
+        public string? GroupDescription { get; set; }
+        public SubjectGroupType SubjectGroupType { get; set; }
         [JsonIgnore]
         public DateTime? CreatedDate { get; set; } = DateTime.UtcNow;
     }

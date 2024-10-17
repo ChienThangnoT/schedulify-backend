@@ -56,6 +56,7 @@ public partial class SchedulifyContext : DbContext
     public DbSet<District> Districts { get; set; }
     public DbSet<Province> Provinces { get; set; }
     public DbSet<SubmitRequest> SubmitsRequests { get; set; }
+    public DbSet<RoomSubject> RoomSubjects { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -202,6 +203,11 @@ public partial class SchedulifyContext : DbContext
                 .WithMany(s => s.ClassPeriods)
                 .HasForeignKey(cp => cp.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(cp => cp.TeacherAssignment)
+               .WithMany(s => s.ClassPeriods)
+               .HasForeignKey(cp => cp.TeacherAssignmentId)
+               .OnDelete(DeleteBehavior.Restrict);
         });
 
 
@@ -441,10 +447,7 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sig => sig.School)
             .WithMany(sg => sg.SubjectGroups)
             .HasForeignKey(sig => sig.SchoolId);
-        modelBuilder.Entity<SubjectGroup>()
-            .HasOne(sg => sg.SubjectGroupType)
-            .WithMany(sgt => sgt.subjectGroups)
-            .HasForeignKey(sg => sg.SubjectGroupTypeId);
+        
 
         // SubjectInGroup Entity
         modelBuilder.Entity<SubjectInGroup>()
@@ -600,10 +603,20 @@ public partial class SchedulifyContext : DbContext
             .WithMany(t => t.SubmitRequests)
             .HasForeignKey(sr => sr.TeacherId);
 
-        //SubjectGroupType Entity
-        modelBuilder.Entity<SubjectGroupType>()
-            .HasKey(sgt => sgt.Id);
 
+        //RoomSubject
+        modelBuilder.Entity<RoomSubject>()
+            .HasKey(rs => rs.Id);
+        modelBuilder.Entity<RoomSubject>()
+            .HasOne(rs => rs.Subject)
+            .WithMany(s => s.RoomSubjects)
+            .HasForeignKey(rs => rs.SubjectId);
+        modelBuilder.Entity<RoomSubject>()
+           .HasOne(rs => rs.Room)
+           .WithMany(r => r.RoomSubjects)
+           .HasForeignKey(rs => rs.RoomId);
+
+       
     }
 }
 
