@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using FTravel.Service.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SchedulifySystem.Repository.EntityModels;
@@ -238,7 +239,8 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(signInModel.Email);
+                    var existUser = (await _unitOfWork.UserRepo.ToPaginationIncludeAsync(filter: a => a.Email.ToLower().Equals(signInModel.Email.ToLower()), 
+                        include: query => query.Include(a => a.School))).Items.FirstOrDefault();
                     if (existUser == null)
                     {
                         return new AuthenticationResponseModel
@@ -311,7 +313,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     };
                 }
 
-                var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(emailClaim.Value);
+                var existUser = (await _unitOfWork.UserRepo.ToPaginationIncludeAsync(filter: a => a.Email.ToLower().Equals(emailClaim.Value.ToLower()),
+                        include: query => query.Include(a => a.School))).Items.FirstOrDefault();
                 if (existUser != null)
                 {
                     var newAccessToken = GenerateJWTToken.CreateAccessToken(await GetAuthClaims(existUser), _configuration, DateTime.UtcNow);
@@ -351,6 +354,8 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim("accountId", user.Id.ToString()),
+                new Claim("schoolId", user.SchoolId.ToString()),
+                new Claim("schoolName", user.School.Name),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
