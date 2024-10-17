@@ -34,7 +34,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "SchoolManager")]]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherModel model)
         {
             return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
@@ -48,7 +48,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "SchoolManager")]]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> DeleteTeacher(int id)
         {
             return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
