@@ -9,6 +9,7 @@ using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
+using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -40,12 +41,12 @@ namespace SchedulifySystem.Service.Services.Implements
             var rooms = _mapper.Map<List<Room>>(models);
             await _unitOfWork.RoomRepo.AddRangeAsync(rooms);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Add success" };
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_ROOM_SUCCESS };
         }
 
         public async Task<BaseResponseModel> CheckValidDataAddRooms(int schoolId, List<AddRoomModel> models)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School id {schoolId} is not found!");
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var ValidList = new List<AddRoomModel>();
             var errorList = new List<AddRoomModel>();
@@ -59,7 +60,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (duplicateNameRooms.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate room name {duplicateNameRooms.First().Name}!", Result = duplicateNameRooms };
+                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.ROOM_NAME_DUPLICATED, Result = duplicateNameRooms };
             }
 
             //check duplicate code in list
@@ -71,7 +72,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (duplicateCodeRooms.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate room code {duplicateNameRooms.First().RoomCode}!", Result = duplicateNameRooms };
+                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.ROOM_CODE_DUPLICATED, Result = duplicateNameRooms };
             }
 
             //check have building in db
@@ -90,7 +91,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "Building code is not found!", Result = errorList };
+                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.BUILDING_CODE_NOT_EXIST, Result = errorList };
             }
 
             //check have room type in db
@@ -109,7 +110,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = "Room type code is not found!", Result = errorList };
+                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.ROOM_TYPE_CODE_NOT_EXIST, Result = errorList };
             }
 
 
@@ -129,7 +130,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 ? new BaseResponseModel
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Duplicate room name or code found in the database!",
+                    Message = ConstantResponse.ROOM_CODE_OR_NAME_EXISTED,
                     Result = new { ValidList, errorList }
                 }
                 : new BaseResponseModel
@@ -142,23 +143,23 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> DeleteRoom(int RoomId)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException($"Room id {RoomId} is not found!");
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
             room.IsDeleted = true;
             _unitOfWork.RoomRepo.Update(room);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Delete room success!" };
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_ROOM_SUCCESS };
         }
 
         public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, int? roomTypeId, int pageIndex = 1, int pageSize = 20)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"school id {schoolId} is not found!");
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (buildingId != null)
             {
-                var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId) ?? throw new NotExistsException($"building id {buildingId} is not found!");
+                var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
             }
             if (roomTypeId != null)
             {
-                var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync((int)roomTypeId) ?? throw new NotExistsException($"Room type id {roomTypeId} is not found!");
+                var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync((int)roomTypeId) ?? throw new NotExistsException(ConstantResponse.ROOM_TYPE_NOT_EXIST);
             }
             var found = await _unitOfWork.RoomRepo
                 .ToPaginationIncludeAsync(
@@ -166,14 +167,14 @@ namespace SchedulifySystem.Service.Services.Implements
                     filter: r => r.Building.SchoolId == schoolId && (buildingId == null ? true : r.Building.Id == buildingId) && (roomTypeId == null ? true : r.RoomTypeId == roomTypeId) && !r.IsDeleted
                 );
             var response = _mapper.Map<Pagination<RoomViewModel>>(found);
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get building success!", Result = response };
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_ROOM_SUCCESS, Result = response };
         }
 
         public async Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException($"Room id {RoomId} is not found!");
-            var _ = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId) ?? throw new NotExistsException($"Building id {model.BuildingId} is not found!");
-            var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync(model.RoomTypeId) ?? throw new NotExistsException($"Room Type id {model.RoomTypeId} is not found!");
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+            var _ = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
+            var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync(model.RoomTypeId) ?? throw new NotExistsException(ConstantResponse.ROOM_TYPE_NOT_EXIST);
             
             //check existed name or code
             var foundRooms = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
@@ -184,13 +185,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Duplicate room name or code found in the database!",
+                    Message = ConstantResponse.ROOM_CODE_OR_NAME_EXISTED,
                 };
             }
             var newRoom = _mapper.Map(model, room);
             _unitOfWork.RoomRepo.Update(newRoom);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = $"Update Room {RoomId} Success!" };
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_ROOM_SUCCESS };
         }
     }
 }

@@ -14,8 +14,13 @@ namespace SchedulifySystem.Service.Mapper
         partial void AccountMapperConfig()
         {
             CreateMap<CreateSchoolManagerModel, Account>().ReverseMap();
-            CreateMap< CreateAdmin, Account>().ReverseMap();
+            CreateMap<CreateAdmin, Account>().ReverseMap();
+            CreateMap<UpdateAccountModel, Account>().ReverseMap();
             CreateMap<Account, AccountViewModel>()
+            .ForMember(dest => dest.SchoolName,
+                opt => opt.MapFrom(src => src.School != null ? src.School.Name : string.Empty))
+            .ReverseMap();
+            CreateMap<Account, AccountDetailModel>()
             .ForMember(dest => dest.SchoolName,
                 opt => opt.MapFrom(src => src.School != null ? src.School.Name : string.Empty))
             .ReverseMap();

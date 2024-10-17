@@ -19,28 +19,28 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> GetBuildings(int schoolId, bool includeRoom = false, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _buildingService.GetBuildings(schoolId, includeRoom, pageIndex, pageSize));
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> AddBuildings(int schoolId, List<AddBuildingModel> buildings)
         {
             return ValidateAndExecute(() => _buildingService.AddBuildings(schoolId, buildings));
         }
 
         [HttpPut("{buildingId}")]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateBuilding(int buildingId, UpdateBuildingModel building)
         {
             return ValidateAndExecute(() => _buildingService.UpdateBuildings(buildingId, building));
         }
 
         [HttpDelete("{buildingId}")]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> DeleteBuilding(int buildingId)
         {
             return ValidateAndExecute(() => _buildingService.DeleteBuildings(buildingId));

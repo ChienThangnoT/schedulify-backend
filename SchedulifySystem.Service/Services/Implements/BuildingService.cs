@@ -8,6 +8,7 @@ using SchedulifySystem.Service.BusinessModels.BuildingBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
+using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region AddBuildings
         public async Task<BaseResponseModel> AddBuildings(int schoolId, List<AddBuildingModel> models)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School id {schoolId} is not found!");
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var check = await CheckValidDataAddBuilding(schoolId, models);
             if (check.Status != StatusCodes.Status200OK)
             {
@@ -41,7 +42,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var buildings = _mapper.Map<List<Building>>(models, opt => opt.Items["schoolId"] = schoolId);
             await _unitOfWork.BuildingRepo.AddRangeAsync(buildings);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Add success" };
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_BUILDING_SUCCESS };
         }
         #endregion
 
@@ -60,7 +61,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (duplicateNameBuildings.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate building name {duplicateNameBuildings.First().Name}!", Result = duplicateNameBuildings };
+                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.BUILDING_NAME_DUPLICATED, Result = duplicateNameBuildings };
             }
 
             //check duplicate Code in list
@@ -72,7 +73,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (duplicateCodeBuildings.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = $"Duplicate building code {duplicateNameBuildings.First().BuildingCode}!", Result = duplicateNameBuildings };
+                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.BUILDING_CODE_DUPLICATED, Result = duplicateNameBuildings };
             }
 
             // List of names to check in the database
@@ -90,7 +91,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 ? new BaseResponseModel
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Duplicate building name or code found in the database!",
+                    Message = ConstantResponse.BUILDING_CODE_OR_NAME_EXISTED,
                     Result = new { ValidList, errorList }
                 }
                 : new BaseResponseModel
@@ -105,21 +106,21 @@ namespace SchedulifySystem.Service.Services.Implements
         #region DeleteBuildings
         public async Task<BaseResponseModel> DeleteBuildings(int buildingId)
         {
-            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException($"Building id {buildingId} is not found!");
+            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
             existed.IsDeleted = true;
             _unitOfWork.BuildingRepo.Update(existed);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Delete building success!" };
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_BUILDING_SUCCESS};
         }
         #endregion
 
         #region GetBuildings
         public async Task<BaseResponseModel> GetBuildings(int schoolId, bool? includeRoom = false, int pageIndex = 1, int pageSize = 20)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School id {schoolId} is not found!");
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var buildings = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(pageIndex, pageSize, filter: b => b.SchoolId == schoolId && !b.IsDeleted, include: query => query.Include(b => b.Rooms));
             var response = _mapper.Map<Pagination<BuildingViewModel>>(buildings);
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Get building success!", Result = response };
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_BUILDING_SUCCESS, Result = response };
 
         }
         #endregion
@@ -128,7 +129,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region UpdateBuildings
         public async Task<BaseResponseModel> UpdateBuildings(int buildingId, UpdateBuildingModel model)
         {
-            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException($"Building id {buildingId} is not found!");
+            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
 
             // Check duplicates in the database
             var foundBuildings = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(
@@ -138,13 +139,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Duplicate building name or code existed in the database!"
+                    Message = ConstantResponse.BUILDING_CODE_OR_NAME_EXISTED
                 };
             }
             _mapper.Map(model, existed);
             _unitOfWork.BuildingRepo.Update(existed);
             await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Update building success!" };
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_BUILDING_SUCCESS };
         }
         #endregion
     }

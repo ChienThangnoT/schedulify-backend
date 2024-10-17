@@ -16,7 +16,6 @@ namespace SchedulifySystem.Service.Mapper
         {
             CreateMap<Teacher, TeacherViewModel>()
                 .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : string.Empty))
-                .ForMember(dest => dest.TeacherGroupName, opt => opt.MapFrom(src => src.Group != null ? src.Group.Name : string.Empty))
                 .ForMember(dest => dest.TeachableSubjects, opt => opt.MapFrom(src => src.TeachableSubjects.Select(ts => ts.Subject != null ? ts.Subject.SubjectName : string.Empty)))
                 .ForMember(dest => dest.Gender, otp => otp.MapFrom(src => src.Gender == (int)Gender.Female ? "Female" : "Male"));
 

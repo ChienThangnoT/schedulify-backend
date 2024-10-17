@@ -70,7 +70,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region confirm reset password
         public async Task<bool> ConfirmResetPassword(int accountId, int code)
         {
-            var otp = await _unitOfWork.OTPRepo.GetOTPByCodeAsync(code) ?? throw new NotExistsException(ConstantRespones.OTP_NOT_VALID);
+            var otp = await _unitOfWork.OTPRepo.GetOTPByCodeAsync(code) ?? throw new NotExistsException(ConstantResponse.OTP_NOT_VALID);
             DateTime otpExpiryTimeInUtcPlus7 = otp.ExpiredDate.AddHours(7);
             if (otp.AccountId == accountId && otpExpiryTimeInUtcPlus7 > DateTime.UtcNow.AddHours(7) && otp.isUsed == false)
             {

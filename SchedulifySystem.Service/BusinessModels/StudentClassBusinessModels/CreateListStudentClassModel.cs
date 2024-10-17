@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
@@ -9,9 +10,17 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
     public class CreateListStudentClassModel
     {
         public string? Name { get; set; }
-        public int? HomeroomTeacherId { get; set; }
+        public string? HomeroomTeacherAbbreviation { get; set; }
         public int? MainSession { get; set; }
         public int? Status { get; set; }
+        public string? GradeCode { get; set; }
+        [JsonIgnore]
         public int? GradeId { get; set; }
+        [JsonIgnore]
+        public int? HomeroomTeacherId { get; set; }
+        [JsonIgnore]
+        public int? SchoolId { get; set; }
+        [JsonIgnore]
+        public int? SchoolYearId { get; set; }
     }
 }
