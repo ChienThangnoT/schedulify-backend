@@ -78,6 +78,20 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classes = _mapper.Map<List<StudentClass>>(models);
             await _unitOfWork.StudentClassesRepo.AddRangeAsync(classes);
+            //save to have id
+            await _unitOfWork.SaveChangesAsync();
+            
+            for (int i = 0; i < classes.Count; i++)
+            {
+                var classInGroup = new StudentClassInGroup()
+                {
+                    StudentClassId = classes[i].Id,
+                    ClassGroupId = models[i].GradeId ?? 0,
+                    CreateDate = DateTime.UtcNow,
+                };
+                await _unitOfWork.StudentClassInGroupRepo.AddAsync(classInGroup);
+                
+            }
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_CLASS_SUCCESS };
         }
@@ -128,7 +142,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //check have grade type in db
             foreach (CreateListStudentClassModel model in models)
             {
-                var found = await _unitOfWork.ClassGroupRepo.ToPaginationIncludeAsync(filter: cg => cg.SchoolId == schoolId && !cg.IsDeleted && cg.ClassGroupCode.ToLower().Equals(model.GradeCode.ToLower()));
+                var found = await _unitOfWork.ClassGroupRepo.ToPaginationIncludeAsync(filter: cg => cg.ClassGroupCode.ToLower().Equals(model.GradeCode.ToLower()));
                 if (!found.Items.Any())
                 {
                     errorList.Add(model);
@@ -147,7 +161,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //check teacher is assigned other class
             foreach (CreateListStudentClassModel model in models)
             {
-                if(await _unitOfWork.StudentClassesRepo.ExistsAsync(filter: c => !c.IsDeleted && c.SchoolId == schoolId && c.HomeroomTeacherId == model.HomeroomTeacherId))
+                if (await _unitOfWork.StudentClassesRepo.ExistsAsync(filter: c => !c.IsDeleted && c.SchoolId == schoolId && c.HomeroomTeacherId == model.HomeroomTeacherId))
                 {
                     errorList.Add(model);
                 }
@@ -199,7 +213,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var studentClasses = await _unitOfWork.StudentClassInGroupRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
-                filter: stig => stig.StudentClass.SchoolId == schoolId && (includeDeleted ? true : stig.IsDeleted == false) && (gradeId == null ? true : stig.ClassGroup.Id == gradeId) && (stig.ClassGroup.ParentId == ROOT) && (schoolYearId == null ? true : stig.StudentClass.SchoolYearId == schoolYearId),
+                filter: stig => stig.StudentClass.SchoolId == schoolId && (includeDeleted ? true : stig.IsDeleted == false) && (gradeId == null ? true : stig.ClassGroup.Id == gradeId && (stig.ClassGroup.ParentId == ROOT)) && (schoolYearId == null ? true : stig.StudentClass.SchoolYearId == schoolYearId),
                 include: query => query.Include(stig => stig.ClassGroup).Include(stig => stig.StudentClass).Include(stig => stig.StudentClass.Teacher));
             var studentClassesViewModel = _mapper.Map<Pagination<StudentClassViewModel>>(studentClasses);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_CLASS_SUCCESS, Result = studentClassesViewModel };

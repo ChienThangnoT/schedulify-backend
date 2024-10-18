@@ -8,7 +8,7 @@ namespace SchedulifySystem.Repository.EntityModels
 {
     public partial class TeacherAssignment : BaseEntity
     {
-        public int TeachableSubjectId { get; set; }
+        public int? TeachableSubjectId { get; set; }
         public int StudentClassId { get; set; }
         public int AssignmentType { get; set; }
         public int PeriodCount { get; set; } // số lượng tiết trên tuần 

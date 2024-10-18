@@ -47,6 +47,7 @@ namespace SchedulifySystem.Service.Mapper
             .ForPath(dest => dest.StudentClass.Status, opt => opt.MapFrom(src => src.Status))
             .ForMember(dest => dest.ClassGroupId, opt => opt.MapFrom(src => src.GradeId));
 
+            
         }
     }
 }

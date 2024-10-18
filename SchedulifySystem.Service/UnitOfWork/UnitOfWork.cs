@@ -30,6 +30,9 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IDistrictRepository _districtRepository;
         private readonly ISchoolYearRepository _schoolYearRepository;
         private readonly IDepartmentRepository _departmentRepository;
+        private readonly ITeacherAssignmentRepository _teacherAssignmentRepository;
+        private readonly ITeachableSubjectRepository _teachableSubjectRepository;
+        private readonly ITermRepository _termRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -49,7 +52,10 @@ namespace SchedulifySystem.Service.UnitOfWork
             IProvinceRepository provinceRepository,
             IOtpRepository otpRepository,
             ISchoolYearRepository schoolYearRepository,
-            IDepartmentRepository departmentRepository)
+            IDepartmentRepository departmentRepository,
+            ITeacherAssignmentRepository teacherAssignmentRepository,
+            ITeachableSubjectRepository teachableSubjectRepository,
+            ITermRepository termRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -70,6 +76,9 @@ namespace SchedulifySystem.Service.UnitOfWork
             _otpRepository = otpRepository;
             _schoolYearRepository = schoolYearRepository;
             _departmentRepository = departmentRepository;
+            _teacherAssignmentRepository = teacherAssignmentRepository;
+            _teachableSubjectRepository = teachableSubjectRepository;
+            _termRepository = termRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -92,6 +101,12 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISchoolYearRepository SchoolYearRepo => _schoolYearRepository;
 
         public IDepartmentRepository DepartmentRepo => _departmentRepository;
+
+        public ITeacherAssignmentRepository TeacherAssignmentRepo => _teacherAssignmentRepository;
+
+        public ITeachableSubjectRepository TeachableSubjectRepo => _teachableSubjectRepository;
+
+        public ITermRepository TermRepo => _termRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
