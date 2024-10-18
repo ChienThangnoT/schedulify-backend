@@ -509,6 +509,11 @@ public partial class SchedulifyContext : DbContext
                 .HasForeignKey(ta => ta.StudentClassId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(ta => ta.Term)
+                .WithMany(sc => sc.TeacherAssignments)
+                .HasForeignKey(ta => ta.TermId)
+                .OnDelete(DeleteBehavior.Restrict);
+
         });
 
 
@@ -552,6 +557,7 @@ public partial class SchedulifyContext : DbContext
             .HasOne(t => t.School)
             .WithMany(s => s.Terms)
             .HasForeignKey(t => t.SchoolId);
+
 
         // TimeSlot Entity
         modelBuilder.Entity<TimeSlot>()
