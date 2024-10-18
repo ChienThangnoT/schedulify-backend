@@ -346,7 +346,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
         #endregion
-
+         
         #region jwt service
         private async Task<List<Claim>> GetAuthClaims(Account user)
         {
@@ -354,8 +354,8 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim("accountId", user.Id.ToString()),
-                new Claim("schoolId", user.SchoolId.ToString()),
-                new Claim("schoolName", user.School.Name),
+                new Claim("schoolId", user.SchoolId?.ToString() ?? string.Empty),
+                new Claim("schoolName", user.School?.Name ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

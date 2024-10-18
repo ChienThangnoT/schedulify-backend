@@ -105,14 +105,43 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     //check duplicate name in list
                     var duplicateSubjectName = subjectAddModel
-                     .GroupBy(b => b.SubjectName, StringComparer.OrdinalIgnoreCase)
-                     .Where(g => g.Count() > 1)
-                     .SelectMany(g => g)
-                     .ToList();
+                        .GroupBy(b => b.SubjectName, StringComparer.OrdinalIgnoreCase)
+                        .Where(g => g.Count() > 1)
+                        .Select(g => g.Key)
+                        .ToList();
 
                     if (duplicateSubjectName.Count != 0)
                     {
-                        return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.SUBJECT_NAME_ALREADY_EXIST, Result = duplicateSubjectName };
+                        return new BaseResponseModel
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.SUBJECT_NAME_ALREADY_EXIST,
+                            Result = duplicateSubjectName
+                        };
+                    }
+
+                    var existingSubjects = await _unitOfWork.SubjectRepo
+                        .GetAsync(filter: t => t.SchoolId == schoolId);
+
+                    // duplicate name in database
+                    var existingSubjectNames = existingSubjects
+                        .Select(s => s.SubjectName)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                    var dbDuplicateSubjectNames = subjectAddModel
+                        .Where(s => existingSubjectNames.Contains(s.SubjectName))
+                        .Select(s => s.SubjectName)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    if (dbDuplicateSubjectNames.Count != 0)
+                    {
+                        return new BaseResponseModel
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.SUBJECT_NAME_ALREADY_EXIST,
+                            Result = dbDuplicateSubjectNames
+                        };
                     }
 
                     foreach (var createSubjectModel in subjectAddModel)
@@ -158,7 +187,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         Message = ConstantResponse.ADD_SUBJECT_LIST_SUCCESS,
                         Result = new
                         {
-                            AddedTeachers = addedSubjects,
+                            AddedSubjects = addedSubjects,
                         }
                     };
                 }
@@ -192,7 +221,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region get subject list by school id
-        public async Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? schoolName, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? subjectName, bool includeDeleted, int pageIndex, int pageSize)
         {
             if (schoolId != 0)
             {
@@ -200,7 +229,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             var subject = await _unitOfWork.SubjectRepo.ToPaginationIncludeAsync(
                 pageSize, pageIndex,
-                filter: t => (schoolId == 0 || t.SchoolId == schoolId) && (includeDeleted ? true : t.IsDeleted == false) && (schoolName == null || t.School.Name.ToLower().Contains(schoolName.ToLower())),
+                filter: t => (schoolId == 0 || t.SchoolId == schoolId) && (includeDeleted ? true : t.IsDeleted == false) && (subjectName == null || t.SubjectName.ToLower().Contains(subjectName.ToLower())),
                 include: query => query.Include(t => t.School));
             if (subject.Items.Count == 0)
             {
