@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
@@ -72,9 +74,70 @@ namespace SchedulifySystem.Service.Services.Implements
            List<TeacherScheduleModel> teachers,
            List<TeacherAssigmentScheduleModel> assignments,
            ETimetableFlag[,] timetableFlags,
+           List<SubjectScheduleModel> doublePeriodSubjects,
            GenerateTimetableModel parameters)
         {
-            throw new NotImplementedException();
+            for (var i = 0; i < classes.Count; i++)
+            {
+                // ca sáng thì a sẽ bắt đầu từ 0 (tương ứng tiết 1 trong ngày) còn ca chiều bắt đầu từ 5 (tương ứng tiết 6 trong ngày)
+                var a = classes[i].MainSession == (int)MainSession.Morning ? 0 : 5;
+                // j sẽ là index cho mỗi ngày, (max một tuần 60 tiết), mỗi vòng tăng 10 tức sang ngày mới
+                for (var j = 1; j < 61; j += 10)
+                    // trong ngày j đánh dấu lớp i tiết từ a đến a+5 là chưa fill 
+                    for (var k = j; k < j + 5; k++)
+                        timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
+
+                //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp  
+                var list = parameters.FreeTimetablePeriods.Where(u => u.Id == classes[i].Id).ToList();
+                for (var j = 0; j < list.Count; j++)
+                    timetableFlags[i, list[j].StartAt] = ETimetableFlag.None;
+            }
+
+            /* Tạo danh sách tiết được xếp sẵn trước*/
+            var timetableUnits = new List<ClassPeriodScheduleModel>();
+            timetableUnits.AddRange(parameters.FixedPeriods);
+
+            /* Đánh dấu các tiết này vào timetableFlags là các tiết cố định và xếp các tiết này vào slot bao nhiêu  */
+            for (var i = 0; i < timetableUnits.Count; i++)
+            {
+                // lấy ra index của class dựa vào class list vs điều kiện là tìm thấy class này trong timetableUnit (các tiết cố định)
+                var classIndex = classes.IndexOf(classes.First(c => c.Id == timetableUnits[i].Id));
+                var startAt = timetableUnits[i].StartAt;
+                timetableFlags[classIndex, startAt] = ETimetableFlag.Fixed;
+            }
+
+            /* Thêm các tiết phân công chưa được xếp vào sau */
+            for (var i = 0; i < assignments.Count; i++)
+            {
+                var count = parameters.FixedPeriods.Count(u => u.TeacherAssignmentId == assignments[i].Id);
+                //for (var j = 0; j < assignments[i]. - count; j++)
+                //    timetableUnits.Add(new TimetableUnitTCDTO(assignments[i]));
+            }
+
+            /* Tạo danh sách các tiết đôi */
+
+            for (var i = 0; i < classes.Count; i++)
+            {
+                //lấy ra ds tiết học của lớp đó trong timetableUnits
+                var classTimetableUnits = timetableUnits.Where(u => u.Id == classes[i].Id).ToList();
+
+                for (var j = 0; j < doublePeriodSubjects.Count; j++)
+                {
+                    //lấy ra ds tiết học có short name = môn tại vị trí j trong tham số môn đôi, take 2 để lấy 2 tiết đầu tiên 
+                    var dPeriods = classTimetableUnits
+                        .Where(u => doublePeriodSubjects[j].Id == u.Id).Take(2).ToList();
+
+                    //đặt ưu tiên là tiết đôi 
+                    for (var k = 0; k < dPeriods.Count; k++)
+                    {
+                        dPeriods[k].Priority = (int) EPriority.Double;
+                    }
+                }
+            }
+            //sắp xếp lại danh sách timetableUnits theo thứ tự tên lớp học và tạo ra một danh sách mới với thứ tự đã được sắp xếp
+            timetableUnits = [.. timetableUnits.OrderBy(u => u.ClassName)];
+
+            return new TimetableRootIndividual(timetableFlags, timetableUnits, classes, teachers);
         }
         #endregion
 
@@ -84,7 +147,24 @@ namespace SchedulifySystem.Service.Services.Implements
         */
         private TimetableIndividual Clone(TimetableIndividual src)
         {
-            throw new NotImplementedException();
+            // lấy ra số lượng lớp (0) tức là lấy ra số lượng của mảng thứ nhất tức theo trục x 
+            var classCount = src.TimetableFlag.GetLength(0);
+            // tương tự lấy ra số lượng slot (1) lấy mảng thứ 2 tức là trục y
+            var periodCount = src.TimetableFlag.GetLength(1);
+            //tạo ra instance mới 
+            var timetableFlag = new ETimetableFlag[classCount, periodCount];
+            // chép data qua mảng rỗng 
+            for (var i = 0; i < classCount; i++)
+                for (var j = 0; j < periodCount; j++)
+                    timetableFlag[i, j] = src.TimetableFlag[i, j];
+            // tạo instance mới 
+            var timetableUnits = new List<ClassPeriodScheduleModel>();
+            //chép data qua 
+            for (var i = 0; i < src.TimetableUnits.Count; i++)
+                //loop qua ds các phần tử trong mảng và dùng cú pháp with {} trong c# để tạo ra 1 instance mới nhưng vẫn giữ nguyên data
+                timetableUnits.Add(src.TimetableUnits[i] with { });
+            // trả về cá thể mới với tuổi = 1 và tuổi thọ ngẫu nhiên từ 1 đến 5
+            return new TimetableIndividual(timetableFlag, timetableUnits, src.Classes, src.Teachers) { Age = 1, Longevity = _random.Next(1, 5) };
         }
         #endregion
 
@@ -138,9 +218,9 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #region Mutation
 
-        private void Mutate(List<TimetableIndividual> individuals, EChromosomeType type, float mutationRate) 
+        private void Mutate(List<TimetableIndividual> individuals, EChromosomeType type, float mutationRate)
         {
-        
+
         }
         #endregion
 
@@ -165,12 +245,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private static void FixTimetableAfterUpdate(TimetableIndividual src, GenerateTimetableModel parameters)
         {
-            
+
         }
 
         private void ValidateTimetableParameters(GenerateTimetableModel parameters)
         {
-           
+
         }
 
         private List<TimetableIndividual> CreateInitialPopulation(
@@ -196,12 +276,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private static void SortChromosome(TimetableIndividual src, EChromosomeType type)
         {
-            
+
         }
 
         private static void RemarkTimetableFlag(TimetableIndividual src)
         {
-            
+
         }
 
         private static (int day, int period) GetDayAndPeriod(int startAt)

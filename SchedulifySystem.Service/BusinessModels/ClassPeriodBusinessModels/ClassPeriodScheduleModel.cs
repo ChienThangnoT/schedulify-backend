@@ -1,13 +1,17 @@
-﻿using System;
+﻿using SchedulifySystem.Repository;
+using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Repository.EntityModels
+namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
 {
-    public partial class ClassPeriod : BaseEntity
+    public record ClassPeriodScheduleModel 
     {
+        public int Id { get; set; }
         public int? ClassScheduleId { get; set; }
         public int? TimeSlotId { get; set; }
         public int? RoomId { get; set; }
@@ -15,18 +19,17 @@ namespace SchedulifySystem.Repository.EntityModels
         public int? TeacherId { get; set; }
         public int? SubjectId { get; set; }
         public int? DateOfWeek { get; set; }
+        public int? ClassId { get; set; }
+        public string? ClassName { get; set; }
         public string? SubjectAbbreviation { get; set; }
         public string? TeacherAbbreviation { get; set; }
         public string? RoomCode { get; set; }
-        public int? TeacherAssignmentId {  get; set; }
+        public int? TeacherAssignmentId { get; set; }
+        
         public int StartAt { get; set; }
-        public int Priority { get; set; } 
+        public int Priority { get; set; }
 
-        public TeacherAssignment? TeacherAssignment { get; set; } 
-        public TimeSlot? TimeSlot { get; set; }
-        public ClassSchedule? ClassSchedule { get; set; }
-        public Room? Room { get; set; }
-        public Teacher? Teacher { get; set; }
-        public Subject? Subject { get; set; }
+        public List<ConstraintErrorModel> ConstraintErrors { get; set; } = [];
+       
     }
 }
