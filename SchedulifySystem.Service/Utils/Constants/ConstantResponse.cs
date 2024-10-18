@@ -120,6 +120,17 @@ namespace SchedulifySystem.Service.Utils.Constants
         //Department
         public const string DEPARTMENT_NOT_EXIST = "The department does not exist.";
 
+        //TeacherAssignment
+        public const string TEACHER_ASSIGNMENT_NOT_EXIST = "The teaching assignment does not exist.";
+        public const string ADD_TEACHER_ASSIGNMENT_SUCCESS = "Add teaching assignment success.";
+        public const string UPDATE_TEACHER_ASSIGNMENT_SUCCESS = "Update teaching assignment success.";
+
+        //TeachableSubject
+        public const string TEACHABLE_SUBJECT_NOT_EXIST = "The teachable subject does not exist.";
+
+        //Term
+        public const string TERM_NOT_EXIST = "The term does not exist.";
+
         //Student class and student class in group
         public const string STUDENT_CLASS_NOT_EXIST = "Student class not exist.";
 

@@ -12,7 +12,6 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public string? Name { get; set; }
         public string? HomeroomTeacherAbbreviation { get; set; }
         public int? MainSession { get; set; }
-        public int? Status { get; set; }
         public string? GradeCode { get; set; }
         [JsonIgnore]
         public int? GradeId { get; set; }

@@ -198,11 +198,17 @@ namespace SchedulifySystem.API
             services.AddTransient<IDepartmentRepository, DepartmentRepository>();
             //services.AddTransient<IOtpService, OtpService>();
 
-            //config teacher assignment service and repo
+            //config TeacherAssignment service and repo
             services.AddTransient<ITeacherAssignmentRepository, TeacherAssignmentRepository>();
+            services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
+
+            //config TeachableSubject service and repo
+            services.AddTransient<ITeachableSubjectRepository, TeachableSubjectRepository>();
             //services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
 
-
+            //config Term service and repo
+            services.AddTransient<ITermRepository, TermRepository>();
+            //services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
             #endregion
 
             #region add db context

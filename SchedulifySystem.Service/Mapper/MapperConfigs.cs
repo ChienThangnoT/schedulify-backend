@@ -44,6 +44,9 @@ namespace SchedulifySystem.Service.Mapper
 
             //add room mapper config
             RoomMapperConfig();
+
+            //add teacherAssignment mapper config
+            TeacherAssignmentMapperConfig();
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
@@ -55,5 +58,7 @@ namespace SchedulifySystem.Service.Mapper
         partial void RoomMapperConfig();
         partial void SubjectGroupMapperConfig();
         partial void SchoolMapperConfig();
+        partial void TeacherAssignmentMapperConfig();
+
     }
 }
