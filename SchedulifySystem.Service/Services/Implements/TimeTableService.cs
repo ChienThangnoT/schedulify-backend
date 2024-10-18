@@ -46,7 +46,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region GetData
+        #region GetData -- Thắng
         private (
             List<ClassScheduleModel>,
             List<TeacherScheduleModel>,
@@ -59,7 +59,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region TimetableRootIndividual
+        #region TimetableRootIndividual 
         /*
          * phương thức này sẽ tạo ra cá thể gốc ban đầu làm nền tảng cho quá trình lai ghép đột biến với tham số bao gồm 
          * danh sách lớp học, giáo viên, phân công tiết học, và timetableFlags là Mảng trạng thái thời khóa biểu cho từng lớp,
@@ -76,7 +76,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             throw new NotImplementedException();
         }
-        #endregion
+        #endregion 
 
         #region Clone
         /*

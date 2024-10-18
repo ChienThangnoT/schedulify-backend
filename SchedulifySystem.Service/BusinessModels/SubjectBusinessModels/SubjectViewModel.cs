@@ -9,8 +9,6 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
     public class SubjectViewModel
     {
         public int Id { get; set; }
-        public int SchoolId { get; set; }
-        public string? SchoolName { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
