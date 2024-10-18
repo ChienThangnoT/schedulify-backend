@@ -29,9 +29,15 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> AddAssignment(AddTeacherAssignmentModel model)
         {
-            var teacheableSubject = await _unitOfWork.TeachableSubjectRepo.GetByIdAsync(model.TeachableSubjectId,
-                include: query => query.Include(ts => ts.Teacher).Include(ts => ts.Subject))
-                ?? throw new NotExistsException(ConstantResponse.TEACHABLE_SUBJECT_NOT_EXIST);
+            var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(model.TeacherId) ?? throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
+            var subject = await _unitOfWork.SubjectRepo.GetByIdAsync(model.SubjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+            var teachableSubject = (await _unitOfWork.TeachableSubjectRepo.GetAsync(filter: ts => ts.TeacherId == model.TeacherId && ts.SubjectId == model.SubjectId)).FirstOrDefault();
+
+            if (teachableSubject == null)
+            {
+                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, 
+                    Message = $"Giáo viên {teacher?.Abbreviation} không thể dạy được môn {subject.SubjectName}." };
+            }
 
             var studentClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(model.StudentClassId)
                 ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);

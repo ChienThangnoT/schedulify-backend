@@ -124,10 +124,11 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string TEACHER_ASSIGNMENT_NOT_EXIST = "The teaching assignment does not exist.";
         public const string ADD_TEACHER_ASSIGNMENT_SUCCESS = "Add teaching assignment success.";
         public const string UPDATE_TEACHER_ASSIGNMENT_SUCCESS = "Update teaching assignment success.";
+        
 
         //TeachableSubject
-        public const string TEACHABLE_SUBJECT_NOT_EXIST = "The teachable subject does not exist.";
-
+        
+        
         //Term
         public const string TERM_NOT_EXIST = "The term does not exist.";
     }

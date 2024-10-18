@@ -10,12 +10,14 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
 {
     public class AddTeacherAssignmentModel
     {
-        public int TeachableSubjectId {  get; set; }
+        public int TeacherId { get; set; }
+        public int SubjectId { get; set; }
         public int PeriodCount { get; set; }
         public int TermId { get; set; }
         public int StudentClassId { get; set; }
 
         [JsonIgnore]
         public AssignmentType AssignmentType { get; set; } = AssignmentType.Permanent;
+
     }
 }
