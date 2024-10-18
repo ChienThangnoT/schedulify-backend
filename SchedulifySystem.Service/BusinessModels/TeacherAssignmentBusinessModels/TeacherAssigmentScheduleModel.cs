@@ -1,4 +1,5 @@
 ﻿using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,8 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
     public class TeacherAssigmentScheduleModel : BaseEntity
     {
         public int TeachableSubjectId { get; set; }
-        public int StudentClassId { get; set; }
+        public AssignmentType StudentClassId { get; set; }
         public int AssignmentType { get; set; }
+        public int PeriodCount { get; set; }
     }
 }

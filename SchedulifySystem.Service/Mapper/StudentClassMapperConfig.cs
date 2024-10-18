@@ -22,7 +22,6 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.IsDeleted, otp => otp.MapFrom(src => src.StudentClass.IsDeleted))
                 .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(src => src.StudentClass.CreateDate))
                 .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(src => src.StudentClass.UpdateDate))
-                .ForMember(dest => dest.Status, otp => otp.MapFrom(src => src.StudentClass.Status))
                 .ForMember(dest => dest.ClassGroupId, otp => otp.MapFrom(src => src.Id))
                 .ForMember(dest => dest.MainSessionText, otp => otp.MapFrom(src => src.StudentClass.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều"))
                 .ForMember(dest => dest.HomeroomTeacherAbbreviation, otp => otp.MapFrom(src => src.StudentClass.Teacher == null ? "" : src.StudentClass.Teacher.Abbreviation));
@@ -44,9 +43,7 @@ namespace SchedulifySystem.Service.Mapper
             .ForPath(dest => dest.StudentClass.SchoolYearId, opt => opt.MapFrom(src => src.SchoolYearId))
             .ForPath(dest => dest.StudentClass.SchoolId, opt => opt.MapFrom(src => src.SchoolId))
             .ForPath(dest => dest.StudentClass.MainSession, opt => opt.MapFrom(src => src.MainSession))
-            .ForPath(dest => dest.StudentClass.Status, opt => opt.MapFrom(src => src.Status))
             .ForMember(dest => dest.ClassGroupId, opt => opt.MapFrom(src => src.GradeId));
-
         }
     }
 }

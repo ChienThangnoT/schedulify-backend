@@ -119,5 +119,9 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Department
         public const string DEPARTMENT_NOT_EXIST = "The department does not exist.";
+
+        //Student class and student class in group
+        public const string STUDENT_CLASS_NOT_EXIST = "Student class not exist.";
+
     }
 }
