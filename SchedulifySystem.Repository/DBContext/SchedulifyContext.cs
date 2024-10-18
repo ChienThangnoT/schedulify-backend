@@ -499,10 +499,15 @@ public partial class SchedulifyContext : DbContext
         {
             entity.HasKey(ta => ta.Id);
 
-            entity.HasOne(ta => ta.TeachableSubject)
+            entity.HasOne(ta => ta.Teacher)
                 .WithMany(t => t.TeacherAssignments)
-                .HasForeignKey(ta => ta.TeachableSubjectId)
+                .HasForeignKey(ta => ta.TeacherId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(ta => ta.Subject)
+               .WithMany(t => t.TeacherAssignments)
+               .HasForeignKey(ta => ta.SubjectId)
+               .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(ta => ta.StudentClass)
                 .WithMany(sc => sc.TeacherAssignments)
