@@ -52,13 +52,47 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetAssignment(int classId, int? termId)
         {
-            //var studentClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(classId)
-            //    ?? throw new Exception(ConstantResponse.CLASS_NOT_EXIST);
+            var studentClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(classId)
+                ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
+            if (termId.HasValue)
+            {
+                var term = await _unitOfWork.TermRepo.GetByIdAsync((int)termId)
+                    ?? throw new NotExistsException(ConstantResponse.TERM_NOT_FOUND);
+            }
+
+            var teacherNotAssigntView = new List<TeacherAssignmentViewModel>();
+            var teacherAssigntView = new List<TeacherAssignmentViewModel>();
+
+            var teacherNotAssignt = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+                filter: t => t.StudentClassId == classId && t.TeacherId == null && t.IsDeleted == false && (termId == null || t.TermId == termId)
+                , includeProperties: "Subject");
+            if (teacherNotAssignt == null || !teacherNotAssignt.Any())
+            {
+                teacherNotAssigntView = null;
+            }
+            teacherNotAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(teacherNotAssignt);
 
 
+            var teacherAssignt = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+                filter: t => t.StudentClassId == classId && t.IsDeleted == false && (termId == null || t.TermId == termId)
+                ,includeProperties: "Teacher,Subject");
+            if (teacherAssignt == null || !teacherAssignt.Any())
+            {
+                teacherAssigntView = null;
+            }
+            teacherAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(teacherAssignt);
 
-            //var assignedList = assignments.Items.Where(a => a.TeachableSubject.TeacherId)
-            throw new NotImplementedException();
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_TEACHER_ASSIGNTMENT_SUCCESS,
+                Result = new
+                {
+                    TeacherAssigntView = teacherAssigntView,
+                    TeacherNotAssigntView = teacherNotAssigntView
+                }
+            };
 
         }
 

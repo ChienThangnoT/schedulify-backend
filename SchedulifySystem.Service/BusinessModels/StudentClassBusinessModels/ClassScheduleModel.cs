@@ -14,7 +14,17 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int SchoolId { get; set; }
         public int SchoolYearId { get; set; }
         public int MainSession { get; set; }
-        public int Status { get; set; }
+        public bool IsFullDay { get; set; }
 
+        public ClassScheduleModel(StudentClass studentClass)
+        {
+            Id = studentClass.Id;
+            Name = studentClass.Name;
+            HomeroomTeacherId = studentClass.HomeroomTeacherId;
+            SchoolId = studentClass.SchoolId;
+            SchoolYearId = studentClass.SchoolYearId;
+            MainSession = studentClass.MainSession;
+            IsFullDay = studentClass.IsFullDay;
+        }
     }
 }

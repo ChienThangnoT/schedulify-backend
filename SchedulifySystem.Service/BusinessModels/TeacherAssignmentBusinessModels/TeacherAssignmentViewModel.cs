@@ -14,9 +14,9 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
         public int PeriodCount { get; set; }
         public int StudentClassId { get; set; }
         public AssignmentType AssignmentType { get; set; } = AssignmentType.Permanent;
-        public string? SubjectName {  get; set; }
         public int SubjectId { get; set; }
-        public int TeacherId { get; set; }
+        public string? SubjectName { get; set; }
+        public int? TeacherId { get; set; }
         public string? TeacherFirstName { get;set; }
         public string? TeacherLastName { get; set; }
         public string? TeacherAbbreviation { get; set; }

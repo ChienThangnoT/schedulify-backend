@@ -10,7 +10,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ITeacherAssignmentService
     {
-
         Task<BaseResponseModel> GetAssignment(int classId,int? termId);
         Task<BaseResponseModel> UpdateAssignment(int assignmentId);
         Task<BaseResponseModel> AddAssignment(AddTeacherAssignmentModel model);

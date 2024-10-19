@@ -38,7 +38,6 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string REFRESH_TOKEN_INVALID = "Refresh token invalid or expired time";
         public const string ACCOUNT_NOT_EXIST_AUTH = "Account not exist!";
 
-
         //Room
         public const string ROOM_NOT_EXIST = "The room does not exist.";
         public const string ROOM_NAME_EXISTED = "The room name already exists.";
@@ -82,7 +81,6 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SUBJECT_NAME_ALREADY_EXIST = "Subject name already exist.";
         public const string ADD_SUBJECT_LIST_SUCCESS = "Operation completed";
 
-
         //Room Type
         public const string ROOM_TYPE_NOT_EXIST = "The room type does not exist.";
         public const string ROOM_TYPE_CODE_NOT_EXIST = "The room type code does not exist.";
@@ -124,12 +122,20 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string TEACHER_ASSIGNMENT_NOT_EXIST = "The teaching assignment does not exist.";
         public const string ADD_TEACHER_ASSIGNMENT_SUCCESS = "Add teaching assignment success.";
         public const string UPDATE_TEACHER_ASSIGNMENT_SUCCESS = "Update teaching assignment success.";
-        
+        public const string GET_TEACHER_ASSIGNTMENT_SUCCESS = "Get teacher assignment success.";
 
         //TeachableSubject
-        
+        public const string TEACHABLE_SUBJECT_NOT_EXIST = "The teachable subject does not exist.";
         
         //Term
         public const string TERM_NOT_EXIST = "The term does not exist.";
+
+        //Student class and student class in group
+        public const string STUDENT_CLASS_NOT_EXIST = "Student class not exist.";
+
+        //Term
+        public const string TERM_NOT_FOUND = "Term not exist.";
+
+
     }
 }

@@ -18,51 +18,51 @@ namespace SchedulifySystem.API.Controllers
             _studentClassService = studentClassService;
         }
 
-        [HttpGet]
-        [Authorize]
-        public Task<IActionResult> GetStudentClasses(int schoolId, int? gradeId = null, int? schoolYearId = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
-        {
-            return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, gradeId, schoolYearId, includeDeleted, pageIndex, pageSize));
-        }
+        //[HttpGet]
+        //[Authorize]
+        //public Task<IActionResult> GetStudentClasses(int schoolId, int? gradeId = null, int? schoolYearId = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        //{
+        //    return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, gradeId, schoolYearId, includeDeleted, pageIndex, pageSize));
+        //}
 
 
-        [HttpGet("{classGroupId}")]
-        [Authorize]
-        public Task<IActionResult> GetStudentClassById(int classGroupId)
-        {
-            return ValidateAndExecute(() => _studentClassService.GetStudentClassById(classGroupId));
-        }
+        //[HttpGet("{classGroupId}")]
+        //[Authorize]
+        //public Task<IActionResult> GetStudentClassById(int classGroupId)
+        //{
+        //    return ValidateAndExecute(() => _studentClassService.GetStudentClassById(classGroupId));
+        //}
 
 
-        [HttpPost]
-        [Route("add-list")]
-        [Authorize]
-        public Task<IActionResult> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> models)
-        {
-            return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(schoolId, schoolYearId, models));
-        }
+        //[HttpPost]
+        //[Route("add-list")]
+        //[Authorize]
+        //public Task<IActionResult> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> models)
+        //{
+        //    return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(schoolId, schoolYearId, models));
+        //}
 
-        [HttpDelete("{classGroupId}")]
-        [Authorize]
-        public Task<IActionResult> DeleteStudentClass(int classGroupId)
-        {
-            return ValidateAndExecute(() => _studentClassService.DeleteStudentClass(classGroupId));
-        }
+        //[HttpDelete("{classGroupId}")]
+        //[Authorize]
+        //public Task<IActionResult> DeleteStudentClass(int classGroupId)
+        //{
+        //    return ValidateAndExecute(() => _studentClassService.DeleteStudentClass(classGroupId));
+        //}
 
-        [HttpPut("{classGroupId}")]
-        [Authorize]
-        public Task<IActionResult> UpdateStudentClass(int classGroupId, UpdateStudentClassModel model)
-        {
-            return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(classGroupId, model));
-        }
+        //[HttpPut("{classGroupId}")]
+        //[Authorize]
+        //public Task<IActionResult> UpdateStudentClass(int classGroupId, UpdateStudentClassModel model)
+        //{
+        //    return ValidateAndExecute(() => _studentClassService.UpdateStudentClass(classGroupId, model));
+        //}
 
-        [HttpPut()]
-        [Route("assign-homeroom-teacher")]
-        [Authorize]
-        public Task<IActionResult> AssignHomeroomTeacherToClasses(AssignListStudentClassModel models)
-        {
-            return ValidateAndExecute(() => _studentClassService.AssignHomeroomTeacherToClasses(models));
-        }
+        //[HttpPut()]
+        //[Route("assign-homeroom-teacher")]
+        //[Authorize]
+        //public Task<IActionResult> AssignHomeroomTeacherToClasses(AssignListStudentClassModel models)
+        //{
+        //    return ValidateAndExecute(() => _studentClassService.AssignHomeroomTeacherToClasses(models));
+        //}
 
     }
 }

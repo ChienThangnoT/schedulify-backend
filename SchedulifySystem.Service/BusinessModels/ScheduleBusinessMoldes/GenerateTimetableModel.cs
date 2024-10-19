@@ -11,7 +11,8 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 {
     public class GenerateTimetableModel
     {
-        public int SchoolYearId;
+        public int SchoolId { get; set; }
+        public int SchoolYearId { get; set; }
         public List<ClassPeriodScheduleModel> FixedPeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết cố định 
         public List<ClassPeriodScheduleModel> NoAssignTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); //ds tiết không xếp 
         public List<ClassPeriodScheduleModel> BusyTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết bận của gv 
@@ -19,6 +20,6 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 
         public int MaxPeriodPerSession { get; set; } = 5;
         public int MinPeriodPerSession { get; set; } = 0;
-        public Term? Term { get; set; }
+        public int? TermId { get; set; }
     }
 }

@@ -145,13 +145,6 @@ namespace SchedulifySystem.API
             services.AddTransient<IRoleAssignmentRepository, RoleAssignmentRepository>();
             services.AddTransient<IRoleAssignmentService, RoleAssignmentService>();
 
-            //config class in group  repo
-            services.AddTransient<IStudentClassInGroupRepository, StudentClassInGroupRepository>();
-
-            //config class group service and repo
-            services.AddTransient<IClassGroupRepository, ClassGroupRepository>();
-            services.AddTransient<IClassGroupService, ClassGroupService>();
-
             //config school service and repo
             services.AddTransient<ISchoolRepository, SchoolRepository>();
             services.AddTransient<ISchoolService, SchoolService>();
