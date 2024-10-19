@@ -183,10 +183,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     // kiểm tra số tiết học có khớp với yêu cầu không
-                    //if (assignment.PeriodCount != subjectClass.SlotPerWeek)
-                    //{
-                    //    throw new Exception($"Số tiết học cho môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
-                    //}
+                    if (assignment.PeriodCount != (subjectClass.MoringSlotPerWeek + subjectClass.AfternoonSlotPerWeek))
+                    {
+                        throw new Exception($"Số tiết học cho môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                    }
 
                     // kiểm tra xem giáo viên có được phân công không
                     if (assignment.TeacherId == null || assignment.TeacherId == 0)
@@ -195,7 +195,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     // cộng số tiết của môn vào tổng số tiết của lớp
-                    //periodCount += subjectClass.SlotPerWeek;
+                    periodCount += (subjectClass.MoringSlotPerWeek + subjectClass.AfternoonSlotPerWeek);
                 }
 
                 // kiểm tra tổng số tiết của lớp
