@@ -67,7 +67,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var subject = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
             
             var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
-                filter: t => (subjectId == 0 || t.Id == subjectId) || t.SubjectGroupType == (int)SubjectGroupType.SUBJECT_COMBINATION
+                filter: t => (subjectId == 0 || t.Id == subjectId) || t.IsDeleted == false
                 );
             return new BaseResponseModel()
             {

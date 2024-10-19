@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.BuildingBusinessModels;
-using SchedulifySystem.Service.BusinessModels.ClassGroupBusinessModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;

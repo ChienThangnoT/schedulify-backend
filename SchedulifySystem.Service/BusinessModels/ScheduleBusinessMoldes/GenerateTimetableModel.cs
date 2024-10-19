@@ -20,6 +20,6 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 
         public int MaxPeriodPerSession { get; set; } = 5;
         public int MinPeriodPerSession { get; set; } = 0;
-        public Term? Term { get; set; }
+        public int? TermId { get; set; }
     }
 }

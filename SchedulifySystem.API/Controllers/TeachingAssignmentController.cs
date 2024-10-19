@@ -21,6 +21,12 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherAssignmentService.AddAssignment(model));
         }
+
+        [HttpGet]
+        public Task<IActionResult> GetAssignment(int studentClassId, int? termId)
+        {
+            return ValidateAndExecute(() => _teacherAssignmentService.GetAssignment(studentClassId, termId));
+        }
         
     }
 }

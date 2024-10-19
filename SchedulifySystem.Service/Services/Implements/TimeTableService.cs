@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SchedulifySystem.Repository;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
@@ -51,13 +52,13 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region GetData -- Thắng
-        private async (
+        private async Task<(
             List<ClassScheduleModel>,
             List<TeacherScheduleModel>,
             List<SubjectScheduleModel>,
             List<TeacherAssigmentScheduleModel>,
             ETimetableFlag[,]
-            ) GetData(GenerateTimetableModel parameters)
+            )> GetData(GenerateTimetableModel parameters)
         {
             // Khởi tạo các biến
             var classes = new List<ClassScheduleModel>();
@@ -83,10 +84,10 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classesDb = await _unitOfWork.StudentClassesRepo.GetAsync(
                 filter: t => t.SchoolId == parameters.SchoolId &&
-                             t.SchoolYearId == parameters.SchoolYearId && 
+                             t.SchoolYearId == parameters.SchoolYearId &&
                              t.IsDeleted == false,
                 orderBy: q => q.OrderBy(s => s.Name));
-            if ( classesDb == null || !classesDb.Any())
+            if (classesDb == null || !classesDb.Any())
             {
                 throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
             }
@@ -107,7 +108,7 @@ namespace SchedulifySystem.Service.Services.Implements
             timetableFlags = new ETimetableFlag[classes.Count, 61];
 
             var subjectsDb = await _unitOfWork.SubjectRepo.GetAsync(
-                filter: t=> t.SchoolId == parameters.SchoolId &&
+                filter: t => t.SchoolId == parameters.SchoolId &&
                             t.IsDeleted == null);
 
             var subjectsDbList = subjectsDb.ToList();
@@ -125,30 +126,37 @@ namespace SchedulifySystem.Service.Services.Implements
             //    .ToList()
             //    ?? throw new Exception();
 
-            var assignmentsDb = await _unitOfWork.TeacherAssigntRepo.GetAsync();
-
+            var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+                filter: t => t.StudentClassId == classesDb.First().Id && t.IsDeleted == false
+                             && (parameters.TermId == null || t.TermId == parameters.TermId));
+            var assignmentsDbList = assignmentsDb.ToList();
             //get teacher từ assigntmment db
             var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
-            var teachersDb = _context.Teachers
-                .Where(t => teacherIds.Contains(t.Id) && t.IsDeleted == false)
-                .OrderBy(c => c.LastName)
-                .AsNoTracking()
-                .ToList()
-                ?? throw new Exception();
-            for (var i = 0; i < teachersDb.Count; i++)
-                teachers.Add(new TeacherTCDTO(teachersDb[i]));
+            //var teachersDb = _context.Teachers
+            //    .Where(t => teacherIds.Contains(t.Id) && t.IsDeleted == false)
+            //    .OrderBy(c => c.LastName)
+            //    .AsNoTracking()
+            //    .ToList()
+            //    ?? throw new Exception();
+
+            var teachersDb = await _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
+            var teachersDbList = teachersDb.ToList();
+            for (var i = 0; i < teachersDbList.Count; i++)
+                teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
+
 
 
             // tạo danh sách các assignment
             /*Duyệt qua danh sách các phân công (assignmentsDb), tìm lớp học, môn học, và giáo viên tương ứng cho từng phân công.
              Tạo đối tượng AssignmentTCDTO và thêm vào danh sách assignments.
             */
-            for (var i = 0; i < assignmentsDb.Count; i++)
+            for (var i = 0; i < assignmentsDbList.Count; i++)
             {
-                var @class = classes.First(c => c.Id == assignmentsDb[i].ClassId);
-                var subject = subjects.First(s => s.Id == assignmentsDb[i].SubjectId);
-                var teacher = teachers.First(t => t.Id == assignmentsDb[i].TeacherId);
-                assignments.Add(new AssignmentTCDTO(assignmentsDb[i], teacher, @class, subject));
+                var studentClass = classes.First(c => c.Id == assignmentsDbList[i].StudentClassId);
+                var subject = subjects.First(s => s.Id == assignmentsDbList[i].SubjectId);
+                var teacher = teachers.First(t => t.Id == assignmentsDbList[i].TeacherId);
+                assignments.Add(new TeacherAssigmentScheduleModel(assignmentsDbList[i], teacher, subject, studentClass));
             }
 
             // Kiểm tra xem tất cả các lớp đã được phân công đầy đủ hay chưa
@@ -156,20 +164,52 @@ namespace SchedulifySystem.Service.Services.Implements
              Số lượng tiết học của mỗi môn trong phân công có khớp với số tiết học được yêu cầu cho môn đó không (PeriodCount).
              Giáo viên được phân công có hợp lệ không.
             */
-            for (var i = 0; i < classesDb.Count; i++)
-            {
-                var periodCount = 0;
-                for (var j = 0; j < classesDb[i].SubjectClasses.Count; j++)
-                {
-                    var subjectClass = classesDb[i].SubjectClasses.ToList()[j];
-                    var assignment = assignmentsDb.FirstOrDefault(a => a.SubjectId == subjectClass.SubjectId && a.ClassId == subjectClass.ClassId)
-                        ?? throw new Exception($"Class: {classesDb[i].Name}, Subject: {subjects.First(s => s.Id == subjectClass.SubjectId).ShortName}");
-                    if (assignment.PeriodCount != subjectClass.PeriodCount || assignment.TeacherId == Guid.Empty)
-                        throw new Exception();
-                    periodCount += subjectClass.PeriodCount;
-                }
-                if (periodCount != classesDb[i].PeriodCount) throw new Exception();
-            }
+            // Kiểm tra xem tất cả các lớp đã được phân công đầy đủ hay chưa
+            //for (var i = 0; i < classesDbList.Count; i++)
+            //{
+            //    var periodCount = 0; // Tổng số tiết học trong lớp
+            //    var classPeriodCount = classesDbList[i].PeriodCount; // Số tiết yêu cầu của lớp học
+
+            //    // Duyệt qua từng môn học trong lớp
+            //    for (var j = 0; j < classesDbList[i].SubjectClasses.Count; j++)
+            //    {
+            //        var subjectClass = classesDbList[i].SubjectClasses.ToList()[j];
+
+            //        // Tìm phân công giáo viên cho môn học
+            //        var assignment = assignmentsDbList.FirstOrDefault(a =>
+            //            a.SubjectId == subjectClass.SubjectId &&
+            //            a.StudentClassId == subjectClass.ClassId);
+
+            //        // Kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
+            //        if (assignment == null)
+            //        {
+            //            var subjectName = subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName;
+            //            throw new Exception($"Lớp {classesDbList[i].Name} chưa được phân công môn {subjectName}.");
+            //        }
+
+            //        // Kiểm tra số tiết học có khớp với yêu cầu không
+            //        if (assignment.PeriodCount != subjectClass.PeriodCount)
+            //        {
+            //            throw new Exception($"Số tiết học cho môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+            //        }
+
+            //        // Kiểm tra xem giáo viên có được phân công không
+            //        if (assignment.TeacherId == null || assignment.TeacherId == 0)
+            //        {
+            //            throw new Exception($"Môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
+            //        }
+
+            //        // Cộng số tiết của môn vào tổng số tiết của lớp
+            //        periodCount += subjectClass.PeriodCount;
+            //    }
+
+            //    // Kiểm tra tổng số tiết của lớp
+            //    if (periodCount != classPeriodCount)
+            //    {
+            //        throw new Exception($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
+            //    }
+            //}
+
 
             return (classes, teachers, subjects, assignments, timetableFlags);
         }
@@ -244,7 +284,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     //đặt ưu tiên là tiết đôi 
                     for (var k = 0; k < dPeriods.Count; k++)
                     {
-                        dPeriods[k].Priority = (int) EPriority.Double;
+                        dPeriods[k].Priority = (int)EPriority.Double;
                     }
                 }
             }
