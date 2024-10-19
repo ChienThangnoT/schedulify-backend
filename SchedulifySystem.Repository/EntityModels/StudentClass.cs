@@ -16,6 +16,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int MainSession { get; set; }
         public bool IsFullDay { get; set; } = false;
         public int PeriodCount { get; set; }
+        public int Grade { get; set; }
         public int? SubjectGroupId { get; set; }
 
         public School? School { get; set; }
