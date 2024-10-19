@@ -17,6 +17,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         //Task<BaseResponseModel> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> createStudentClassModels);
         //Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassModel updateStudentClassModel);
         //Task<BaseResponseModel> AssignHomeroomTeacherToClasses(AssignListStudentClassModel assignListStudentClassModel);
-
+        Task<BaseResponseModel> GetSubjectInGroupOfClass(int schoolId, int termId, int studentClassId);
     }
 }

@@ -6,6 +6,7 @@ using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Repository.Repositories.Interfaces;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
+using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
@@ -283,6 +284,44 @@ namespace SchedulifySystem.Service.Services.Implements
                     throw;
                 }
             }
+        }
+        #endregion
+
+        #region
+        public async Task<BaseResponseModel> GetSubjectInGroupOfClass(int schoolId, int schoolYearId, int studentClassId)
+        {
+            var classesDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: t => t.SchoolId == schoolId &&
+                             t.Id == studentClassId &&
+                             t.SchoolYearId == schoolYearId &&
+                             t.IsDeleted == false,
+                orderBy: q => q.OrderBy(s => s.Name),
+                include: query => query.Include(c => c.SubjectGroup)
+                           .ThenInclude(sg => sg.SubjectInGroups));
+
+            if (classesDb == null || !classesDb.Any())
+            {
+                throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
+            }
+
+            var classesDbList = classesDb.ToList();
+            var listSBInGroup = new List<SubjectInGroup>();
+            for (var i = 0; i < classesDbList.Count; i++)
+            {
+                for (var j = 0; j < classesDbList[i].SubjectGroup.SubjectInGroups.Count; j++)
+                {
+                    listSBInGroup.Add(classesDbList[i].SubjectGroup.SubjectInGroups.ToList()[j]);
+                }
+            }
+            var result = _mapper.Map<List<SubjectInGroupViewModel>>(listSBInGroup);
+
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_SUBJECT_IN_CLASS_SUCCESS,
+                Result = result
+            };
         }
         #endregion
     }

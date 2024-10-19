@@ -97,6 +97,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string HOMEROOM_TEACHER_ASSIGNED = "Homeroom teacher was assigned to other class.";
         public const string HOMEROOM_TEACHER_LIMIT = "Each teacher can only assign to a class.";
         public const string HOMEROOM_ASSIGN_SUCCESS = "Homeroom teacher assign success";
+        public const string GET_SUBJECT_IN_CLASS_SUCCESS = "Get subject in classgroup success.";
 
         //School Year
         public const string SCHOOL_YEAR_NOT_EXIST = "The school year does not exist.";

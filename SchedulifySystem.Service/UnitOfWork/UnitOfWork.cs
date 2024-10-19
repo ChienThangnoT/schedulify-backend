@@ -31,6 +31,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly ITeacherAssignmentRepository _teacherAssignmentRepository;
         private readonly ITeachableSubjectRepository _teachableSubjectRepository;
         private readonly ITermRepository _termRepository;
+        private readonly ISubjectInGroupRepository _subjectInGroupRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -51,7 +52,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             IDepartmentRepository departmentRepository,
             ITeacherAssignmentRepository teacherAssignmentRepository,
             ITeachableSubjectRepository teachableSubjectRepository,
-            ITermRepository termRepository)
+            ITermRepository termRepository,
+            ISubjectInGroupRepository subjectInGroupRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -73,6 +75,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             _teacherAssignmentRepository = teacherAssignmentRepository;
             _teachableSubjectRepository = teachableSubjectRepository;
             _termRepository = termRepository;
+            _subjectInGroupRepository = subjectInGroupRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -92,12 +95,10 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISchoolYearRepository SchoolYearRepo => _schoolYearRepository;
         public IDepartmentRepository DepartmentRepo => _departmentRepository;
         public ITeacherAssignmentRepository TeacherAssigntRepo=> _teacherAssignmentRepository;
-
         public ITeacherAssignmentRepository TeacherAssignmentRepo => _teacherAssignmentRepository;
-
         public ITeachableSubjectRepository TeachableSubjectRepo => _teachableSubjectRepository;
-
         public ITermRepository TermRepo => _termRepository;
+        public ISubjectInGroupRepository SubjectInGroupRepo => _subjectInGroupRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
