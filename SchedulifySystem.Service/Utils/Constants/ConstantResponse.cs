@@ -127,7 +127,7 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //TeachableSubject
         public const string TEACHABLE_SUBJECT_NOT_EXIST = "The teachable subject does not exist.";
-
+        
         //Term
         public const string TERM_NOT_EXIST = "The term does not exist.";
 
