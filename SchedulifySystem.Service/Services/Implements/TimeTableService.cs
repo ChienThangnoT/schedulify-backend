@@ -163,42 +163,42 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < classesDbList.Count; i++)
             {
                 var periodCount = 0; // Tổng số tiết học trong lớp
-                var classPeriodCount = classesDbList[i].PeriodCount; // Số tiết yêu cầu của lớp học
+                var classPeriodCount = classesDbList[i].PeriodCount; // tổng số tiết yêu cầu của lớp học trong 1 tuần
 
-                // Duyệt qua từng môn học trong lớp
+                // duyệt qua từng môn học trong lớp
                 for (var j = 0; j < classesDbList[i].SubjectGroup.SubjectInGroups.Count; j++)
                 {
                     var subjectClass = classesDbList[i].SubjectGroup.SubjectInGroups.ToList()[j];
 
-                    // Tìm phân công giáo viên cho môn học
+                    // tìm phân công giáo viên cho môn học
                     var assignment = assignmentsDbList.FirstOrDefault(a =>
                         a.SubjectId == subjectClass.SubjectId
                         /*a.StudentClassId == subjectClass.ClassId*/);
 
-                    // Kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
+                    // kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
                     if (assignment == null)
                     {
                         var subjectName = subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName;
                         throw new Exception($"Lớp {classesDbList[i].Name} chưa được phân công môn {subjectName}.");
                     }
 
-                    // Kiểm tra số tiết học có khớp với yêu cầu không
+                    // kiểm tra số tiết học có khớp với yêu cầu không
                     if (assignment.PeriodCount != subjectClass.SlotPerWeek)
                     {
                         throw new Exception($"Số tiết học cho môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
                     }
 
-                    // Kiểm tra xem giáo viên có được phân công không
+                    // kiểm tra xem giáo viên có được phân công không
                     if (assignment.TeacherId == null || assignment.TeacherId == 0)
                     {
                         throw new Exception($"Môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
                     }
 
-                    // Cộng số tiết của môn vào tổng số tiết của lớp
+                    // cộng số tiết của môn vào tổng số tiết của lớp
                     periodCount += subjectClass.SlotPerWeek;
                 }
 
-                // Kiểm tra tổng số tiết của lớp
+                // kiểm tra tổng số tiết của lớp
                 if (periodCount != classPeriodCount)
                 {
                     throw new Exception($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
