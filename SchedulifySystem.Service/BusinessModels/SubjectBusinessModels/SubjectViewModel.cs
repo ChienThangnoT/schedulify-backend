@@ -13,6 +13,8 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
+        public int? TotalSlotInYear { get; set; }
+        public int SlotSpecialized { get; set; } = 35;
         public DateTime CreateDate { get; set; }
         public DateTime UpdateDate { get; set; }
         public bool IsDeleted { get; set; }
