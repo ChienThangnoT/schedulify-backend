@@ -9,9 +9,12 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 {
     public class SubjectUpdateModel
     {
-        public required string SubjectName { get; set; }
-        public required string Abbreviation { get; set; }
-        public required string Description { get; set; }
+        public string? SubjectName { get; set; }
+        public string? Abbreviation { get; set; }
+        public string? Description { get; set; }
+        public bool? IsRequired { get; set; }
+        public int? TotalSlotInYear { get; set; }
+        public int? SlotSpecialized { get; set; }
         //[JsonIgnore]
         //public DateTime UpdateDate { get; set; }
     }
