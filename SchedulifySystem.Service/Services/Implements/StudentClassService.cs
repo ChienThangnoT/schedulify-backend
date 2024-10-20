@@ -255,5 +255,33 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
         #endregion
+
+        #region AssignSubjectGroupToClasses
+        public async Task<BaseResponseModel> AssignSubjectGroupToClasses(AssignSubjectGroup model)
+        {
+            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(model.SubjectGroupId)
+                                ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+
+            foreach (var classId in model.ClassIds)
+            {
+                var founded = await _unitOfWork.StudentClassesRepo.GetByIdAsync(classId)
+                                ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
+
+                founded.SubjectGroupId = model.SubjectGroupId;
+                founded.UpdateDate = DateTime.UtcNow;
+                _unitOfWork.StudentClassesRepo.Update(founded);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.SUBJECT_GROUP_ASSIGN_SUCCESS
+            };
+        }
+
+        #endregion
+
     }
 }
