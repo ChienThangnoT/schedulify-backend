@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels;
 using SchedulifySystem.Service.Enums;
@@ -62,17 +63,37 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region get subjects
-        public async Task<BaseResponseModel> GetSubjects(int subjectId, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, bool includeDeleted, int pageIndex, int pageSize)
         {
-            var subject = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
-            
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            if (subjectGroupId != null)
+            {
+                var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId) 
+                    ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            }
+
             var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
-                filter: t => (subjectId == 0 || t.Id == subjectId) || t.IsDeleted == false
+                filter: t => t.SchoolId == schoolId 
+                && (subjectGroupId == null || t.Id == subjectGroupId)
+                && (grade == null  || t.Grade == (int)grade)
+                &&  t.IsDeleted == includeDeleted,
+                pageIndex: pageIndex,
+                pageSize: pageSize
                 );
+            if(subjects.Items.Count == 0)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_SUCCESS
+                };
+            }
+            var result = _mapper.Map<Pagination<SubjectGroupViewModel>>(subjects);
             return new BaseResponseModel()
             {
-                Status = StatusCodes.Status201Created,
-                Message = ""
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_SUCCESS,
+                Result = result
             };
         }
         #endregion

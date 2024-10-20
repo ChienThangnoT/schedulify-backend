@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.Enums
 {
-    public enum SubjectGroupType
+    public enum Grade
     {
-        SUBJECT_COMBINATION = 0,
-        SUBJECT_CLASS = 1
+        Khoi_10 = 1,
+        Khoi_11 = 2,
+        Khoi_12 = 3
     }
 }

@@ -13,7 +13,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
         public string? GroupName { get; set; }
         public string? GroupCode { get; set; }
         public string? GroupDescription { get; set; }
-        public SubjectGroupType SubjectGroupType { get; set; }
+        public Grade Grade { get; set; }
         [JsonIgnore]
         public DateTime? CreatedDate { get; set; } = DateTime.UtcNow;
     }
