@@ -115,10 +115,7 @@ namespace SchedulifySystem.Service.Services.Implements
             */
             timetableFlags = new ETimetableFlag[classes.Count, 61];
 
-            var subjectsDbList = subjectsDb.ToList();
-
-            for (var i = 0; i < subjectsDbList.Count; i++)
-                subjects.Add(new SubjectScheduleModel(subjectsDbList[i]));
+            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb.ToList());
 
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetAsync(
                 filter: t => t.StudentClassId == classesDb.First().Id && t.IsDeleted == false
@@ -169,7 +166,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 for (var j = 0; j < classesDbList[i].SubjectGroup.SubjectInGroups.Count; j++)
                 {
                     var subjectClass = classesDbList[i].SubjectGroup.SubjectInGroups.ToList()[j];
-
+                    
                     // tìm phân công giáo viên cho môn học
                     var assignment = assignmentsDbList.FirstOrDefault(a =>
                         a.SubjectId == subjectClass.SubjectId
@@ -229,11 +226,12 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < classes.Count; i++)
             {
                 // ca sáng thì a sẽ bắt đầu từ 0 (tương ứng tiết 1 trong ngày) còn ca chiều bắt đầu từ 5 (tương ứng tiết 6 trong ngày)
-                var a = classes[i].MainSession == (int)MainSession.Morning ? 0 : 5;
+                var a = classes[i].IsFullDay ? 0 : classes[i].MainSession == (int)MainSession.Morning ? 0 : 5;
                 // j sẽ là index cho mỗi ngày, (max một tuần 60 tiết), mỗi vòng tăng 10 tức sang ngày mới
+                int maxSlot = classes[i].IsFullDay ? 5 : 10;
                 for (var j = 1; j < 61; j += 10)
-                    // trong ngày j đánh dấu lớp i tiết từ a đến a+5 là chưa fill 
-                    for (var k = j; k < j + 5; k++)
+                    // trong ngày j đánh dấu tiết khả dụng để xếp 
+                    for (var k = j; k < j + maxSlot; k++)
                         timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
 
                 //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp  

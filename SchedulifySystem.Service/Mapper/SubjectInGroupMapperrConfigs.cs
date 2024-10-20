@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,9 @@ namespace SchedulifySystem.Service.Mapper
         partial void SubjectInGroupMapperrConfigs()
         {
             CreateMap<SubjectInGroup, SubjectInGroupViewModel>();
+            CreateMap<SubjectInGroup, SubjectScheduleModel>()
+                .IncludeMembers(sig => sig.Subject).ReverseMap();
+
         }
     }
 }

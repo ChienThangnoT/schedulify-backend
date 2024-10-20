@@ -9,24 +9,16 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 {
     public class SubjectScheduleModel : BaseEntity
     {
-        public string? SubjectName { get; set; }
+        public int SubjectId { get; set; }
         public string? Abbreviation { get; set; }
-        public bool IsRequired { get; set; }
-        public string? Description { get; set; }
-        public int? SchoolId { get; set; }
+        public string? SubjectName { get; set; }
+        public int MoringSlotPerWeek { get; set; }
+        public int AfternoonSlotPerWeek { get; set; }
+        public int SlotPerTerm { get; set; }
         public int? TotalSlotInYear { get; set; }
         public int? SlotSpecialized { get; set; }
+        public bool IsSpecialized { get; set; }
+        public bool IsDoublePeriod { get; set; }
 
-        public SubjectScheduleModel(Subject subject)
-        {
-            Id = subject.Id;
-            SubjectName = subject.SubjectName;
-            Abbreviation = subject.Abbreviation;
-            Description = subject.Description;
-            IsRequired = subject.IsRequired;
-            SchoolId = subject.SchoolId;
-            TotalSlotInYear = subject.TotalSlotInYear;
-            SlotSpecialized = subject.SlotSpecialized;
-        }
     }
 }

@@ -23,6 +23,7 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ReverseMap();
             CreateMap<Subject, SubjectViewModel>().ReverseMap();
+            CreateMap<Subject, SubjectScheduleModel>().ReverseMap();
         }
     }
 }
