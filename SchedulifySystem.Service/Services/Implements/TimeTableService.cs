@@ -146,7 +146,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < assignmentsDbList.Count; i++)
             {
                 var studentClass = classes.First(c => c.Id == assignmentsDbList[i].StudentClassId);
-                var subject = subjects.First(s => s.Id == assignmentsDbList[i].SubjectId);
+                var subject = subjects.First(s => s.SubjectId == assignmentsDbList[i].SubjectId);
                 var teacher = teachers.First(t => t.Id == assignmentsDbList[i].TeacherId);
                 assignments.Add(new TeacherAssigmentScheduleModel(assignmentsDbList[i], teacher, subject, studentClass));
             }
@@ -175,20 +175,20 @@ namespace SchedulifySystem.Service.Services.Implements
                     // kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
                     if (assignment == null)
                     {
-                        var subjectName = subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName;
+                        var subjectName = subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName;
                         throw new Exception($"Lớp {classesDbList[i].Name} chưa được phân công môn {subjectName}.");
                     }
 
                     // kiểm tra số tiết học có khớp với yêu cầu không
                     if (assignment.PeriodCount != (subjectClass.MoringSlotPerWeek + subjectClass.AfternoonSlotPerWeek))
                     {
-                        throw new Exception($"Số tiết học cho môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                        throw new Exception($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
                     }
 
                     // kiểm tra xem giáo viên có được phân công không
                     if (assignment.TeacherId == null || assignment.TeacherId == 0)
                     {
-                        throw new Exception($"Môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
+                        throw new Exception($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
                     }
 
                     // cộng số tiết của môn vào tổng số tiết của lớp
@@ -207,7 +207,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region TimetableRootIndividual 
+        #region TimetableRootIndividual -- long dep trai 
         /*
          * phương thức này sẽ tạo ra cá thể gốc ban đầu làm nền tảng cho quá trình lai ghép đột biến với tham số bao gồm 
          * danh sách lớp học, giáo viên, phân công tiết học, và timetableFlags là Mảng trạng thái thời khóa biểu cho từng lớp,
@@ -219,8 +219,8 @@ namespace SchedulifySystem.Service.Services.Implements
            List<ClassScheduleModel> classes,
            List<TeacherScheduleModel> teachers,
            List<TeacherAssigmentScheduleModel> assignments,
+           List<SubjectScheduleModel> subjects,
            ETimetableFlag[,] timetableFlags,
-           List<SubjectScheduleModel> doublePeriodSubjects,
            GenerateTimetableModel parameters)
         {
             for (var i = 0; i < classes.Count; i++)
@@ -235,7 +235,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
 
                 //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp  
-                var list = parameters.FreeTimetablePeriods.Where(u => u.Id == classes[i].Id).ToList();
+                var list = parameters.FreeTimetablePeriods.Where(u => u.ClassId == classes[i].Id).ToList();
                 for (var j = 0; j < list.Count; j++)
                     timetableFlags[i, list[j].StartAt] = ETimetableFlag.None;
             }
@@ -248,7 +248,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < timetableUnits.Count; i++)
             {
                 // lấy ra index của class dựa vào class list vs điều kiện là tìm thấy class này trong timetableUnit (các tiết cố định)
-                var classIndex = classes.IndexOf(classes.First(c => c.Id == timetableUnits[i].Id));
+                var classIndex = classes.IndexOf(classes.First(c => c.Id == timetableUnits[i].ClassId));
                 var startAt = timetableUnits[i].StartAt;
                 timetableFlags[classIndex, startAt] = ETimetableFlag.Fixed;
             }
@@ -256,12 +256,15 @@ namespace SchedulifySystem.Service.Services.Implements
             /* Thêm các tiết phân công chưa được xếp vào sau */
             for (var i = 0; i < assignments.Count; i++)
             {
+                // đếm ra số tiết đã phân công theo tiết cố định 
                 var count = parameters.FixedPeriods.Count(u => u.TeacherAssignmentId == assignments[i].Id);
-                //for (var j = 0; j < assignments[i]. - count; j++)
-                //    timetableUnits.Add(new TimetableUnitTCDTO(assignments[i]));
+                // phân công các tiết còn lại chưa đc xắp cố định vào tkb 
+                for (var j = 0; j < assignments[i].PeriodCount - count; j++)
+                    timetableUnits.Add(new ClassPeriodScheduleModel(assignments[i]));
             }
 
             /* Tạo danh sách các tiết đôi */
+            var doublePeriodSubjects = subjects.Where(s => s.IsDoublePeriod).ToList();
 
             for (var i = 0; i < classes.Count; i++)
             {

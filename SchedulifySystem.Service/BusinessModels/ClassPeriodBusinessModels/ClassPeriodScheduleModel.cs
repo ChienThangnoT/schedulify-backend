@@ -1,6 +1,7 @@
 ﻿using SchedulifySystem.Repository;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +31,22 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
         public int Priority { get; set; }
 
         public List<ConstraintErrorModel> ConstraintErrors { get; set; } = [];
-       
+
+        public ClassPeriodScheduleModel()
+        {
+            
+        }
+
+        public ClassPeriodScheduleModel(TeacherAssigmentScheduleModel assignment)
+        {
+            SubjectId = assignment.Subject.SubjectId;
+            SubjectAbbreviation = assignment.Subject.Abbreviation;
+            TeacherId = assignment.Teacher.Id;
+            TeacherAbbreviation = assignment.Teacher.Abbreviation;
+            ClassName = assignment.StudentClass.Name;
+            ClassId = assignment.StudentClass.Id;
+            TeacherAssignmentId = assignment.Id;
+        }
+
     }
 }
