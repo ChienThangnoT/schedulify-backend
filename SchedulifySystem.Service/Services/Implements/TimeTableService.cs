@@ -183,7 +183,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     // kiểm tra số tiết học có khớp với yêu cầu không
                     if (assignment.PeriodCount != (subjectClass.MoringSlotPerWeek + subjectClass.AfternoonSlotPerWeek))
                     {
-                        throw new Exception($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                        throw new NotExistsException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
                     }
 
                     // kiểm tra xem giáo viên có được phân công không
