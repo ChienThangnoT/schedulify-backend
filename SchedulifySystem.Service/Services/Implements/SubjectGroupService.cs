@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels;
+using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
 using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
@@ -62,25 +64,67 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region get subjects
+        #region Get Subject Group Detail
+        public async Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId)
+        {
+            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+                filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
+                include: query => query.Include(c => c.SubjectInGroups)
+                           .ThenInclude(sg => sg.Subject));
+
+            if (subjectGroup == null || !subjectGroup.Any())
+            {
+                throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            }
+
+            var subjectGroupDb = subjectGroup.FirstOrDefault();
+
+            var result = _mapper.Map<SubjectGroupViewDetailModel>(subjectGroupDb);
+
+            if (subjectGroupDb.SubjectInGroups == null || subjectGroupDb.SubjectInGroups.Count == 0)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = ConstantResponse.GET_SUBJECT_GROUP_DETAIL_SUCCESS,
+                    Result = result
+                };
+            }
+
+            var listSBInGroup = subjectGroupDb.SubjectInGroups.ToList();
+            var subjectInGroupList = _mapper.Map<List<SubjectInGroupViewDetailModel>>(listSBInGroup);
+
+            result.SubjectInGroups = subjectInGroupList;
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_SUBJECT_GROUP_DETAIL_SUCCESS,
+                Result = result
+            };
+        }
+
+        #endregion
+
+        #region get subject groups
         public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, bool includeDeleted, int pageIndex, int pageSize)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (subjectGroupId != null)
             {
-                var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId) 
+                var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId)
                     ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
             }
 
             var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
-                filter: t => t.SchoolId == schoolId 
+                filter: t => t.SchoolId == schoolId
                 && (subjectGroupId == null || t.Id == subjectGroupId)
-                && (grade == null  || t.Grade == (int)grade)
-                &&  t.IsDeleted == includeDeleted,
+                && (grade == null || t.Grade == (int)grade)
+                && t.IsDeleted == includeDeleted,
                 pageIndex: pageIndex,
                 pageSize: pageSize
                 );
-            if(subjects.Items.Count == 0)
+            if (subjects.Items.Count == 0)
             {
                 return new BaseResponseModel()
                 {
@@ -96,6 +140,66 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = result
             };
         }
+        #endregion
+        #region
+        public async Task<BaseResponseModel> UpdateSubjectGroup(int subjectGroupId, SubjectGroupUpdateModel subjectGroupUpdateModel)
+        {
+            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+                filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
+                include: query => query.Include(c => c.SubjectInGroups)
+                           .ThenInclude(sg => sg.Subject));
+
+            if (subjectGroup == null || !subjectGroup.Any())
+            {
+                throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            }
+
+            var subjectGroupDb = subjectGroup.FirstOrDefault();
+
+            if (subjectGroupUpdateModel.Grade != 0 && subjectGroupUpdateModel.Grade != (Grade)subjectGroupDb.Grade)
+            {
+                var subjectInGroups = await _unitOfWork.SubjectInGroupRepo.GetAsync(
+                    filter: t => t.SubjectGroupId == subjectGroupId && !t.IsDeleted);
+
+                if (subjectInGroups.Any())
+                {
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = ConstantResponse.SUBJECT_GROUP_HAS_SUBJECTS_REGISTERED
+                    };
+                }
+
+                subjectGroupDb.Grade = (int)subjectGroupUpdateModel.Grade;
+            }
+
+            if (!string.IsNullOrEmpty(subjectGroupUpdateModel.GroupName))
+            {
+                subjectGroupDb.GroupName = subjectGroupUpdateModel.GroupName.Trim();
+            }
+
+            if (!string.IsNullOrEmpty(subjectGroupUpdateModel.GroupCode))
+            {
+                subjectGroupDb.GroupCode = subjectGroupUpdateModel.GroupCode.ToUpper().Trim();
+            }
+
+            if (!string.IsNullOrEmpty(subjectGroupUpdateModel.GroupDescription))
+            {
+                subjectGroupDb.GroupDescription = subjectGroupUpdateModel.GroupDescription.Trim();
+            }
+
+            _unitOfWork.SubjectGroupRepo.Update(subjectGroupDb);
+            await _unitOfWork.SaveChangesAsync();
+
+            var result = _mapper.Map<SubjectGroupViewModel>(subjectGroup);
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.UPDATE_SUBJECT_GROUP_SUCCESS,
+                Result = result
+            };
+        }
+
         #endregion
     }
 }

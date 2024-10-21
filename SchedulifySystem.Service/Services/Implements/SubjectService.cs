@@ -115,7 +115,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         return new BaseResponseModel
                         {
                             Status = StatusCodes.Status400BadRequest,
-                            Message = ConstantResponse.SUBJECT_NAME_ALREADY_EXIST,
+                            Message = ConstantResponse.SUBJECT_NAME_ALREADY_EXIST_IN_LIST,
                             Result = duplicateSubjectName
                         };
                     }
@@ -146,29 +146,57 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     foreach (var createSubjectModel in subjectAddModel)
                     {
-                        var baseAbbreviation = createSubjectModel.Abbreviation.ToLower();
-                        var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.SchoolId == schoolId) && (t.IsDeleted == false)));
+                        var baseAbbreviation = createSubjectModel.Abbreviation.ToLower().Trim();
+
+                        // Get all existing abbreviations that start with the base abbreviation in the database
+                        var existingAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => t.SchoolId == schoolId && t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && t.IsDeleted == false);
+
+                        // Include abbreviations in the current transaction
+                        var duplicateAbbre = existingAbbre.Concat(
+                            subjectAddModel.Where(s => s != createSubjectModel && s.Abbreviation.ToLower().StartsWith(baseAbbreviation))
+                            .Select(s => new Subject { Abbreviation = s.Abbreviation.ToLower() })
+                        ).ToList();
 
                         string newAbbreviation = baseAbbreviation;
-                        int counter = 1;
+                        int counter = 0;
 
-                        while (duplicateAbbre.Any(t => t.Abbreviation.ToLower() == newAbbreviation) || usedAbbreviations.Contains(newAbbreviation))
+                        // Extract all suffix numbers from abbreviations starting with the same base
+                        var existingNumbers = duplicateAbbre
+                            .Select(t => System.Text.RegularExpressions.Regex.Match(t.Abbreviation, @"^.*?(\d+)$"))
+                            .Where(m => m.Success)
+                            .Select(m => int.Parse(m.Groups[1].Value))
+                            .ToList();
+
+                        // Check if baseAbbreviation itself already exists without any number (e.g., "string" or "string2")
+                        if (duplicateAbbre.Any(t => t.Abbreviation.ToLower() == baseAbbreviation))
                         {
-                            var match = System.Text.RegularExpressions.Regex.Match(baseAbbreviation, @"^(.*?)(\d+)$");
-
-                            if (match.Success)
+                            // If it exists, we increment the counter
+                            if (existingNumbers.Count > 0)
                             {
-                                var textPart = match.Groups[1].Value;
-                                var numberPart = int.Parse(match.Groups[2].Value);
-                                newAbbreviation = $"{textPart}{numberPart + counter}";
+                                counter = existingNumbers.Max() + 1; // Get the max number and increment it
                             }
                             else
                             {
-                                newAbbreviation = $"{baseAbbreviation}{counter}";
+                                counter = 1; // If no numbers found, start from 1
                             }
-                            counter++;
+
+                            newAbbreviation = $"{baseAbbreviation}{counter}";
+                        }
+                        else if (existingNumbers.Count > 0)
+                        {
+                            // If there are suffixed abbreviations (e.g., "string1", "string2"), increment the highest number
+                            counter = existingNumbers.Max() + 1;
+                            newAbbreviation = $"{baseAbbreviation}{counter}";
                         }
 
+                        // Ensure no duplicates in both the database and current transaction
+                        while (duplicateAbbre.Any(t => t.Abbreviation.ToLower() == newAbbreviation) || usedAbbreviations.Contains(newAbbreviation))
+                        {
+                            counter++;
+                            newAbbreviation = $"{baseAbbreviation}{counter}";
+                        }
+
+                        // Set the final abbreviation to the new unique abbreviation
                         createSubjectModel.Abbreviation = newAbbreviation.ToUpper();
                         usedAbbreviations.Add(createSubjectModel.Abbreviation);
 
@@ -177,6 +205,8 @@ namespace SchedulifySystem.Service.Services.Implements
                         await _unitOfWork.SubjectRepo.AddAsync(newSubject);
                         addedSubjects.Add(createSubjectModel.SubjectName);
                     }
+
+
 
                     await _unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();

@@ -14,11 +14,22 @@ namespace SchedulifySystem.Service.Mapper
         partial void SubjectGroupMapperConfig()
         {
             CreateMap<SubjectGroupAddModel, SubjectGroup>()
-                .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
+                .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ReverseMap();
+
+            CreateMap<SubjectGroupUpdateModel, SubjectGroup>()
+                .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ReverseMap();
+
             CreateMap<SubjectGroup, SubjectGroupViewModel>()
                .ForMember(dest => dest.SchoolName,
                 opt => opt.MapFrom(src => src.School != null ? src.School.Name : string.Empty))
                .ReverseMap();
+
+            CreateMap<SubjectGroup, SubjectGroupViewDetailModel>()
+                .ForMember(dest => dest.SchoolName,
+                opt => opt.MapFrom(src => src.School != null ? src.School.Name : string.Empty))
+                .ReverseMap();
         }
     }
 }

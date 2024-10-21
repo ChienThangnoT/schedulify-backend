@@ -25,6 +25,7 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, grade, schoolYearId, includeDeleted, pageIndex, pageSize));
         }
+
         [HttpGet("/subjects-in-group")]
         public Task<IActionResult> GetSubjectInGroupOfClass(int schoolId, int termId, int studentClassId)
         {

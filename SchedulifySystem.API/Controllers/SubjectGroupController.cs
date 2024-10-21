@@ -25,6 +25,13 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade, includeDeleted, pageIndex, pageSize));
         }
 
+        [HttpGet("{id}")]
+        [Authorize("Admin, SchoolManager")]
+        public Task<IActionResult> GetSubjectGroupDetail(int id)
+        {
+            return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroupDetail(id));
+        }
+
         [HttpPost]
         [Authorize("Admin,SchoolManager")]
         public Task<IActionResult> AddSubjectGroup(int schoolId, SubjectGroupAddModel subjectGroupAddModel)
