@@ -29,6 +29,7 @@ namespace SchedulifySystem.Service.Services.Implements
         private readonly IMapper _mapper;
         private readonly Random _random = new();
 
+        private static readonly int AVAILABLE_SLOT_PER_WEEK = 61;
         private readonly int NUMBER_OF_GENERATIONS = int.MaxValue;
         private readonly int INITIAL_NUMBER_OF_INDIVIDUALS = 1000;
         private readonly float MUTATION_RATE = 0.1f;
@@ -113,12 +114,9 @@ namespace SchedulifySystem.Service.Services.Implements
             /*Khởi tạo mảng hai chiều timetableFlags với số dòng là số lớp học và số cột là 61.
               Số lượng 61 có thể đại diện cho số tiết học trong một kỳ hoặc một tuần học
             */
-            timetableFlags = new ETimetableFlag[classes.Count, 61];
+            timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
 
-            var subjectsDbList = subjectsDb.ToList();
-
-            for (var i = 0; i < subjectsDbList.Count; i++)
-                subjects.Add(new SubjectScheduleModel(subjectsDbList[i]));
+            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb.ToList());
 
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetAsync(
                 filter: t => t.StudentClassId == classesDb.First().Id && t.IsDeleted == false
@@ -149,7 +147,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < assignmentsDbList.Count; i++)
             {
                 var studentClass = classes.First(c => c.Id == assignmentsDbList[i].StudentClassId);
-                var subject = subjects.First(s => s.Id == assignmentsDbList[i].SubjectId);
+                var subject = subjects.First(s => s.SubjectId == assignmentsDbList[i].SubjectId);
                 var teacher = teachers.First(t => t.Id == assignmentsDbList[i].TeacherId);
                 assignments.Add(new TeacherAssigmentScheduleModel(assignmentsDbList[i], teacher, subject, studentClass));
             }
@@ -169,7 +167,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 for (var j = 0; j < classesDbList[i].SubjectGroup.SubjectInGroups.Count; j++)
                 {
                     var subjectClass = classesDbList[i].SubjectGroup.SubjectInGroups.ToList()[j];
-
+                    
                     // tìm phân công giáo viên cho môn học
                     var assignment = assignmentsDbList.FirstOrDefault(a =>
                         a.SubjectId == subjectClass.SubjectId
@@ -178,20 +176,20 @@ namespace SchedulifySystem.Service.Services.Implements
                     // kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
                     if (assignment == null)
                     {
-                        var subjectName = subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName;
+                        var subjectName = subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName;
                         throw new Exception($"Lớp {classesDbList[i].Name} chưa được phân công môn {subjectName}.");
                     }
 
                     // kiểm tra số tiết học có khớp với yêu cầu không
                     if (assignment.PeriodCount != (subjectClass.MoringSlotPerWeek + subjectClass.AfternoonSlotPerWeek))
                     {
-                        throw new Exception($"Số tiết học cho môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                        throw new Exception($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
                     }
 
                     // kiểm tra xem giáo viên có được phân công không
                     if (assignment.TeacherId == null || assignment.TeacherId == 0)
                     {
-                        throw new Exception($"Môn {subjects.First(s => s.Id == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
+                        throw new Exception($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
                     }
 
                     // cộng số tiết của môn vào tổng số tiết của lớp
@@ -210,7 +208,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region TimetableRootIndividual 
+        #region TimetableRootIndividual -- long
         /*
          * phương thức này sẽ tạo ra cá thể gốc ban đầu làm nền tảng cho quá trình lai ghép đột biến với tham số bao gồm 
          * danh sách lớp học, giáo viên, phân công tiết học, và timetableFlags là Mảng trạng thái thời khóa biểu cho từng lớp,
@@ -222,22 +220,23 @@ namespace SchedulifySystem.Service.Services.Implements
            List<ClassScheduleModel> classes,
            List<TeacherScheduleModel> teachers,
            List<TeacherAssigmentScheduleModel> assignments,
+           List<SubjectScheduleModel> subjects,
            ETimetableFlag[,] timetableFlags,
-           List<SubjectScheduleModel> doublePeriodSubjects,
            GenerateTimetableModel parameters)
         {
             for (var i = 0; i < classes.Count; i++)
             {
                 // ca sáng thì a sẽ bắt đầu từ 0 (tương ứng tiết 1 trong ngày) còn ca chiều bắt đầu từ 5 (tương ứng tiết 6 trong ngày)
-                var a = classes[i].MainSession == (int)MainSession.Morning ? 0 : 5;
+                var a = classes[i].IsFullDay ? 0 : classes[i].MainSession == (int)MainSession.Morning ? 0 : 5;
                 // j sẽ là index cho mỗi ngày, (max một tuần 60 tiết), mỗi vòng tăng 10 tức sang ngày mới
-                for (var j = 1; j < 61; j += 10)
-                    // trong ngày j đánh dấu lớp i tiết từ a đến a+5 là chưa fill 
-                    for (var k = j; k < j + 5; k++)
+                int maxSlot = classes[i].IsFullDay ? 5 : 10;
+                for (var j = 1; j < AVAILABLE_SLOT_PER_WEEK; j += 10)
+                    // trong ngày j đánh dấu tiết khả dụng để xếp 
+                    for (var k = j; k < j + maxSlot; k++)
                         timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
 
                 //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp  
-                var list = parameters.FreeTimetablePeriods.Where(u => u.Id == classes[i].Id).ToList();
+                var list = parameters.FreeTimetablePeriods.Where(u => u.ClassId == classes[i].Id).ToList();
                 for (var j = 0; j < list.Count; j++)
                     timetableFlags[i, list[j].StartAt] = ETimetableFlag.None;
             }
@@ -250,7 +249,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < timetableUnits.Count; i++)
             {
                 // lấy ra index của class dựa vào class list vs điều kiện là tìm thấy class này trong timetableUnit (các tiết cố định)
-                var classIndex = classes.IndexOf(classes.First(c => c.Id == timetableUnits[i].Id));
+                var classIndex = classes.IndexOf(classes.First(c => c.Id == timetableUnits[i].ClassId));
                 var startAt = timetableUnits[i].StartAt;
                 timetableFlags[classIndex, startAt] = ETimetableFlag.Fixed;
             }
@@ -258,12 +257,15 @@ namespace SchedulifySystem.Service.Services.Implements
             /* Thêm các tiết phân công chưa được xếp vào sau */
             for (var i = 0; i < assignments.Count; i++)
             {
+                // đếm ra số tiết đã phân công theo tiết cố định 
                 var count = parameters.FixedPeriods.Count(u => u.TeacherAssignmentId == assignments[i].Id);
-                //for (var j = 0; j < assignments[i]. - count; j++)
-                //    timetableUnits.Add(new TimetableUnitTCDTO(assignments[i]));
+                // phân công các tiết còn lại chưa đc xắp cố định vào tkb 
+                for (var j = 0; j < assignments[i].PeriodCount - count; j++)
+                    timetableUnits.Add(new ClassPeriodScheduleModel(assignments[i]));
             }
 
             /* Tạo danh sách các tiết đôi */
+            var doublePeriodSubjects = subjects.Where(s => s.IsDoublePeriod).ToList();
 
             for (var i = 0; i < classes.Count; i++)
             {
@@ -351,17 +353,100 @@ namespace SchedulifySystem.Service.Services.Implements
             List<TimetableIndividual> parents,
             GenerateTimetableModel parameters)
         {
-            throw new NotImplementedException();
+            //khởi tạo ds cá thể con 
+            var children = new List<TimetableIndividual> { Clone(root), Clone(root) };
+            children[0] = Clone(root);
+            children[1] = Clone(root);
+
+            //sử dụng một kỹ thuật lai tạo nhất định để kết hợp các đặc điểm từ bố mẹ
+            switch (CROSSOVER_METHOD)
+            {
+                //Single-Point Crossover: Trong phương pháp này, một điểm ngẫu nhiên được chọn trong dữ liệu thời khóa biểu (chromosome)
+                //và toàn bộ dữ liệu trước điểm đó sẽ được lấy từ bố mẹ thứ nhất, còn dữ liệu sau điểm đó sẽ được lấy từ bố mẹ thứ hai.
+                //EChromosomeType.ClassChromosome: Đây là loại nhiễm sắc thể đại diện cho dữ liệu cần lai tạo.
+                //Ở đây, nó có thể đại diện cho cấu trúc của thời khóa biểu (thời gian học của các lớp, giáo viên, v.v.).
+                case ECrossoverMethod.SinglePoint:
+                    SinglePointCrossover(parents, children, EChromosomeType.ClassChromosome);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            // Sau khi thực hiện lai tạo, cần đánh dấu lại trạng thái của thời khóa biểu cho các cá thể con
+            RemarkTimetableFlag(children[0]);
+            RemarkTimetableFlag(children[1]);
+
+            // Đây là bước đột biến, nơi một số phần của cá thể con có thể được thay đổi ngẫu nhiên để tăng tính đa dạng cho quần thể
+            // và tránh bị mắc kẹt ở các giải pháp tối ưu cục bộ.
+            Mutate(children, CHROMOSOME_TYPE, MUTATION_RATE);
+
+            // Tính toán độ thích nghi
+            CalculateAdaptability(children[0], parameters, true);
+            CalculateAdaptability(children[1], parameters, true);
+
+            return [children[0], children[1]];
         }
         #endregion
 
+        /*
+         * SinglePointCrossover thực hiện lai tạo điểm đơn (Single-Point Crossover) giữa hai cá thể bố mẹ để tạo ra hai cá thể con. 
+         * Trong quá trình này, một điểm ngẫu nhiên được chọn trên chuỗi "nhiễm sắc thể" (chromosome), 
+         * sau đó các phần trước và sau điểm đó sẽ được trao đổi giữa hai bố mẹ để tạo ra các cá thể con.
+         */
         #region SinglePointCrossover
         private List<TimetableIndividual> SinglePointCrossover(
             List<TimetableIndividual> parents,
             List<TimetableIndividual> children,
             EChromosomeType chromosomeType)
         {
-            throw new NotImplementedException();
+            // startIndex và endIndex: Hai biến này sẽ xác định phạm vi của các tiết học (Timetable Units) được lai tạo giữa hai bố mẹ.
+            var startIndex = 0;
+            var endIndex = 0;
+            //xác định cách lai tạo
+            switch (chromosomeType)
+            {
+                // nhiễm sắc thể đại diện cho lớp học
+                case EChromosomeType.ClassChromosome:
+                    SortChromosome(children[0], EChromosomeType.ClassChromosome);
+                    SortChromosome(children[1], EChromosomeType.ClassChromosome);
+                    SortChromosome(parents[0], EChromosomeType.ClassChromosome);
+                    SortChromosome(parents[1], EChromosomeType.ClassChromosome);
+                    //Chọn ngẫu nhiên một lớp từ cá thể bố mẹ đầu tiên. Tên của lớp này sẽ được dùng để xác định các tiết học liên quan đến lớp đó
+                    var className = parents[0].Classes[_random.Next(parents[0].Classes.Count)].Name;
+                    //Vị trí bắt đầu của lớp học được chọn trong danh sách các tiết học
+                    startIndex = parents[0].TimetableUnits.IndexOf(parents[0].TimetableUnits.First(u => u.ClassName == className));
+                    //Điểm kết thúc là vị trí bắt đầu cộng với số lượng tiết học mà lớp học đó có trong tuần
+                    endIndex = startIndex + parents[0].Classes.First(c => c.Name == className).PeriodCount - 1;
+                    break;
+                case EChromosomeType.TeacherChromosome:
+                    throw new NotImplementedException();
+                // break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            //Trao đổi dữ liệu giữa cha mẹ và con
+            // var randIndex = /*rand.Next(0, parents[0].TimetableUnits.Count)*/ parents[0].TimetableUnits.Count / 2;
+
+            for (var i = 0; i < parents[0].TimetableUnits.Count; i++)
+            {
+                //nếu i nằm ngoài khoảng từ startIndex đến endIndex, nghĩa là phần này sẽ được sao chép trực tiếp từ cha mẹ sang con.
+                if (i < startIndex || i > endIndex)
+                    for (var j = 0; j < children.Count; j++)
+                    {
+                        children[j].TimetableUnits[i].StartAt = parents[j].TimetableUnits[i].StartAt;
+                        children[j].TimetableUnits[i].Priority = parents[j].TimetableUnits[i].Priority;
+                    }
+                //nếu i nằm trong khoảng startIndex đến endIndex, dữ liệu sẽ được trao đổi giữa hai cha mẹ để tạo ra hai cá thể con
+                else
+                    for (var j = 0; j < children.Count; j++)
+                    {
+                        children[j].TimetableUnits[i].StartAt = parents[children.Count - 1 - j].TimetableUnits[i].StartAt;
+                        children[j].TimetableUnits[i].Priority = parents[children.Count - 1 - j].TimetableUnits[i].Priority;
+                    }
+            }
+
+            return children;
         }
         #endregion
 
@@ -428,8 +513,24 @@ namespace SchedulifySystem.Service.Services.Implements
 
         }
 
+        //cập nhật lại flag dựa trên timetableUnits 
         private static void RemarkTimetableFlag(TimetableIndividual src)
         {
+            // ngoại trừ các tiết k xếp thì mark lại là unfill
+            for (var i = 0; i < src.Classes.Count; i++)
+                for (var j = 1; j < AVAILABLE_SLOT_PER_WEEK; j++)
+                    if (src.TimetableFlag[i, j] != ETimetableFlag.None)
+                        src.TimetableFlag[i, j] = ETimetableFlag.Unfilled;
+
+            // mark các tiết khác dựa trên timetable unit 
+            for (var i = 0; i < src.TimetableUnits.Count; i++)
+            {
+                var classIndex = src.Classes.IndexOf(src.Classes.First(c => c.Name == src.TimetableUnits[i].ClassName));
+                if (src.TimetableUnits[i].Priority == (int) EPriority.Fixed)
+                    src.TimetableFlag[classIndex, src.TimetableUnits[i].StartAt] = ETimetableFlag.Fixed;
+                else
+                    src.TimetableFlag[classIndex, src.TimetableUnits[i].StartAt] = ETimetableFlag.Filled;
+            }
 
         }
 
