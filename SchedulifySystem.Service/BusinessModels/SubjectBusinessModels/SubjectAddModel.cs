@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public required string Description { get; set; }
         public int? TotalSlotInYear { get; set; }
         public int? SlotSpecialized { get; set; }
+        public ESubjectGroupType SubjectGroupType { get; set; }
     }
     public class SubjectAddListModel
     {
@@ -24,5 +26,6 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public required string Description { get; set; }
         public int? TotalSlotInYear { get; set; }
         public int? SlotSpecialized { get; set; } = 35;
+        public ESubjectGroupType SubjectGroupType { get; set; }
     }
 }

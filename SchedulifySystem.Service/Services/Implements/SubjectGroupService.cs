@@ -34,7 +34,9 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> CreateSubjectGroup(int schoolId, SubjectGroupAddModel subjectGroupAddModel)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School not found with id {schoolId}");
-
+            var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(filter: sy => sy.Id == subjectGroupAddModel.SchoolYearId,
+                include: query => query.Include(sy => sy.Terms))).Items.FirstOrDefault() 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
             var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
                 filter: t => t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower() ||
                              t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower()
@@ -53,6 +55,46 @@ namespace SchedulifySystem.Service.Services.Implements
             var subjectGroupAdd = _mapper.Map<SubjectGroup>(subjectGroupAddModel);
             subjectGroupAdd.SchoolId = schoolId;
             await _unitOfWork.SubjectGroupRepo.AddAsync(subjectGroupAdd);
+            //save to have group id
+            await _unitOfWork.SaveChangesAsync();
+
+            //generate data subject
+
+            //ElectiveSubjects
+            foreach (int subjectId in subjectGroupAddModel.ElectiveSubjectIds)
+            {
+                var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+                if (checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT, Result = subjectId };
+                var newSubjectInGroup = new SubjectInGroup();
+                newSubjectInGroup.SubjectId = subjectId;
+                newSubjectInGroup.SubjectGroupId = subjectGroupAdd.Id;
+                newSubjectInGroup.IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subjectId);
+                
+                foreach (Term term in schoolYear.Terms)
+                {
+                    newSubjectInGroup.TermId = term.Id;
+                    _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup);
+                }
+            }
+
+            //SpecializedSubject
+            var specializedSubjectNotInElectiveSubjects = subjectGroupAddModel.SpecializedSubjectIds.Where(s => !subjectGroupAddModel.ElectiveSubjectIds.Contains(s));
+
+            foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
+            {
+                var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+                if (checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT, Result = subjectId };
+                var newSubjectInGroup = new SubjectInGroup();
+                newSubjectInGroup.SubjectId = subjectId;
+                newSubjectInGroup.SubjectGroupId = subjectGroupAdd.Id;
+                newSubjectInGroup.IsSpecialized = true;
+
+                foreach (Term term in schoolYear.Terms)
+                {
+                    newSubjectInGroup.TermId = term.Id;
+                    _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup);
+                }
+            }
             await _unitOfWork.SaveChangesAsync();
             var result = _mapper.Map<SubjectGroupViewModel>(subjectGroupAdd);
             return new BaseResponseModel()
@@ -107,7 +149,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region get subject groups
-        public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (subjectGroupId != null)
@@ -120,6 +162,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: t => t.SchoolId == schoolId
                 && (subjectGroupId == null || t.Id == subjectGroupId)
                 && (grade == null || t.Grade == (int)grade)
+                && (schoolYearId == null || t.SchoolYearId == schoolYearId)
                 && t.IsDeleted == includeDeleted,
                 pageIndex: pageIndex,
                 pageSize: pageSize

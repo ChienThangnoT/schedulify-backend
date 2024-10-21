@@ -29,6 +29,8 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<SubjectGroup, SubjectGroupViewDetailModel>()
                 .ForMember(dest => dest.SchoolName,
                 opt => opt.MapFrom(src => src.School != null ? src.School.Name : string.Empty))
+                .ForMember(dest => dest.SchoolYear,
+                opt => opt.MapFrom(src => src.SchoolYear != null ? $"{src.SchoolYear.StartYear} - {src.SchoolYear.EndYear}":""))
                 .ReverseMap();
         }
     }

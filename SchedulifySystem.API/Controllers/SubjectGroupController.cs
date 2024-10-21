@@ -20,9 +20,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize("Admin, SchoolManager")]
-        public Task<IActionResult> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
+        public Task<IActionResult> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade,int? schoolYearId, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade, includeDeleted, pageIndex, pageSize));
+            return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade,schoolYearId, includeDeleted, pageIndex, pageSize));
         }
 
         [HttpGet("{id}")]
@@ -33,7 +33,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost]
-        [Authorize("Admin,SchoolManager")]
+        [Authorize("Admin, SchoolManager")]
         public Task<IActionResult> AddSubjectGroup(int schoolId, SubjectGroupAddModel subjectGroupAddModel)
         {
             return ValidateAndExecute(() => _subjectGroupService.CreateSubjectGroup(schoolId, subjectGroupAddModel));

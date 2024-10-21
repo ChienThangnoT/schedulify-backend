@@ -87,6 +87,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SUBJECT_NAME_ALREADY_EXIST = "Subject name already exist.";
         public const string ADD_SUBJECT_LIST_SUCCESS = "Operation completed";
         public const string GET_SUBJECT_GROUP_DETAIL_SUCCESS = "Get subject group detail success.";
+        public const string REQUIRE_ELECTIVE_SUBJECT = "Require elective subject.";
 
         //Room Type
         public const string ROOM_TYPE_NOT_EXIST = "The room type does not exist.";

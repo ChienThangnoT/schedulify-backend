@@ -19,7 +19,8 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
         public string? GroupDescription { get; set; }
         public Grade Grade { get; set; }
         public string? SubjectGroupTypeName { get; set; }
-        
+        public int? SchoolYearId { get; set; }
+
     }
 
     public class SubjectGroupViewDetailModel
@@ -33,6 +34,8 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
         public Grade Grade { get; set; }
         public List<SubjectInGroupViewDetailModel>? SubjectInGroups { get; set; }
         public string? SubjectGroupTypeName { get; set; }
+        public int? SchoolYearId { get; set; }
+        public string? SchoolYear { get; set; }
 
     }
 }

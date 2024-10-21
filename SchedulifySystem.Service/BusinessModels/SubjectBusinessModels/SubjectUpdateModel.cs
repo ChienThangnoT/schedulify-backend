@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public bool? IsRequired { get; set; }
         public int? TotalSlotInYear { get; set; }
         public int? SlotSpecialized { get; set; }
+        public ESubjectGroupType SubjectGroupType { get; set; }
         //[JsonIgnore]
         //public DateTime UpdateDate { get; set; }
     }

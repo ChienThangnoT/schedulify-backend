@@ -14,5 +14,6 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
         public string? GroupDescription { get; set; }
         public Grade Grade { get; set; }
         public bool IsDeleted { get; set; }
+        public int? SchoolYearId { get; set; }
     }
 }
