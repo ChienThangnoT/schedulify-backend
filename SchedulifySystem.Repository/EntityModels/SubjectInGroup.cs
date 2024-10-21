@@ -20,5 +20,10 @@ namespace SchedulifySystem.Repository.EntityModels
         public Subject? Subject { get; set; }
         public SubjectGroup? SubjectGroup { get; set; }
         public Term? Term { get; set; }
+
+        public SubjectInGroup ShallowCopy()
+        {
+            return (SubjectInGroup) this.MemberwiseClone();
+        }
     }
 }

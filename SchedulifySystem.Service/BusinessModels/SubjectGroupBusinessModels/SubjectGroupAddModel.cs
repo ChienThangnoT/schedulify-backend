@@ -19,5 +19,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
         public List<int> SpecializedSubjectIds { get; set; } = new List<int>();
         [JsonIgnore]
         public DateTime? CreatedDate { get; set; } = DateTime.UtcNow;
+        [JsonIgnore]
+        public int? SchoolId { get; set; }
     }
 }

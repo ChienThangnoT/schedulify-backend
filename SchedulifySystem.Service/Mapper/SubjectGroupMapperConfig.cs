@@ -15,6 +15,7 @@ namespace SchedulifySystem.Service.Mapper
         {
             CreateMap<SubjectGroupAddModel, SubjectGroup>()
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.GroupCode, opt =>  opt.MapFrom(src => src.GroupCode.ToUpper()))
                 .ReverseMap();
 
             CreateMap<SubjectGroupUpdateModel, SubjectGroup>()
