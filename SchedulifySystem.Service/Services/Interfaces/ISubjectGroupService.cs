@@ -12,7 +12,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface ISubjectGroupService
     {
         Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade,int? schoolYearId, bool includeDeleted,int pageIndex, int pageSize);
-        Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId);
+        Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId, int? termId);
         Task<BaseResponseModel> CreateSubjectGroup(int schoolId , SubjectGroupAddModel subjectGroupAddModel);
         Task<BaseResponseModel> UpdateSubjectGroup(int subjectGroupId, SubjectGroupUpdateModel subjectGroupUpdateModel);
         
