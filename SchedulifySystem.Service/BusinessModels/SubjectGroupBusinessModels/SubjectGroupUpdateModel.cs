@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
@@ -14,5 +15,12 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
         public string? GroupDescription { get; set; }
         public Grade Grade { get; set; }
         public bool IsDeleted { get; set; }
+        public int? SchoolYearId { get; set; }
+        public List<int> ElectiveSubjectIds { get; set; } = new List<int>();
+        public List<int> SpecializedSubjectIds { get; set; } = new List<int>();
+        [JsonIgnore]
+        public DateTime? UpdateDate { get; set; } = DateTime.UtcNow;
+        [JsonIgnore]
+        public int? SchoolId { get; set; }
     }
 }

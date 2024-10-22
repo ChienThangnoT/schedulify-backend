@@ -70,11 +70,12 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SUBJECT_GROUP_NAME_OR_CODE_EXISTED = "Subject group name or code already exist.";
         public const string ADD_SUBJECT_GROUP_SUCCESS = "Add subject group success.";
         public const string UPDATE_SUBJECT_GROUP_SUCCESS = "Update subject group success.";
+        public const string DELETE_SUBJECT_GROUP_SUCCESS = "Delete subject group success.";
         public const string SUBJECT_GROUP_NOT_EXISTED = "Subject group not exist.";
         public const string GET_SUBJECT_GROUP_LIST_FAILED = "Get subject group list has no items";
         public const string GET_SUBJECT_GROUP_LIST_SUCCESS = "Get subject group list successful";
         public const string SUBJECT_GROUP_HAS_SUBJECTS_REGISTERED = "Subject group has assign, can not update grade.";
-
+        public const string INVALID_NUMBER_SUBJECT = "Để tạo tổ hợp môn cần chọn 4 môn tự chọn và 3 môn chuyên đề.";
 
         //subject 
         public const string SUBJECT_NAME_EXISTED = "Subject name already exists in school.";
@@ -87,6 +88,9 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SUBJECT_NAME_ALREADY_EXIST = "Subject name already exist.";
         public const string ADD_SUBJECT_LIST_SUCCESS = "Operation completed";
         public const string GET_SUBJECT_GROUP_DETAIL_SUCCESS = "Get subject group detail success.";
+        public const string REQUIRE_ELECTIVE_SUBJECT = "Require elective subject.";
+        public const string INVALID_SPECIALIZED_SUBJECT = "Môn chuyên đề phải nằm trong nhóm môn bắt buộc hoặc là trong tổ hợp môn";
+        
 
         //Room Type
         public const string ROOM_TYPE_NOT_EXIST = "The room type does not exist.";

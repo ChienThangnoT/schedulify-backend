@@ -14,11 +14,16 @@ namespace SchedulifySystem.Repository.EntityModels
         public int MoringSlotPerWeek { get; set; }
         public int AfternoonSlotPerWeek { get; set; }
         public int SlotPerTerm { get; set; }
-        public int TermId { get; set; }
+        public int? TermId { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
         public Subject? Subject { get; set; }
         public SubjectGroup? SubjectGroup { get; set; }
         public Term? Term { get; set; }
+
+        public SubjectInGroup ShallowCopy()
+        {
+            return (SubjectInGroup) this.MemberwiseClone();
+        }
     }
 }

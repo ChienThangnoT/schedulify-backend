@@ -408,7 +408,11 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sig => sig.School)
             .WithMany(sg => sg.SubjectGroups)
             .HasForeignKey(sig => sig.SchoolId);
-        
+        modelBuilder.Entity<SubjectGroup>()
+           .HasOne(sig => sig.SchoolYear)
+           .WithMany(sg => sg.SubjectGroups)
+           .HasForeignKey(sig => sig.SchoolYearId);
+
 
         // SubjectInGroup Entity
         modelBuilder.Entity<SubjectInGroup>()

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,5 +19,6 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public DateTime CreateDate { get; set; }
         public DateTime UpdateDate { get; set; }
         public bool IsDeleted { get; set; }
+        public ESubjectGroupType SubjectGroupType { get; set; }
     }
 }
