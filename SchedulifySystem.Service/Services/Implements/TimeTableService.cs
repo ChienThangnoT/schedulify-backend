@@ -86,9 +86,9 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: t => t.SchoolId == parameters.SchoolId &&
                              t.SchoolYearId == parameters.SchoolYearId &&
                              t.IsDeleted == false,
-                orderBy: q => q.OrderBy(s => s.Name),
                 include: query => query.Include(c => c.SubjectGroup)
                            .ThenInclude(sg => sg.SubjectInGroups));
+
 
             var subjectsDb = await _unitOfWork.SubjectRepo.GetAsync(
                 filter: t => t.SchoolId == parameters.SchoolId &&
@@ -130,7 +130,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetAsync(
                 filter: t => t.StudentClassId == classesDb.First().Id && t.IsDeleted == false
-                     && (parameters.TermId == null || t.TermId == parameters.TermId));
+                     && (parameters.TermId == null || t.TermId == parameters.TermId),
+                includeProperties: "Teacher");
             //await assignmentTask;
 
             var assignmentsDb = await assignmentTask.ConfigureAwait(false);
@@ -158,7 +159,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var studentClass = classes.First(c => c.Id == assignmentsDbList[i].StudentClassId);
                 var subject = subjects.First(s => s.SubjectId == assignmentsDbList[i].SubjectId);
-                var teacher = teachers.First(t => t.Id == assignmentsDbList[i].TeacherId);
+                var teacher = teachers.First(t => t.Abbreviation == assignmentsDbList[i].Teacher.Abbreviation);
                 assignments.Add(new TeacherAssigmentScheduleModel(assignmentsDbList[i], teacher, subject, studentClass));
             }
 
