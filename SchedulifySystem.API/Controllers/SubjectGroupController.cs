@@ -38,5 +38,11 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _subjectGroupService.CreateSubjectGroup(schoolId, subjectGroupAddModel));
         }
+
+        [HttpPut("{id}")]
+        public Task<IActionResult> UpdateSubjectGroup(int id, SubjectGroupUpdateModel model)
+        {
+            return ValidateAndExecute(() => _subjectGroupService.UpdateSubjectGroup(id, model));
+        }
     }
 }
