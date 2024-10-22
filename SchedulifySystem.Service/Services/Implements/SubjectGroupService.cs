@@ -316,5 +316,18 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #endregion
+
+        #region DeleteSubjectGroup
+        public async Task<BaseResponseModel> DeleteSubjectGroup(int subjectGroupId)
+        {
+            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectGroupId, include: query => query.Include(sg => sg.SubjectInGroups)) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            subjectGroup.IsDeleted = true;
+
+            _unitOfWork.SubjectGroupRepo.Update(subjectGroup);
+            _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroup.SubjectInGroups);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_SUBJECT_GROUP_SUCCESS };
+        }
+        #endregion
     }
 }

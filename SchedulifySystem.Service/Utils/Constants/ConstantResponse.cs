@@ -70,6 +70,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SUBJECT_GROUP_NAME_OR_CODE_EXISTED = "Subject group name or code already exist.";
         public const string ADD_SUBJECT_GROUP_SUCCESS = "Add subject group success.";
         public const string UPDATE_SUBJECT_GROUP_SUCCESS = "Update subject group success.";
+        public const string DELETE_SUBJECT_GROUP_SUCCESS = "Delete subject group success.";
         public const string SUBJECT_GROUP_NOT_EXISTED = "Subject group not exist.";
         public const string GET_SUBJECT_GROUP_LIST_FAILED = "Get subject group list has no items";
         public const string GET_SUBJECT_GROUP_LIST_SUCCESS = "Get subject group list successful";

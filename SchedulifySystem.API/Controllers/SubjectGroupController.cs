@@ -40,9 +40,17 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin, SchoolManager")]
         public Task<IActionResult> UpdateSubjectGroup(int id, SubjectGroupUpdateModel model)
         {
             return ValidateAndExecute(() => _subjectGroupService.UpdateSubjectGroup(id, model));
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin, SchoolManager")]
+        public Task<IActionResult> DeleteSubjectGroup(int id)
+        {
+            return ValidateAndExecute(() => _subjectGroupService.DeleteSubjectGroup(id));
         }
     }
 }
