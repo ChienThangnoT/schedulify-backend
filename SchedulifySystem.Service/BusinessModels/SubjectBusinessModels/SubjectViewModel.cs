@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
@@ -14,7 +15,9 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
+        [JsonIgnore]
         public int? TotalSlotInYear { get; set; }
+        [JsonIgnore]
         public int SlotSpecialized { get; set; } = 35;
         public DateTime CreateDate { get; set; }
         public DateTime UpdateDate { get; set; }

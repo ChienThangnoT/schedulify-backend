@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
@@ -14,8 +15,10 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public required string Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public required string Description { get; set; }
+        [JsonIgnore]
         public int? TotalSlotInYear { get; set; }
-        public int? SlotSpecialized { get; set; }
+        [JsonIgnore]
+        public int? SlotSpecialized { get; set; } = 35;
         public ESubjectGroupType SubjectGroupType { get; set; }
     }
     public class SubjectAddListModel
@@ -24,8 +27,11 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public required string Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public required string Description { get; set; }
+        [JsonIgnore]
         public int? TotalSlotInYear { get; set; }
+        [JsonIgnore]
         public int? SlotSpecialized { get; set; } = 35;
         public ESubjectGroupType SubjectGroupType { get; set; }
+
     }
 }
