@@ -53,6 +53,16 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region Convert Data 
+        public void ConvertData(GenerateTimetableModel parameters)
+        {
+            parameters.FixedPeriods = _mapper.Map<List<ClassPeriodScheduleModel>>(parameters.FixedPeriodsPara);
+            parameters.NoAssignTimetablePeriods = _mapper.Map<List<ClassPeriodScheduleModel>>(parameters.NoAssignPeriodsPara);
+        }
+        #endregion
+
+
+
         #region GetData -- Thắng
         public async Task<(
             List<ClassScheduleModel>,
@@ -62,6 +72,8 @@ namespace SchedulifySystem.Service.Services.Implements
             ETimetableFlag[,]
             )> GetData(GenerateTimetableModel parameters)
         {
+            ConvertData(parameters);
+
             var classes = new List<ClassScheduleModel>();
             var teachers = new List<TeacherScheduleModel>();
             var subjects = new List<SubjectScheduleModel>();
