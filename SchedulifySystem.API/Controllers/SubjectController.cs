@@ -19,28 +19,28 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet("{id}")]
-        //[Authorize]
+        [Authorize]
         public Task<IActionResult> GetSubjectBySubjectId(int id)
         {
             return ValidateAndExecute(() => _subjectService.GetSubjectById(id));
         }
 
         [HttpGet]
-        //[Authorize]
+        [Authorize]
         public Task<IActionResult> GetSubjectListWithSchoolId(int schoolId, string? subjectName, bool? isRequired,bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(()=> _subjectService.GetSubjectBySchoolId(schoolId, subjectName, isRequired, includeDeleted, pageSize, pageIndex));
         }
 
         [HttpPost("{schoolId}/subjects")]
-        //[Authorize(Roles = "Admin, SchoolManager")]
+        [Authorize(Roles = "Admin, SchoolManager")]
         public Task<IActionResult> CreateSubjectList(int schoolId, List<SubjectAddListModel> subjectAddModel)
         {
             return ValidateAndExecute(() => _subjectService.CreateSubjectList(schoolId, subjectAddModel));
         }
 
         [HttpPut("{subjectId}")]
-        //[Authorize(Roles = "Admin, SchoolManager")]
+        [Authorize(Roles = "Admin, SchoolManager")]
         public Task<IActionResult> UpdateSubjectById(int subjectId, SubjectUpdateModel subjectUpdate)
         {
             return ValidateAndExecute(() => _subjectService.UpdateSubjectById(subjectId, subjectUpdate));
