@@ -50,6 +50,10 @@ namespace SchedulifySystem.Service.Mapper
 
             //add Department Mapper Config
             DepartmentMapperConfig();
+
+            //add Timetable Mapper Config
+            TimetableMapperConfig();
+
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
@@ -63,6 +67,8 @@ namespace SchedulifySystem.Service.Mapper
         partial void TeacherAssignmentMapperConfig();
         partial void SubjectInGroupMapperrConfigs();
         partial void DepartmentMapperConfig();
+        partial void TimetableMapperConfig();
+
 
     }
 }

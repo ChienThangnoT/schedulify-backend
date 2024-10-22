@@ -206,6 +206,12 @@ namespace SchedulifySystem.API
             //config Subject in group service and repo
             services.AddTransient<ISubjectInGroupRepository, SubjectInGroupRepository>();
             //services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+
+            //config Timetable service
+            services.AddTransient<ITimetableService, TimeTableService>();
+            //services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+
+
             #endregion
 
             #region add db context
