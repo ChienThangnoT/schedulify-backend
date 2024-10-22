@@ -74,7 +74,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: t => t.SchoolId == parameters.SchoolId &&
                              t.SchoolYearId == parameters.SchoolYearId &&
                              t.IsDeleted == false,
-                orderBy: q => q.OrderBy(s => s.Name),
+                //orderBy: q => q.OrderBy(s => s.Name),
                 include: query => query.Include(c => c.SubjectGroup)
                            .ThenInclude(sg => sg.SubjectInGroups));
 
@@ -85,18 +85,18 @@ namespace SchedulifySystem.Service.Services.Implements
             //run parallel
             //await Task.WhenAll(classTask, subjectTask);
 
-            // lấy danh sách lớp học từ db
-            var classesDb =  classTask;
-            var subjectsDb =  subjectTask;
+            //// lấy danh sách lớp học từ db
+            //var classesDb = await classTask;
+            //var subjectsDb = await subjectTask;
 
-            if (classesDb == null || !classesDb.Any())
+            if (classTask == null || !subjectTask.Any())
             {
                 throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
             }
 
-            var classesDbList = classesDb.ToList();
+            var classesDbList = classTask.ToList();
 
-            var subjectInClassesDb = classesDb
+            var subjectInClassesDb = classTask
                 .Where(c => c.SubjectGroup != null) // Lọc những lớp có SubjectGroup
                 .SelectMany(c => c.SubjectGroup.SubjectInGroups) // Lấy danh sách SubjectInGroup từ SubjectGroup
                 .ToList();
@@ -113,10 +113,10 @@ namespace SchedulifySystem.Service.Services.Implements
             */
             timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
 
-            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb.ToList());
+            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectTask.ToList());
 
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetAsync(
-                filter: t => t.StudentClassId == classesDb.First().Id && t.IsDeleted == false
+                filter: t => t.StudentClassId == classTask.First().Id && t.IsDeleted == false
                      && (parameters.TermId == null || t.TermId == parameters.TermId));
             await assignmentTask;
 
