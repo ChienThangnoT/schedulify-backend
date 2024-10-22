@@ -130,6 +130,12 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Department
         public const string DEPARTMENT_NOT_EXIST = "The department does not exist.";
+        public const string ADD_DEPARTMENT_SUCCESS = "Add department success.";
+        public const string UPDATE_DEPARTMENT_ASSIGNMENT_SUCCESS = "Update department success.";
+        public const string GET_DEPARTMENT_SUCCESS = "Get departments success.";
+        public const string DEPARTMENT_NAME_DUPLICATE = "Department name is dupicated.";
+        public const string DEPARTMENT_CODE_DUPLICATE = "Department code is dupicated.";
+        public const string DEPARTMENT_NAME_OR_CODE_EXISTED = "Department name or code does existed.";
 
         //TeacherAssignment
         public const string TEACHER_ASSIGNMENT_NOT_EXIST = "The teaching assignment does not exist.";

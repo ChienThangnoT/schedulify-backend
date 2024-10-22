@@ -189,7 +189,7 @@ namespace SchedulifySystem.API
 
             //config Department service and repo
             services.AddTransient<IDepartmentRepository, DepartmentRepository>();
-            //services.AddTransient<IOtpService, OtpService>();
+            services.AddTransient<IDepartmentService, DepartmentService>();
 
             //config TeacherAssignment service and repo
             services.AddTransient<ITeacherAssignmentRepository, TeacherAssignmentRepository>();
