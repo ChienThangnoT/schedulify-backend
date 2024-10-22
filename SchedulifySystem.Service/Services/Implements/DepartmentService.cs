@@ -31,7 +31,7 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> AddDepartment(int schoolId, List<DepartmentAddModel> models)
         {
             var checkSchool = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
-            
+
             //check duplicate in list
             var duplicateName = models.GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase).Where(d => d.Count() > 1).SelectMany(g => g).ToList();
             var duplicateCode = models.GroupBy(d => d.DepartmentCode, StringComparer.OrdinalIgnoreCase).Where(d => d.Count() > 1).SelectMany(g => g).ToList();
@@ -69,9 +69,15 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_DEPARTMENT_SUCCESS };
         }
 
-        public Task<BaseResponseModel> DeleteRoom(int departmentId)
+        public async Task<BaseResponseModel> DeleteDepartment(int departmentId)
         {
-            throw new NotImplementedException();
+            var existed = await _unitOfWork.DepartmentRepo.GetByIdAsync(departmentId)
+                ?? throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
+
+            existed.IsDeleted = true;
+            _unitOfWork.DepartmentRepo.Update(existed);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_DEPARTMENT_SUCCESS };
         }
 
         public async Task<BaseResponseModel> GetDepartments(int schoolId, int pageIndex = 1, int pageSize = 20)
@@ -83,9 +89,28 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_DEPARTMENT_SUCCESS, Result = result };
         }
 
-        public Task<BaseResponseModel> UpdateRoom(int departmentId, DepartmentUpdateModel model)
+        public async Task<BaseResponseModel> UpdateDepartment(int departmentId, DepartmentUpdateModel model)
         {
-            throw new NotImplementedException();
+            var existed = await _unitOfWork.DepartmentRepo.GetByIdAsync(departmentId)
+                ?? throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
+
+            var check = (await _unitOfWork.DepartmentRepo.GetV2Async(
+                filter: d => d.Name.ToLower().Equals(model.Name.ToLower())
+                || d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower()))).ToList();
+
+            if (check.Any())
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.DEPARTMENT_NAME_OR_CODE_EXISTED,
+                };
+            }
+
+            _mapper.Map(model, existed);
+            _unitOfWork.DepartmentRepo.Update(existed);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_DEPARTMENT_SUCCESS };
         }
     }
 }
