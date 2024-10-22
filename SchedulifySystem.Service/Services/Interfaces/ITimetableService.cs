@@ -1,4 +1,9 @@
 ﻿using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
+using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
+using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
+using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -15,5 +20,12 @@ namespace SchedulifySystem.Service.Services.Interfaces
         public Task<BaseResponseModel> Check(Guid timetableId);
         public Task<BaseResponseModel> Update(TimetableIndividual timetable);
         public Task<BaseResponseModel> Delete(Guid id);
+        public Task<(
+            List<ClassScheduleModel>,
+            List<TeacherScheduleModel>,
+            List<SubjectScheduleModel>,
+            List<TeacherAssigmentScheduleModel>,
+            ETimetableFlag[,]
+            )> GetData(GenerateTimetableModel parameters);
     }
 }

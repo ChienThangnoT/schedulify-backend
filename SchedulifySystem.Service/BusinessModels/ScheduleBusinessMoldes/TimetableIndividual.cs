@@ -14,7 +14,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 {
     public class TimetableIndividual : BaseEntity
     {
-         public ETimetableFlag[,] TimetableFlag { get; set; } = null!;
+        public ETimetableFlag[,] TimetableFlag { get; set; } = null!;
         public List<ClassPeriodScheduleModel> TimetableUnits { get; set; } = [];
         public List<ClassScheduleModel> Classes { get; init; } = [];
         public List<TeacherScheduleModel> Teachers { get; init; } = [];
