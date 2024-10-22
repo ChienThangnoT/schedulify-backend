@@ -17,8 +17,8 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Get(GenerateTimetableModel parameters) {
-            var result =  _timetableService.GetData(parameters);
+        public async Task<IActionResult> GetT(GenerateTimetableModel parameters) {
+            var result = await _timetableService.GetData(parameters);
             return Ok(result);
         }
     }

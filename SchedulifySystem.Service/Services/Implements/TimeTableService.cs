@@ -70,33 +70,34 @@ namespace SchedulifySystem.Service.Services.Implements
 
             ETimetableFlag[,] timetableFlags = null!;
 
-            var classTask = await _unitOfWork.StudentClassesRepo.GetV2Async(
+            var classesDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: t => t.SchoolId == parameters.SchoolId &&
                              t.SchoolYearId == parameters.SchoolYearId &&
                              t.IsDeleted == false,
-                //orderBy: q => q.OrderBy(s => s.Name),
+                orderBy: q => q.OrderBy(s => s.Name),
                 include: query => query.Include(c => c.SubjectGroup)
                            .ThenInclude(sg => sg.SubjectInGroups));
 
-            var subjectTask = await _unitOfWork.SubjectRepo.GetAsync(
+            var subjectsDb = await _unitOfWork.SubjectRepo.GetAsync(
                 filter: t => t.SchoolId == parameters.SchoolId &&
-                            t.IsDeleted == null);
+                            t.IsDeleted == false);
 
             //run parallel
-            //await Task.WhenAll(classTask, subjectTask);
+            //await Task.WhenAll(classTask, subjectTask).ConfigureAwait(false);
 
-            //// lấy danh sách lớp học từ db
+            // Lấy kết quả của các task song song
             //var classesDb = await classTask;
             //var subjectsDb = await subjectTask;
 
-            if (classTask == null || !subjectTask.Any())
+
+            if (classesDb == null || !classesDb.Any())
             {
                 throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
             }
 
-            var classesDbList = classTask.ToList();
+            var classesDbList = classesDb.ToList();
 
-            var subjectInClassesDb = classTask
+            var subjectInClassesDb = classesDb
                 .Where(c => c.SubjectGroup != null) // Lọc những lớp có SubjectGroup
                 .SelectMany(c => c.SubjectGroup.SubjectInGroups) // Lấy danh sách SubjectInGroup từ SubjectGroup
                 .ToList();
@@ -113,23 +114,23 @@ namespace SchedulifySystem.Service.Services.Implements
             */
             timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
 
-            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectTask.ToList());
+            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb.ToList());
 
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetAsync(
-                filter: t => t.StudentClassId == classTask.First().Id && t.IsDeleted == false
+                filter: t => t.StudentClassId == classesDb.First().Id && t.IsDeleted == false
                      && (parameters.TermId == null || t.TermId == parameters.TermId));
-            await assignmentTask;
+            //await assignmentTask;
 
-            var assignmentsDb = await assignmentTask;
+            var assignmentsDb = await assignmentTask.ConfigureAwait(false);
             var assignmentsDbList = assignmentsDb.ToList();
 
             //get teacher từ assigntmment db
-            var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
+            var teacherIds = assignmentsDb.Select(a => (int)a.TeacherId).Distinct().ToList();
 
             var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
                 filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
 
-            var teachersDb = await teacherTask;
+            var teachersDb = await teacherTask.ConfigureAwait(false);
             var teachersDbList = teachersDb.ToList();
 
             for (var i = 0; i < teachersDbList.Count; i++)
