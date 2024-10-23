@@ -21,5 +21,12 @@ namespace SchedulifySystem.API.Controllers
             var result = await _timetableService.GetData(parameters);
             return Ok(result);
         }
+
+        [HttpPost("generate")]
+        public async Task<IActionResult> Generate(GenerateTimetableModel parameters)
+        {
+            var result = await _timetableService.Generate(parameters);
+            return Ok(result);
+        }
     }
 }
