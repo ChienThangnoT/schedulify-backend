@@ -16,8 +16,6 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ITeacherRepository TeacherRepo { get; }
         public ISchoolRepository SchoolRepo { get; }
         public IStudentClassesRepository StudentClassesRepo { get; }
-        public IStudentClassInGroupRepository StudentClassInGroupRepo { get; }
-        public IClassGroupRepository ClassGroupRepo { get; }
         public ISubjectRepository SubjectRepo{ get; }
         public IBuildingRepository BuildingRepo { get; }
         public IRoomRepository RoomRepo { get; }
@@ -28,7 +26,10 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IOtpRepository OTPRepo { get; }
         public ISchoolYearRepository SchoolYearRepo { get; }
         public IDepartmentRepository DepartmentRepo { get; }
-        public ISubjectGroupTypeRepository SubjectGroupTypeRepo { get; }
+        public ITeacherAssignmentRepository TeacherAssignmentRepo { get; }
+        public ITeachableSubjectRepository TeachableSubjectRepo { get; }
+        public ITermRepository TermRepo { get; }
+        public ISubjectInGroupRepository SubjectInGroupRepo { get; }
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

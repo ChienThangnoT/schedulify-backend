@@ -1,7 +1,9 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
@@ -9,14 +11,17 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
     public class SubjectViewModel
     {
         public int Id { get; set; }
-        public int SchoolId { get; set; }
-        public string? SchoolName { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
+        [JsonIgnore]
+        public int? TotalSlotInYear { get; set; }
+        [JsonIgnore]
+        public int SlotSpecialized { get; set; } = 35;
         public DateTime CreateDate { get; set; }
         public DateTime UpdateDate { get; set; }
         public bool IsDeleted { get; set; }
+        public ESubjectGroupType SubjectGroupType { get; set; }
     }
 }

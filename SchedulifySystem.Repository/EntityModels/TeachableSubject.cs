@@ -13,6 +13,6 @@ namespace SchedulifySystem.Repository.EntityModels
 
         public Teacher? Teacher { get; set; }
         public Subject? Subject { get; set; }
-        public ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
+        
     }
 }

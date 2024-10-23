@@ -18,7 +18,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        //[Authorize]
+        [Authorize]
         public Task<IActionResult> GetTeachers(int schoolId, bool includeDeleted = false, int pageSize = 20, int pageIndex = 1)
         {
             return ValidateAndExecute(() => _teacherService.GetTeachers(schoolId, includeDeleted, pageIndex, pageSize));
@@ -26,7 +26,7 @@ namespace SchedulifySystem.API.Controllers
 
 
         [HttpPost]
-        //[Authorize]
+        [Authorize(Roles = "SchoolManager")]
         [Route("{schoolId}/teachers")]
         public Task<IActionResult> CreateTeachers(int schoolId, List<CreateListTeacherModel> models)
         {
@@ -34,7 +34,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherModel model)
         {
             return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
@@ -48,7 +48,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> DeleteTeacher(int id)
         {
             return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));

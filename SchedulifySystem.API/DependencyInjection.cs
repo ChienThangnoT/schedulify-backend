@@ -145,13 +145,6 @@ namespace SchedulifySystem.API
             services.AddTransient<IRoleAssignmentRepository, RoleAssignmentRepository>();
             services.AddTransient<IRoleAssignmentService, RoleAssignmentService>();
 
-            //config class in group  repo
-            services.AddTransient<IStudentClassInGroupRepository, StudentClassInGroupRepository>();
-
-            //config class group service and repo
-            services.AddTransient<IClassGroupRepository, ClassGroupRepository>();
-            services.AddTransient<IClassGroupService, ClassGroupService>();
-
             //config school service and repo
             services.AddTransient<ISchoolRepository, SchoolRepository>();
             services.AddTransient<ISchoolService, SchoolService>();
@@ -196,11 +189,28 @@ namespace SchedulifySystem.API
 
             //config Department service and repo
             services.AddTransient<IDepartmentRepository, DepartmentRepository>();
-            //services.AddTransient<IOtpService, OtpService>();
+            services.AddTransient<IDepartmentService, DepartmentService>();
 
-            //config subject group type service and repo
-            services.AddTransient<ISubjectGroupTypeRepository, SubjectGroupTypeRepository>();
-            //services.AddTransient<ISubjectGroupTypeService, SubjectGroupTypeService>();
+            //config TeacherAssignment service and repo
+            services.AddTransient<ITeacherAssignmentRepository, TeacherAssignmentRepository>();
+            services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
+
+            //config TeachableSubject service and repo
+            services.AddTransient<ITeachableSubjectRepository, TeachableSubjectRepository>();
+            //services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
+
+            //config Term service and repo
+            services.AddTransient<ITermRepository, TermRepository>();
+            services.AddTransient<ITermService, TermService>();
+
+            //config Subject in group service and repo
+            services.AddTransient<ISubjectInGroupRepository, SubjectInGroupRepository>();
+            //services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+
+            //config Timetable service
+            services.AddTransient<ITimetableService, TimeTableService>();
+            //services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+
 
             #endregion
 

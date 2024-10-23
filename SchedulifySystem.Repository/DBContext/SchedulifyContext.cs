@@ -22,7 +22,6 @@ public partial class SchedulifyContext : DbContext
 
     public virtual DbSet<Account> Accounts { get; set; }
     public DbSet<Building> Buildings { get; set; }
-    public DbSet<ClassGroup> ClassGroups { get; set; }
     public DbSet<ConfigGroup> ConfigGroups { get; set; }
     public DbSet<ClassPeriod> ClassPeriods { get; set; }
     public DbSet<ClassSchedule> ClassSchedules { get; set; }
@@ -37,7 +36,6 @@ public partial class SchedulifyContext : DbContext
     public DbSet<SchoolSchedule> SchoolSchedules { get; set; }
     public DbSet<SchoolYear> SchoolYears { get; set; }
     public DbSet<StudentClass> StudentClasses { get; set; }
-    public DbSet<StudentClassInGroup> StudentClassInGroups { get; set; }
     public DbSet<Subject> Subjects { get; set; }
     public DbSet<SubjectConfig> SubjectConfigs { get; set; }
     public DbSet<SubjectGroup> SubjectGroups { get; set; }
@@ -56,6 +54,7 @@ public partial class SchedulifyContext : DbContext
     public DbSet<District> Districts { get; set; }
     public DbSet<Province> Provinces { get; set; }
     public DbSet<SubmitRequest> SubmitsRequests { get; set; }
+    public DbSet<RoomSubject> RoomSubjects { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -139,30 +138,6 @@ public partial class SchedulifyContext : DbContext
             .WithMany(s => s.Buildings)
             .HasForeignKey(b => b.SchoolId);
 
-        // ClassGroup Entity
-        modelBuilder.Entity<ClassGroup>()
-            .ToTable("ClassGroup");
-        modelBuilder.Entity<ClassGroup>()
-            .HasKey(cg => cg.Id);
-        modelBuilder.Entity<ClassGroup>()
-            .Property(cg => cg.Name)
-            .HasMaxLength(50);
-        modelBuilder.Entity<ClassGroup>()
-            .Property(cg => cg.Description)
-            .HasMaxLength(250);
-        modelBuilder.Entity<ClassGroup>()
-            .HasOne(cs => cs.School)
-            .WithMany(ss => ss.ClassGroups)
-            .HasForeignKey(cs => cs.SchoolId);
-        modelBuilder.Entity<ClassGroup>()
-            .HasOne(cs => cs.SchoolYear)
-            .WithMany(ss => ss.ClassGroups)
-            .HasForeignKey(cs => cs.SchoolYearId);
-        modelBuilder.Entity<ClassGroup>()
-            .HasOne(cs => cs.SubjectGroup)
-            .WithMany(ss => ss.ClassGroups)
-            .HasForeignKey(cs => cs.SubjectGroupId);
-
         // ConfigGroup Entity
         modelBuilder.Entity<ConfigGroup>()
             .ToTable("ConfigGroup");
@@ -202,6 +177,11 @@ public partial class SchedulifyContext : DbContext
                 .WithMany(s => s.ClassPeriods)
                 .HasForeignKey(cp => cp.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(cp => cp.TeacherAssignment)
+               .WithMany(s => s.ClassPeriods)
+               .HasForeignKey(cp => cp.TeacherAssignmentId)
+               .OnDelete(DeleteBehavior.Restrict);
         });
 
 
@@ -257,10 +237,6 @@ public partial class SchedulifyContext : DbContext
             .HasOne(c => c.School)
             .WithMany(sy => sy.Curriculums)
             .HasForeignKey(c => c.SchoolId);
-        modelBuilder.Entity<Curriculum>()
-            .HasOne(c => c.ClassGroup)
-            .WithMany(sy => sy.CurriculumList)
-            .HasForeignKey(c => c.ClassGroupId);
         modelBuilder.Entity<Curriculum>()
            .HasOne(c => c.SubjectGroup)
            .WithMany(sg => sg.Curriculums)
@@ -365,19 +341,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sc => sc.Teacher)
             .WithMany(t => t.StudentClasses)
             .HasForeignKey(sc => sc.HomeroomTeacherId);
-
-
-        // StudentClassInGroup Entity
-        modelBuilder.Entity<StudentClassInGroup>()
-            .HasKey(scg => scg.Id);
-        modelBuilder.Entity<StudentClassInGroup>()
-            .HasOne(scg => scg.StudentClass)
-            .WithMany(sc => sc.StudentClassInGroups)
-            .HasForeignKey(scg => scg.StudentClassId);
-        modelBuilder.Entity<StudentClassInGroup>()
-            .HasOne(scg => scg.ClassGroup)
-            .WithMany(cg => cg.StudentClassInGroups)
-            .HasForeignKey(scg => scg.ClassGroupId);
+        modelBuilder.Entity<StudentClass>()
+            .HasOne(sc => sc.SubjectGroup)
+            .WithMany(t => t.StudentClasses)
+            .HasForeignKey(sc => sc.SubjectGroupId);
 
         // Subject Entity
         modelBuilder.Entity<Subject>()
@@ -442,9 +409,10 @@ public partial class SchedulifyContext : DbContext
             .WithMany(sg => sg.SubjectGroups)
             .HasForeignKey(sig => sig.SchoolId);
         modelBuilder.Entity<SubjectGroup>()
-            .HasOne(sg => sg.SubjectGroupType)
-            .WithMany(sgt => sgt.subjectGroups)
-            .HasForeignKey(sg => sg.SubjectGroupTypeId);
+           .HasOne(sig => sig.SchoolYear)
+           .WithMany(sg => sg.SubjectGroups)
+           .HasForeignKey(sig => sig.SchoolYearId);
+
 
         // SubjectInGroup Entity
         modelBuilder.Entity<SubjectInGroup>()
@@ -496,14 +464,24 @@ public partial class SchedulifyContext : DbContext
         {
             entity.HasKey(ta => ta.Id);
 
-            entity.HasOne(ta => ta.TeachableSubject)
+            entity.HasOne(ta => ta.Teacher)
                 .WithMany(t => t.TeacherAssignments)
-                .HasForeignKey(ta => ta.TeachableSubjectId)
+                .HasForeignKey(ta => ta.TeacherId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(ta => ta.Subject)
+               .WithMany(t => t.TeacherAssignments)
+               .HasForeignKey(ta => ta.SubjectId)
+               .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(ta => ta.StudentClass)
                 .WithMany(sc => sc.TeacherAssignments)
                 .HasForeignKey(ta => ta.StudentClassId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(ta => ta.Term)
+                .WithMany(sc => sc.TeacherAssignments)
+                .HasForeignKey(ta => ta.TermId)
                 .OnDelete(DeleteBehavior.Restrict);
 
         });
@@ -549,6 +527,7 @@ public partial class SchedulifyContext : DbContext
             .HasOne(t => t.School)
             .WithMany(s => s.Terms)
             .HasForeignKey(t => t.SchoolId);
+
 
         // TimeSlot Entity
         modelBuilder.Entity<TimeSlot>()
@@ -600,10 +579,20 @@ public partial class SchedulifyContext : DbContext
             .WithMany(t => t.SubmitRequests)
             .HasForeignKey(sr => sr.TeacherId);
 
-        //SubjectGroupType Entity
-        modelBuilder.Entity<SubjectGroupType>()
-            .HasKey(sgt => sgt.Id);
 
+        //RoomSubject
+        modelBuilder.Entity<RoomSubject>()
+            .HasKey(rs => rs.Id);
+        modelBuilder.Entity<RoomSubject>()
+            .HasOne(rs => rs.Subject)
+            .WithMany(s => s.RoomSubjects)
+            .HasForeignKey(rs => rs.SubjectId);
+        modelBuilder.Entity<RoomSubject>()
+           .HasOne(rs => rs.Room)
+           .WithMany(r => r.RoomSubjects)
+           .HasForeignKey(rs => rs.RoomId);
+
+       
     }
 }
 

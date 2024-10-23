@@ -1,7 +1,11 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels;
+using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
@@ -19,7 +23,8 @@ namespace SchedulifySystem.Service.Services.Implements
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-
+        private const int REQUIRE_ELECTIVE_SUBJECT = 4;
+        private const int REQUIRE_SPECIALIZED_SUBJECT = 3;
         public SubjectGroupService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
@@ -29,54 +34,299 @@ namespace SchedulifySystem.Service.Services.Implements
         #region create subject group
         public async Task<BaseResponseModel> CreateSubjectGroup(int schoolId, SubjectGroupAddModel subjectGroupAddModel)
         {
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School not found with id {schoolId}");
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School not found with id {schoolId}");
+                    var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(filter: sy => sy.Id == subjectGroupAddModel.SchoolYearId,
+                        include: query => query.Include(sy => sy.Terms))).Items.FirstOrDefault()
+                        ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+                    var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
+                        filter: t => t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower() ||
+                                     t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower()
+                    );
 
-            var existSubjectGroupType = await _unitOfWork.SubjectGroupTypeRepo.GetByIdAsync(subjectGroupAddModel.SubjectGroupTypeId)
-                ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_TYPE_NOT_EXISTED);
-            var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
-                filter: t => t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower() ||
-                             t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower()
-            );
+                    if (checkExistSubjectGroup.Any())
+                    {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
+                        };
+                    }
+                    // check enough number subject
+                    if (subjectGroupAddModel.SpecializedSubjectIds.Count() != REQUIRE_SPECIALIZED_SUBJECT || subjectGroupAddModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
+                    {
+                        return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.INVALID_NUMBER_SUBJECT };
+                    }
 
-            if (checkExistSubjectGroup.Any())
+                    subjectGroupAddModel.SchoolId = schoolId;
+                    var subjectGroupAdd = _mapper.Map<SubjectGroup>(subjectGroupAddModel);
+                    await _unitOfWork.SubjectGroupRepo.AddAsync(subjectGroupAdd);
+                    //save to have group id
+                    await _unitOfWork.SaveChangesAsync();
+                    //generate data subject
+
+                    //ElectiveSubjects
+                    foreach (int subjectId in subjectGroupAddModel.ElectiveSubjectIds)
+                    {
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+                        if (checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT, Result = subjectId };
+                        var newSubjectInGroup = new SubjectInGroup();
+                        newSubjectInGroup.SubjectId = subjectId;
+                        newSubjectInGroup.SubjectGroupId = subjectGroupAdd.Id;
+                        newSubjectInGroup.IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subjectId);
+                        foreach (Term term in schoolYear.Terms)
+                        {
+                            newSubjectInGroup.TermId = term.Id;
+                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                        }
+                    }
+
+                    //Specialized Subject
+                    var specializedSubjectNotInElectiveSubjects = subjectGroupAddModel.SpecializedSubjectIds.Where(s => !subjectGroupAddModel.ElectiveSubjectIds.Contains(s));
+
+                    foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
+                    {
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+                        if (!checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT, Result = subjectId };
+                        var newSubjectInGroup = new SubjectInGroup();
+                        newSubjectInGroup.SubjectId = subjectId;
+                        newSubjectInGroup.SubjectGroupId = subjectGroupAdd.Id;
+                        newSubjectInGroup.IsSpecialized = true;
+
+                        foreach (Term term in schoolYear.Terms)
+                        {
+                            newSubjectInGroup.TermId = term.Id;
+                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                        }
+                    }
+                    await _unitOfWork.SaveChangesAsync();
+                    transaction.Commit();
+                    var result = _mapper.Map<SubjectGroupViewModel>(subjectGroupAdd);
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status201Created,
+                        Message = ConstantResponse.ADD_SUBJECT_GROUP_SUCCESS,
+                        Result = result
+                    };
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+
+        }
+        #endregion
+
+        #region Get Subject Group Detail
+        public async Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId, int? termId)
+        {
+            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+                filter: t => t.Id == subjectGroupId && t.IsDeleted == false ,
+                include: query => query.Include(c => c.SubjectInGroups)
+                           .ThenInclude(sg => sg.Subject));
+
+            if (subjectGroup == null || !subjectGroup.Any())
+            {
+                throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            }
+
+            var subjectGroupDb = subjectGroup.FirstOrDefault();
+
+            var result = _mapper.Map<SubjectGroupViewDetailModel>(subjectGroupDb);
+
+           
+            var listSBInGroup = termId ==null ? subjectGroupDb.SubjectInGroups.ToList() : subjectGroupDb.SubjectInGroups.Where(sig => sig.TermId == termId);
+            var subjectInGroupList = _mapper.Map<List<SubjectInGroupViewDetailModel>>(listSBInGroup);
+
+            result.SubjectInGroups = subjectInGroupList;
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_SUBJECT_GROUP_DETAIL_SUCCESS,
+                Result = result
+            };
+        }
+
+        #endregion
+
+        #region get subject groups
+        public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
+        {
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            if (subjectGroupId != null)
+            {
+                var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId)
+                    ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            }
+
+            var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
+                filter: t => t.SchoolId == schoolId
+                && (subjectGroupId == null || t.Id == subjectGroupId)
+                && (grade == null || t.Grade == (int)grade)
+                && (schoolYearId == null || t.SchoolYearId == schoolYearId)
+                && t.IsDeleted == includeDeleted,
+                pageIndex: pageIndex,
+                pageSize: pageSize
+                );
+            if (subjects.Items.Count == 0)
             {
                 return new BaseResponseModel()
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
+                    Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_SUCCESS
                 };
             }
-
-            subjectGroupAddModel.GroupCode = subjectGroupAddModel.GroupCode.ToUpper();
-            var subjectGroupAdd = _mapper.Map<SubjectGroup>(subjectGroupAddModel);
-            subjectGroupAdd.SchoolId = schoolId;
-            await _unitOfWork.SubjectGroupRepo.AddAsync(subjectGroupAdd);
-            await _unitOfWork.SaveChangesAsync();
-            subjectGroupAdd.SubjectGroupType = existSubjectGroupType;
-            var result = _mapper.Map<SubjectGroupViewModel>(subjectGroupAdd);
+            var result = _mapper.Map<Pagination<SubjectGroupViewModel>>(subjects);
             return new BaseResponseModel()
             {
-                Status = StatusCodes.Status201Created,
-                Message = ConstantResponse.ADD_SUBJECT_GROUP_SUCCESS,
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_SUCCESS,
                 Result = result
             };
         }
         #endregion
-
-        #region get subjects
-        public async Task<BaseResponseModel> GetSubjects(int subjectId, int subjectGroupTypeId, int pageIndex, int pageSize)
+        #region
+        public async Task<BaseResponseModel> UpdateSubjectGroup(int subjectGroupId, SubjectGroupUpdateModel subjectGroupUpdateModel)
         {
-            var subject = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
-            var subjectGroupType = await _unitOfWork.SubjectGroupTypeRepo.GetByIdAsync(subjectGroupTypeId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_TYPE_NOT_EXISTED);
-
-            var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
-                filter: t => (subjectId == 0 || t.Id == subjectId) || (subjectGroupTypeId == 0 || t.SubjectGroupTypeId == subjectGroupTypeId)
-                );
-            return new BaseResponseModel()
+            using(var transaction = await _unitOfWork.BeginTransactionAsync())
             {
-                Status = StatusCodes.Status201Created,
-                Message = ""
-            };
+                try
+                {
+                    var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+                    filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
+                    include: query => query.Include(c => c.SubjectInGroups)
+                               .ThenInclude(sg => sg.Subject)
+                               .Include(sg => sg.SchoolYear)
+                               .ThenInclude(sy => sy.Terms));
+
+                    if (subjectGroup == null || !subjectGroup.Any())
+                    {
+                        throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+                    }
+
+                    var subjectGroupDb = subjectGroup.FirstOrDefault();
+
+                    //check duplicate
+                    var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
+                                filter: t => t.GroupName.ToLower() == subjectGroupUpdateModel.GroupName.ToLower() ||
+                                             t.GroupCode.ToLower() == subjectGroupUpdateModel.GroupCode.ToLower()
+                            );
+
+                    if (checkExistSubjectGroup.Any())
+                    {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
+                        };
+                    }
+
+                    //if have any class used subject group prevent update grade
+                    if (subjectGroupUpdateModel.Grade != 0 && subjectGroupUpdateModel.Grade != (Grade)subjectGroupDb.Grade)
+                    {
+                        var classes = await _unitOfWork.StudentClassesRepo.GetAsync(
+                            filter: t => t.Grade == (int)subjectGroupUpdateModel.Grade && t.SubjectGroupId == subjectGroupId && !t.IsDeleted);
+
+                        if (classes.Any())
+                        {
+                            return new BaseResponseModel()
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.SUBJECT_GROUP_HAS_SUBJECTS_REGISTERED
+                            };
+                        }
+
+                        subjectGroupDb.Grade = (int)subjectGroupUpdateModel.Grade;
+                    }
+
+                    if (!string.IsNullOrEmpty(subjectGroupUpdateModel.GroupName))
+                    {
+                        subjectGroupDb.GroupName = subjectGroupUpdateModel.GroupName.Trim();
+                    }
+
+                    if (!string.IsNullOrEmpty(subjectGroupUpdateModel.GroupCode))
+                    {
+                        subjectGroupDb.GroupCode = subjectGroupUpdateModel.GroupCode.ToUpper().Trim();
+                    }
+
+                    if (!string.IsNullOrEmpty(subjectGroupUpdateModel.GroupDescription))
+                    {
+                        subjectGroupDb.GroupDescription = subjectGroupUpdateModel.GroupDescription.Trim();
+                    }
+
+                    //xóa đi tạo lại các subject in  group cũ
+                    _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroupDb.SubjectInGroups);
+
+                    //ElectiveSubjects
+                    foreach (int subjectId in subjectGroupUpdateModel.ElectiveSubjectIds)
+                    {
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+                        if (checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT, Result = subjectId };
+                        var newSubjectInGroup = new SubjectInGroup();
+                        newSubjectInGroup.SubjectId = subjectId;
+                        newSubjectInGroup.SubjectGroupId = subjectGroupId;
+                        newSubjectInGroup.IsSpecialized = subjectGroupUpdateModel.SpecializedSubjectIds.Contains(subjectId);
+                        foreach (Term term in subjectGroupDb.SchoolYear.Terms)
+                        {
+                            newSubjectInGroup.TermId = term.Id;
+                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                        }
+                    }
+
+                    //Specialized Subject
+                    var specializedSubjectNotInElectiveSubjects = subjectGroupUpdateModel.SpecializedSubjectIds.Where(s => !subjectGroupUpdateModel.ElectiveSubjectIds.Contains(s));
+
+                    foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
+                    {
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+                        if (!checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT, Result = subjectId };
+                        var newSubjectInGroup = new SubjectInGroup();
+                        newSubjectInGroup.SubjectId = subjectId;
+                        newSubjectInGroup.SubjectGroupId = subjectGroupId;
+                        newSubjectInGroup.IsSpecialized = true;
+
+                        foreach (Term term in subjectGroupDb.SchoolYear.Terms)
+                        {
+                            newSubjectInGroup.TermId = term.Id;
+                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                        }
+                    }
+
+                    _unitOfWork.SubjectGroupRepo.Update(subjectGroupDb);
+                    await _unitOfWork.SaveChangesAsync();
+                    transaction.Commit();
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = ConstantResponse.UPDATE_SUBJECT_GROUP_SUCCESS,
+                    };
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+        }
+
+        #endregion
+
+        #region DeleteSubjectGroup
+        public async Task<BaseResponseModel> DeleteSubjectGroup(int subjectGroupId)
+        {
+            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectGroupId, include: query => query.Include(sg => sg.SubjectInGroups)) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            subjectGroup.IsDeleted = true;
+
+            _unitOfWork.SubjectGroupRepo.Update(subjectGroup);
+            _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroup.SubjectInGroups);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_SUBJECT_GROUP_SUCCESS };
         }
         #endregion
     }
