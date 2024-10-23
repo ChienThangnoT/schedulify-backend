@@ -48,12 +48,16 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #region Generate
-        public async Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel)
+        public async Task<BaseResponseModel> Generate(GenerateTimetableModel parameters)
         {
-            var (classes, teachers, subjects, assignments, timetableFlags) = await GetData(paraModel);
+            var (classes, teachers, subjects, assignments, timetableFlags) = await GetData(parameters);
 
-            var result = CreateRootIndividual(classes, teachers, assignments, subjects, timetableFlags, paraModel);
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = result };
+            var root = CreateRootIndividual(classes, teachers, assignments, subjects, timetableFlags, parameters);
+
+            // Tạo quần thể ban đầu ( các các thể sẽ có data ngẫu nhiên khác nhau ) và tính toán độ thích nghi
+            var timetablePopulation = CreateInitialPopulation(root, parameters);
+
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK };
         }
         #endregion
 
@@ -240,8 +244,11 @@ namespace SchedulifySystem.Service.Services.Implements
             List<ClassPeriodScheduleModel> fixedPeriods = new List<ClassPeriodScheduleModel>();
             foreach(FixedPeriodScheduleModel fixedPeriod in parameters.FixedPeriodsPara)
             {
-                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && a.StudentClass.Id == fixedPeriod.ClassId).FirstOrDefault() 
-                    ?? throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
+                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && a.StudentClass.Id == fixedPeriod.ClassId).FirstOrDefault();
+                if (founded == null)
+                {
+                    throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
+                }
                 var period = new ClassPeriodScheduleModel(founded);
                 period.StartAt = fixedPeriod.StartAt;
             }
@@ -331,7 +338,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //sắp xếp lại danh sách timetableUnits theo thứ tự tên lớp học và tạo ra một danh sách mới với thứ tự đã được sắp xếp
             timetableUnits = [.. timetableUnits.OrderBy(u => u.ClassName)];
 
-            return new TimetableRootIndividual(timetableFlags, timetableUnits, classes, teachers);
+            return new TimetableRootIndividual(timetableFlags, timetableUnits, classes, teachers, doublePeriodSubjects);
         }
         #endregion 
 
@@ -358,7 +365,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //loop qua ds các phần tử trong mảng và dùng cú pháp with {} trong c# để tạo ra 1 instance mới nhưng vẫn giữ nguyên data
                 timetableUnits.Add(src.TimetableUnits[i] with { });
             // trả về cá thể mới với tuổi = 1 và tuổi thọ ngẫu nhiên từ 1 đến 5
-            return new TimetableIndividual(timetableFlag, timetableUnits, src.Classes, src.Teachers) { Age = 1, Longevity = _random.Next(1, 5) };
+            return new TimetableIndividual(timetableFlag, timetableUnits, src.Classes, src.Teachers, src.DoubleSubjects) { Age = 1, Longevity = _random.Next(1, 5) };
         }
         #endregion
 
@@ -390,29 +397,14 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
 
-                var classTask = await _unitOfWork.StudentClassesRepo.GetV2Async(
-                filter: t => t.SchoolId == parameters.SchoolId &&
-                             t.SchoolYearId == parameters.SchoolYearId &&
-                             t.IsDeleted == false,
-                orderBy: q => q.OrderBy(s => s.Name),
-                include: query => query.Include(c => c.SubjectGroup)
-                           .ThenInclude(sg => sg.SubjectInGroups)
-                           .ThenInclude(sb => sb.Subject));
-                var classesDbList = classTask.ToList();
-
-                var subjectInClassesDb = classesDbList
-                    .Where(c => c.SubjectGroup != null) // Lọc những lớp có SubjectGroup
-                    .SelectMany(c => c.SubjectGroup.SubjectInGroups) // Lấy danh sách SubjectInGroup từ SubjectGroup
-                    .ToList();
-
                 // rãi các tiết đôi vàoo các slot liên tiếp
-                for (var j = 0; j < subjectInClassesDb.Count; j++)
+                for (var j = 0; j < src.DoubleSubjects.Count; j++)
                 {
 
                     var periods = src.TimetableUnits
-                        .Where(u => u.ClassName == src.Classes[i].Name &&
-                                    u.SubjectAbbreviation == subjectInClassesDb[j].Subject.Abbreviation &&
-                                    u.Priority == EPriority.Double)
+                        .Where(u => u.ClassId == src.Classes[i].Id &&
+                                    u.SubjectId == src.DoubleSubjects[j].SubjectId &&
+                                    u.Priority ==  EPriority.Double)
                         .Take(2) // lấy 2 tiết đầu tiên, vì tiết đôi cần 2 tiết
                         .ToList();
 
@@ -433,11 +425,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 var timetableUnits = src.TimetableUnits
-                    .Where(u => u.ClassName == src.Classes[i].Name && u.StartAt == 0)
+                    .Where(u => u.ClassId == src.Classes[i].Id && u.StartAt == 0)
                     .Shuffle()
                     .ToList();
                 startAts = startAts.Shuffle().ToList();
-                if (startAts.Count != timetableUnits.Count) throw new Exception();
+                if (startAts.Count < timetableUnits.Count) throw new Exception(); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
+                // dải ngẫu nhiên assignment vào các tiết 
                 for (var j = 0; j < timetableUnits.Count; j++)
                     timetableUnits[j].StartAt = startAts[j];
             }
