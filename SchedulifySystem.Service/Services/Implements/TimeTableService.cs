@@ -240,11 +240,8 @@ namespace SchedulifySystem.Service.Services.Implements
             List<ClassPeriodScheduleModel> fixedPeriods = new List<ClassPeriodScheduleModel>();
             foreach(FixedPeriodScheduleModel fixedPeriod in parameters.FixedPeriodsPara)
             {
-                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && a.StudentClass.Id == fixedPeriod.ClassId).FirstOrDefault();
-                if (founded == null)
-                {
-                    throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
-                }
+                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && a.StudentClass.Id == fixedPeriod.ClassId).FirstOrDefault() 
+                    ?? throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
                 var period = new ClassPeriodScheduleModel(founded);
                 period.StartAt = fixedPeriod.StartAt;
             }
