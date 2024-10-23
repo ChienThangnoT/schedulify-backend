@@ -155,6 +155,7 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Term
         public const string TERM_NOT_FOUND = "Term not exist.";
+        public const string GET_TERM_SUCCESS = "Get term success.";
 
 
     }
