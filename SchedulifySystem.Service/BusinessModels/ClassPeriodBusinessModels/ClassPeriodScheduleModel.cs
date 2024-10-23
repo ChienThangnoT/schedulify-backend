@@ -54,6 +54,7 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
 
         public ClassPeriodScheduleModel(TeacherAssigmentScheduleModel assignment)
         {
+           
             SubjectId = assignment.Subject.SubjectId;
             SubjectAbbreviation = assignment.Subject.Abbreviation;
             TeacherId = assignment.Teacher.Id;

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SchedulifySystem.Repository;
@@ -47,16 +48,18 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #region Generate
-        public Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel)
+        public async Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel)
         {
-            throw new NotImplementedException();
+            var (classes, teachers, subjects, assignments, timetableFlags) = await GetData(paraModel);
+
+            var result = CreateRootIndividual(classes, teachers, assignments, subjects, timetableFlags, paraModel);
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = result };
         }
         #endregion
 
         #region Convert Data 
-        public void ConvertData(GenerateTimetableModel parameters)
+        public async void ConvertData(GenerateTimetableModel parameters)
         {
-            parameters.FixedPeriods = _mapper.Map<List<ClassPeriodScheduleModel>>(parameters.FixedPeriodsPara);
             parameters.NoAssignTimetablePeriods = _mapper.Map<List<ClassPeriodScheduleModel>>(parameters.NoAssignPeriodsPara);
         }
         #endregion
@@ -87,12 +90,12 @@ namespace SchedulifySystem.Service.Services.Implements
                              t.SchoolYearId == parameters.SchoolYearId &&
                              t.IsDeleted == false,
                 include: query => query.Include(c => c.SubjectGroup)
-                           .ThenInclude(sg => sg.SubjectInGroups));
+                           .ThenInclude(sg => sg.SubjectInGroups).ThenInclude(sig => sig.Subject));
 
-
-            var subjectsDb = await _unitOfWork.SubjectRepo.GetAsync(
-                filter: t => t.SchoolId == parameters.SchoolId &&
-                            t.IsDeleted == false);
+            var groupIds = classesDb.Select(c => c.SubjectGroup.Id).ToList();
+            var subjectsDb = (await _unitOfWork.SubjectInGroupRepo.GetV2Async(
+                filter: t => t.IsDeleted == false && groupIds.Contains(t.SubjectGroupId),
+                            include: query => query.Include(sig => sig.Subject))).ToList();
 
             //run parallel
             //await Task.WhenAll(classTask, subjectTask).ConfigureAwait(false);
@@ -126,19 +129,19 @@ namespace SchedulifySystem.Service.Services.Implements
             */
             timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
 
-            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb.ToList());
+            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
 
-            var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetAsync(
-                filter: t => t.StudentClassId == classesDb.First().Id && t.IsDeleted == false
-                     && (parameters.TermId == null || t.TermId == parameters.TermId),
-                includeProperties: "Teacher");
+            var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+                filter: t => classesDb.Select(c => c.Id).Contains(t.StudentClassId) && t.IsDeleted == false
+                     && t.TermId == parameters.TermId,
+                include: query => query.Include(a => a.Teacher));
             //await assignmentTask;
 
             var assignmentsDb = await assignmentTask.ConfigureAwait(false);
             var assignmentsDbList = assignmentsDb.ToList();
 
             //get teacher từ assigntmment db
-            var teacherIds = assignmentsDb.Select(a => (int)a.TeacherId).Distinct().ToList();
+            var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
 
             var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
                 filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
@@ -155,13 +158,32 @@ namespace SchedulifySystem.Service.Services.Implements
             /*Duyệt qua danh sách các phân công (assignmentsDb), tìm lớp học, môn học, và giáo viên tương ứng cho từng phân công.
              Tạo đối tượng AssignmentTCDTO và thêm vào danh sách assignments.
             */
+
             for (var i = 0; i < assignmentsDbList.Count; i++)
             {
-                var studentClass = classes.First(c => c.Id == assignmentsDbList[i].StudentClassId);
-                var subject = subjects.First(s => s.SubjectId == assignmentsDbList[i].SubjectId);
-                var teacher = teachers.First(t => t.Abbreviation == assignmentsDbList[i].Teacher.Abbreviation);
+                var studentClass = classes.FirstOrDefault(c => c.Id == assignmentsDbList[i].StudentClassId);
+                var subject = subjects.FirstOrDefault(s => s.SubjectId == assignmentsDbList[i].SubjectId);
+                var teacher = teachers.FirstOrDefault(t => t.Id == assignmentsDbList[i].TeacherId);
+
+                // Check if any of the elements are null and handle accordingly
+                if (studentClass == null)
+                {
+                    throw new DefaultException($"Class with Id {assignmentsDbList[i].StudentClassId} not found.");
+                }
+                if (subject == null)
+                {
+                    throw new DefaultException($"Subject with Id {assignmentsDbList[i].SubjectId} not found.");
+                }
+                if (teacher == null)
+                {
+                    throw new DefaultException($"Teacher with Id {assignmentsDbList[i].TeacherId} not found.");
+                }
+
+                // If all exist, proceed with adding to the assignments list
                 assignments.Add(new TeacherAssigmentScheduleModel(assignmentsDbList[i], teacher, subject, studentClass));
             }
+
+
 
             // Kiểm tra xem tất cả các lớp đã được phân công đầy đủ hay chưa
             /*Kiểm tra từng lớp học và môn học xem có phân công phù hợp hay không. Với mỗi lớp, kiểm tra rằng:
@@ -174,10 +196,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 var periodCount = 0; // Tổng số tiết học trong lớp
                 var classPeriodCount = classesDbList[i].PeriodCount; // tổng số tiết yêu cầu của lớp học trong 1 tuần
 
+                var subjectInGroups = classesDbList[i].SubjectGroup.SubjectInGroups.ToList();
                 // duyệt qua từng môn học trong lớp
-                for (var j = 0; j < classesDbList[i].SubjectGroup.SubjectInGroups.Count; j++)
+                for (var j = 0; j < subjectInGroups.Count; j++)
                 {
-                    var subjectClass = classesDbList[i].SubjectGroup.SubjectInGroups.ToList()[j];
+                    var subjectClass = subjectInGroups[j];
 
                     // tìm phân công giáo viên cho môn học
                     var assignment = assignmentsDbList.FirstOrDefault(a =>
@@ -213,7 +236,20 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-
+            // update fixed period in para
+            List<ClassPeriodScheduleModel> fixedPeriods = new List<ClassPeriodScheduleModel>();
+            foreach(FixedPeriodScheduleModel fixedPeriod in parameters.FixedPeriodsPara)
+            {
+                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && a.StudentClass.Id == fixedPeriod.ClassId).FirstOrDefault();
+                if (founded == null)
+                {
+                    throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
+                }
+                var period = new ClassPeriodScheduleModel(founded);
+                period.StartAt = fixedPeriod.StartAt;
+            }
+            parameters.FixedPeriods = fixedPeriods;
+            
             return (classes, teachers, subjects, assignments, timetableFlags);
         }
         #endregion
@@ -246,7 +282,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
 
                 //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp  
-                var list = parameters.FreeTimetablePeriods.Where(u => u.ClassId == classes[i].Id).ToList();
+                var list = parameters.NoAssignPeriodsPara.Where(u => u.ClassId == classes[i].Id).ToList();
                 for (var j = 0; j < list.Count; j++)
                     timetableFlags[i, list[j].StartAt] = ETimetableFlag.None;
             }
@@ -268,7 +304,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < assignments.Count; i++)
             {
                 // đếm ra số tiết đã phân công theo tiết cố định 
-                var count = parameters.FixedPeriods.Count(u => u.TeacherAssignmentId == assignments[i].Id);
+                var count = parameters.FixedPeriods.Count(u => u.SubjectId == assignments[i].Subject.SubjectId && u.ClassId == assignments[i].StudentClass.Id);
                 // phân công các tiết còn lại chưa đc xắp cố định vào tkb 
                 for (var j = 0; j < assignments[i].PeriodCount - count; j++)
                     timetableUnits.Add(new ClassPeriodScheduleModel(assignments[i]));
