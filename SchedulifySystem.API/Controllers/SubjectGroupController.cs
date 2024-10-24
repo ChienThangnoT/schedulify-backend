@@ -27,9 +27,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin, SchoolManager")]
-        public Task<IActionResult> GetSubjectGroupDetail(int id, int? termId)
+        public Task<IActionResult> GetSubjectGroupDetail(int id)
         {
-            return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroupDetail(id, termId));
+            return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroupDetail(id));
         }
 
         [HttpPost]

@@ -15,10 +15,10 @@ namespace SchedulifySystem.Service.Mapper
         partial void SubjectInGroupMapperrConfigs()
         {
             CreateMap<SubjectInGroup, SubjectInGroupViewModel>();
-            CreateMap<SubjectInGroup, SubjectInGroupViewDetailModel>()
-               .ForMember(dest => dest.SubjectName,
-                opt => opt.MapFrom(src => src.Subject != null ? src.Subject.SubjectName : string.Empty))
-               .ReverseMap();
+            //CreateMap<SubjectInGroup, SubjectInGroupViewDetailModel>()
+            //   .ForMember(dest => dest.SubjectName,
+            //    opt => opt.MapFrom(src => src.Subject != null ? src.Subject.SubjectName : string.Empty))
+            //   .ReverseMap();
             CreateMap<SubjectInGroup, SubjectScheduleModel>()
                 .IncludeMembers(sig => sig.Subject).ReverseMap();
 

@@ -181,7 +181,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region Get Subject Group Detail
-        public async Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId, int? termId)
+        public async Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId)
         {
             var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
                 filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
@@ -198,9 +198,15 @@ namespace SchedulifySystem.Service.Services.Implements
             var result = _mapper.Map<SubjectGroupViewDetailModel>(subjectGroupDb);
 
 
-            var listSBInGroup = termId == null 
-                ? [.. subjectGroupDb.SubjectInGroups] : subjectGroupDb.SubjectInGroups.Where(sig => sig.TermId == termId);
+            var listSBInGroup = subjectGroupId == null 
+                ? [.. subjectGroupDb.SubjectInGroups] : subjectGroupDb.SubjectInGroups.Where(sig => sig.SubjectGroupId == subjectGroupId);
             var subjectInGroupList = _mapper.Map<List<SubjectInGroupViewDetailModel>>(listSBInGroup);
+
+            foreach (var item in listSBInGroup)
+            {
+
+            }
+
 
             result.SubjectInGroups = subjectInGroupList;
 

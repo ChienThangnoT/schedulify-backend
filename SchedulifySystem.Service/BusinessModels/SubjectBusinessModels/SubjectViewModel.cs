@@ -27,21 +27,18 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 
     public class SubjectViewDetailModel
     {
-        public int Id { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
+        public int MoringSlotPerWeek { get; set; }
+        public int AfternoonSlotPerWeek { get; set; }
+        public bool IsSpecialized { get; set; }
+        public bool IsDoublePeriod { get; set; }
+        public int SlotPerTerm { get; set; }
+        public int TermId { get; set; }
         public int? TotalSlotInYear { get; set; }
         public int SlotSpecialized { get; set; } = 35;
         public ESubjectGroupType SubjectGroupType { get; set; }
     }
-    //public int Id { get; set; }
-    //public int SubjectGroupId { get; set; }
-    //public int MoringSlotPerWeek { get; set; }
-    //public int AfternoonSlotPerWeek { get; set; }
-    //public int SlotPerTerm { get; set; }
-    //public int TermId { get; set; }
-    //public bool IsSpecialized { get; set; }
-    //public bool IsDoublePeriod { get; set; }
 }
