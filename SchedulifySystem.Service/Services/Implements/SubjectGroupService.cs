@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
+using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
 using SchedulifySystem.Service.Enums;
@@ -101,7 +103,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         {
                             newSubjectInGroup.CreateDate = DateTime.UtcNow;
                             newSubjectInGroup.TermId = term.Id;
-                             _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
                             newSubjectInGroupAdded.Add(newSubjectInGroup);
                         }
                     }
@@ -124,7 +126,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         {
                             newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
                             newSubjectRequiredInGroup.TermId = term.Id;
-                             await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
+                            await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
                             newSubjectInGroupAdded.Add(newSubjectRequiredInGroup);
                         }
                     }
@@ -181,7 +183,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region Get Subject Group Detail
-        public async Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId, int? termId)
+        public async Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId)
         {
             var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
                 filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
@@ -198,11 +200,75 @@ namespace SchedulifySystem.Service.Services.Implements
             var result = _mapper.Map<SubjectGroupViewDetailModel>(subjectGroupDb);
 
 
-            var listSBInGroup = termId == null 
-                ? [.. subjectGroupDb.SubjectInGroups] : subjectGroupDb.SubjectInGroups.Where(sig => sig.TermId == termId);
-            var subjectInGroupList = _mapper.Map<List<SubjectInGroupViewDetailModel>>(listSBInGroup);
+            result.SubjectSelectiveViews = new List<SubjectViewDetailModel>();
+            result.SubjectSpecializedtViews = new List<SubjectViewDetailModel>();
+            result.SubjectRequiredViews = new List<SubjectViewDetailModel>();
+            result.StudentClassViews = new List<StudentClassViewName>();
 
-            result.SubjectInGroups = subjectInGroupList;
+            var listSBInGroup = subjectGroupDb.SubjectInGroups.ToList();
+
+            var studentClass = await _unitOfWork.StudentClassesRepo.GetAsync(
+                filter: t => t.SubjectGroupId == subjectGroupDb.Id);
+            if (studentClass.Any() || studentClass != null)
+            {
+                foreach (var student in studentClass)
+                {
+                    var studenClassName = new StudentClassViewName
+                    {
+                        Name = student.Name
+                    };
+                    result.StudentClassViews.Add(studenClassName);
+                }
+            }
+
+            var specializedSubjectIds = listSBInGroup
+                .Where(sig => sig.IsSpecialized)
+                .Select(sig => sig.SubjectId)
+                .ToList();
+
+            foreach (var item in listSBInGroup)
+            {
+                var subjectDetail = new SubjectViewDetailModel
+                {
+                    SubjectName = item.Subject?.SubjectName,
+                    Abbreviation = item.Subject?.Abbreviation,
+                    IsRequired = item.Subject?.IsRequired ?? false,
+                    Description = item.Subject?.Description,
+                    MoringSlotPerWeek = item.MainSlotPerWeek,
+                    AfternoonSlotPerWeek = item.SubSlotPerWeek,
+                    IsSpecialized = item.IsSpecialized,
+                    IsDoublePeriod = item.IsDoublePeriod,
+                    SlotPerTerm = item.SlotPerTerm,
+                    TermId = item.TermId ?? 0,
+                    TotalSlotInYear = item.Subject?.TotalSlotInYear,
+                    SlotSpecialized = item.Subject?.SlotSpecialized ?? 35,
+                    SubjectGroupType = (ESubjectGroupType)(item.Subject?.SubjectGroupType ?? 0)
+                };
+
+                if (item.Subject?.IsRequired == true)
+                {
+                    result.SubjectRequiredViews.Add(subjectDetail);
+
+                    if (specializedSubjectIds.Contains(item.SubjectId))
+                    {
+                        result.SubjectSpecializedtViews.Add(subjectDetail);
+                    }
+                }
+
+                else if (item.Subject?.IsRequired == false)
+                {
+                    result.SubjectSelectiveViews.Add(subjectDetail);
+
+                    if (specializedSubjectIds.Contains(item.SubjectId))
+                    {
+                        result.SubjectSpecializedtViews.Add(subjectDetail);
+                    }
+                }
+                else if (item.IsSpecialized)
+                {
+                    result.SubjectSpecializedtViews.Add(subjectDetail);
+                }
+            }
 
             return new BaseResponseModel()
             {
@@ -211,6 +277,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = result
             };
         }
+
 
         #endregion
 

@@ -20,4 +20,9 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int PeriodCount { get; set; }
         public int? SubjectGroupId { get; set; }
     }
+
+    public class StudentClassViewName
+    {
+        public string? StudentClassName { get; set; }
+    }
 }
