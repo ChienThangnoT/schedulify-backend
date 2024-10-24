@@ -34,7 +34,8 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
         public string? ClassName { get; set; }
         
         public string? SubjectAbbreviation { get; set; }
-        
+        public string? SubjectName { get; set; }
+
         public string? TeacherAbbreviation { get; set; }
         
         public string? RoomCode { get; set; }
@@ -57,6 +58,7 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
            
             SubjectId = assignment.Subject.SubjectId;
             SubjectAbbreviation = assignment.Subject.Abbreviation;
+            SubjectName = assignment.Subject.SubjectName;
             TeacherId = assignment.Teacher.Id;
             TeacherAbbreviation = assignment.Teacher.Abbreviation;
             ClassName = assignment.StudentClass.Name;

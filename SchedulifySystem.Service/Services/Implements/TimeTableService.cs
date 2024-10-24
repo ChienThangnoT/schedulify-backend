@@ -251,6 +251,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
                 var period = new ClassPeriodScheduleModel(founded);
                 period.StartAt = fixedPeriod.StartAt;
+                period.Priority = EPriority.Fixed;
+                fixedPeriods.Add(period);
             }
             parameters.FixedPeriods = fixedPeriods;
             
@@ -437,15 +439,57 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region Fitness Function
+        #region Fitness Function - long
         /*
          * CalculateAdaptability có nhiệm vụ tính toán độ thích nghi của một cá thể thời khóa biểu dựa trên các tiêu chí và ràng buộc nhất định
          * isMinimized = true => chế độ tối thiểu hóa, = false chế độ tối ưu hóa tức tính toán cả soft constraint 
          */
         private static void CalculateAdaptability(TimetableIndividual src, GenerateTimetableModel parameters, bool isMinimized = false)
         {
-            throw new NotImplementedException();
+            //Mỗi cá thể có thể có danh sách các lỗi vi phạm ràng buộc (constraint errors).
+            //Trước khi tính toán lại điểm thích nghi, hệ thống cần xóa tất cả các lỗi cũ.
+            src.TimetableUnits.ForEach(u => u.ConstraintErrors.Clear());//Xóa các lỗi vi phạm cũ của từng tiết học (timetable unit).
+            src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
+            src.Adaptability = CheckHC03(src, parameters);
         }
+
+        #region CheckHC03
+        /*
+         * HC03: Ràng buộc phân công được xếp sẵn
+         * Các phân công được xếp sẵn (được khóa) vào một vị trí tiết học thì được ưu tiên xếp đầu tiên 
+         * và các phân công khác cần phải tránh xếp vào vị trí tiết học này.(SHL, SHDC)
+         */
+        private static int CheckHC03(TimetableIndividual src, GenerateTimetableModel parameters)
+        {
+            //số lượng vi phạm
+            var count = 0;
+            //lấy ra ds tiết cố định
+            var fixedPeriods = src.TimetableUnits.Where(u => u.Priority == EPriority.Fixed).ToList();
+            // tiết cố định không khớp vs tham số
+            if (fixedPeriods.Count != parameters.FixedPeriodsPara.Count) throw new DefaultException("Lỗi: HC03 - Số lượng tiết cố định tkb không khớp với tham số!");
+            
+            // loop qua các tiết cố định kiểm tra nó có xếp đúng vị trí hay không 
+            for (var i = 0; i < fixedPeriods.Count; i++)
+                if (!parameters.FixedPeriods
+                    .Any(u => u.ClassId == fixedPeriods[i].ClassId && u.SubjectId == fixedPeriods[i].SubjectId && u.StartAt == fixedPeriods[i].StartAt))
+                {
+                    var errorMessage =
+                        $"Lớp {fixedPeriods[i].ClassName}: " +
+                        $"Môn {fixedPeriods[i].SubjectName} " +
+                        $"xếp không đúng vị trí được định sẵn";
+                    var error = new ConstraintErrorModel()
+                    {
+                        Code = "HC03",
+                        ClassName = fixedPeriods[i].ClassName,
+                        SubjectName = fixedPeriods[i].SubjectName,
+                        Description = errorMessage
+                    };
+                    fixedPeriods[i].ConstraintErrors.Add(error);
+                    count++;
+                }
+            return count;
+        }
+        #endregion
         #endregion
 
         #region Crossover Methods
