@@ -366,5 +366,22 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #endregion
+
+        #region
+        public async Task<BaseResponseModel> DeleteSubjectById(int subjectId)
+        {
+            var subject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId, filter: t => t.IsDeleted == false)
+                ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+
+            subject.IsDeleted = true;
+            _unitOfWork.SubjectRepo.Update(subject);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.DELETE_SUBJECT_SUCCESS
+            };
+        }
+        #endregion
     }
 }

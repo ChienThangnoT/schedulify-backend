@@ -21,6 +21,9 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.SchoolYearEnd,
                 opt => opt.MapFrom(src => src.SchoolYear != null ? src.SchoolYear.EndYear : string.Empty))
                 .ReverseMap();
+            CreateMap<TermAdjustModel, Term>()
+                .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
+                .ForAllMembers(options => options.Condition((source, destination, sourceMember) => sourceMember != null));
         }
     }
 }

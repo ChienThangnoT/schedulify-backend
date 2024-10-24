@@ -23,18 +23,18 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         [EmailAddress(ErrorMessage = "Invalid Email Address")]
         public string? Email { get; set; }
         [EnumDataType(typeof(Gender), ErrorMessage = "Invalid gender value.")]
-        public Gender Gender { get; set; }
+        public Gender? Gender { get; set; }
 
-        public int DepartmentId { get; set; }
-        public DateOnly DateOfBirth { get; set; }
+        public int? DepartmentId { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
 
-        public int SchoolId { get; set; }
+        public int? SchoolId { get; set; }
 
         [EnumDataType(typeof(TeacherRole), ErrorMessage = "Invalid teacher role value.")]
-        public TeacherRole TeacherRole { get; set; }
+        public TeacherRole? TeacherRole { get; set; }
 
-        public TeacherStatus Status { get; set; }
+        public TeacherStatus? Status { get; set; }
         public string? Phone { get; set; }
-        public bool IsDeleted { get; set; }
+        public bool? IsDeleted { get; set; }
     }
 }

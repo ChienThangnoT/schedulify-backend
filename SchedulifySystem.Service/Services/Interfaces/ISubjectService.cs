@@ -14,6 +14,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> CreateSubjectList(int schoolId,List<SubjectAddListModel> subjectAddModel);// need update subject group
         Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? subjectName, bool? isRequired, bool includeDeleted, int pageSize, int pageIndex);
         Task<BaseResponseModel> UpdateSubjectById(int subjectId, SubjectUpdateModel subjectUpdateModel);
+        Task<BaseResponseModel> DeleteSubjectById(int subjectId);
 
     }
 }

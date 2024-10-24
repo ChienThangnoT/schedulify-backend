@@ -28,6 +28,7 @@ namespace SchedulifySystem.Service.Mapper
 
             CreateMap<UpdateTeacherAssignmentModel, TeacherAssignment>()
                .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
+            CreateMap<TeacherAssignment, TeacherAssignment>();
         }
     }
 }

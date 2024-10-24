@@ -35,6 +35,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
             TeacherRole = (TeacherRole)teacher.TeacherRole;
             Status = (TeacherStatus)teacher.Status;
             Phone = teacher.Phone;
+            Id = teacher.Id;
         }
     }
 }

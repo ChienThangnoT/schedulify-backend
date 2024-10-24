@@ -1,6 +1,7 @@
 ﻿using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
+using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Enums;
 using System;
@@ -14,7 +15,8 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
     public class TimetableRootIndividual(ETimetableFlag[,] timetableFlag,
         List<ClassPeriodScheduleModel> timetableUnits,
         List<ClassScheduleModel> classes,
-        List<TeacherScheduleModel> teachers) : TimetableIndividual(timetableFlag, timetableUnits, classes, teachers)
+        List<TeacherScheduleModel> teachers,
+        List<SubjectScheduleModel> doubleSubjects) : TimetableIndividual(timetableFlag, timetableUnits, classes, teachers, doubleSubjects)
     {
 
     }

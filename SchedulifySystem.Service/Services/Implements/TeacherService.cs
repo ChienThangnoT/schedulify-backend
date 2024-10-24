@@ -186,28 +186,73 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
-                try
+                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
+                if (existedTeacher == null)
                 {
+                    return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
+                }
 
-                    var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
-                    if (existedTeacher == null)
-                    {
-                        return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
-                    }
-                    _mapper.Map(updateTeacherRequestModel, existedTeacher);
-                    _unitOfWork.TeacherRepo.Update(existedTeacher);
-                    await _unitOfWork.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_TEACHER_SUCCESS };
-                }
-                catch (Exception ex)
+                // Chỉ cập nhật các trường không null
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.FirstName))
                 {
-                    await transaction.RollbackAsync();
-                    return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
+                    existedTeacher.FirstName = updateTeacherRequestModel.FirstName;
                 }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.LastName))
+                {
+                    existedTeacher.LastName = updateTeacherRequestModel.LastName;
+                }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.Abbreviation))
+                {
+                    existedTeacher.Abbreviation = updateTeacherRequestModel.Abbreviation;
+                }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.Email))
+                {
+                    existedTeacher.Email = updateTeacherRequestModel.Email;
+                }
+                if (updateTeacherRequestModel.Gender.HasValue)
+                {
+                    existedTeacher.Gender = (int)updateTeacherRequestModel.Gender;
+                }
+                if (updateTeacherRequestModel.DepartmentId.HasValue && updateTeacherRequestModel.DepartmentId != 0)
+                {
+                    var _ = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)updateTeacherRequestModel.DepartmentId)
+                        ?? throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
+                    existedTeacher.DepartmentId = updateTeacherRequestModel.DepartmentId.Value;
+                }
+                if (updateTeacherRequestModel.DateOfBirth.HasValue)
+                {
+                    existedTeacher.DateOfBirth = updateTeacherRequestModel.DateOfBirth.Value;
+                }
+                if (updateTeacherRequestModel.SchoolId.HasValue && updateTeacherRequestModel.SchoolId != 0)
+                {
+                    var _ = await _unitOfWork.SchoolRepo.GetByIdAsync((int)updateTeacherRequestModel.SchoolId)
+                        ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+                    existedTeacher.SchoolId = updateTeacherRequestModel.SchoolId.Value;
+                }
+                if (updateTeacherRequestModel.TeacherRole.HasValue)
+                {
+                    existedTeacher.TeacherRole = (int)updateTeacherRequestModel.TeacherRole;
+                }
+                if (updateTeacherRequestModel.Status.HasValue)
+                {
+                    existedTeacher.Status = (int)updateTeacherRequestModel.Status;
+                }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.Phone))
+                {
+                    existedTeacher.Phone = updateTeacherRequestModel.Phone;
+                }
+                if (updateTeacherRequestModel.IsDeleted.HasValue)
+                {
+                    existedTeacher.IsDeleted = updateTeacherRequestModel.IsDeleted.Value;
+                }
+
+                _unitOfWork.TeacherRepo.Update(existedTeacher);
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_TEACHER_SUCCESS };
             }
-
         }
+
         #endregion
 
         #region GetTeacherById
