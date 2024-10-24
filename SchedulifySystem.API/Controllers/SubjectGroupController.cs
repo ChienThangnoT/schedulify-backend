@@ -33,7 +33,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin, SchoolManager")]
+        //[Authorize(Roles = "Admin, SchoolManager")]
         public Task<IActionResult> AddSubjectGroup(int schoolId, SubjectGroupAddModel subjectGroupAddModel)
         {
             return ValidateAndExecute(() => _subjectGroupService.CreateSubjectGroup(schoolId, subjectGroupAddModel));
