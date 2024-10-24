@@ -88,7 +88,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SUBJECT_NAME_ALREADY_EXIST = "Subject name already exist.";
         public const string ADD_SUBJECT_LIST_SUCCESS = "Operation completed";
         public const string GET_SUBJECT_GROUP_DETAIL_SUCCESS = "Get subject group detail success.";
-        public const string REQUIRE_ELECTIVE_SUBJECT = "Require elective subject.";
+        public const string REQUIRE_ELECTIVE_SUBJECT = "Môn lựa chọn phải khác môn bắt buộc.";
         public const string INVALID_SPECIALIZED_SUBJECT = "Môn chuyên đề phải nằm trong nhóm môn bắt buộc hoặc là trong tổ hợp môn";
         
 

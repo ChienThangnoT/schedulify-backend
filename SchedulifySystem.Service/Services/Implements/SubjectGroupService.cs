@@ -38,14 +38,16 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School not found with id {schoolId}");
-                    var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(filter: sy => sy.Id == subjectGroupAddModel.SchoolYearId,
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
+                        ?? throw new NotExistsException($"School not found with id {schoolId}");
+                    var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(
+                        filter: sy => sy.Id == subjectGroupAddModel.SchoolYearId,
                         include: query => query.Include(sy => sy.Terms))).Items.FirstOrDefault()
                         ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+
                     var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
-                        filter: t => t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower() ||
-                                     t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower()
-                    );
+                        filter: t => t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower()
+                        || t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower());
 
                     if (checkExistSubjectGroup.Any())
                     {
@@ -56,54 +58,110 @@ namespace SchedulifySystem.Service.Services.Implements
                         };
                     }
                     // check enough number subject
-                    if (subjectGroupAddModel.SpecializedSubjectIds.Count() != REQUIRE_SPECIALIZED_SUBJECT || subjectGroupAddModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
+                    if (subjectGroupAddModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT
+                        || subjectGroupAddModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
                     {
-                        return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.INVALID_NUMBER_SUBJECT };
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.INVALID_NUMBER_SUBJECT
+                        };
                     }
 
-                    subjectGroupAddModel.SchoolId = schoolId;
                     var subjectGroupAdd = _mapper.Map<SubjectGroup>(subjectGroupAddModel);
+                    subjectGroupAdd.SchoolId = schoolId;
+
                     await _unitOfWork.SubjectGroupRepo.AddAsync(subjectGroupAdd);
                     //save to have group id
                     await _unitOfWork.SaveChangesAsync();
                     //generate data subject
 
                     //ElectiveSubjects
+                    var newSubjectInGroupAdded = new List<SubjectInGroup>();
                     foreach (int subjectId in subjectGroupAddModel.ElectiveSubjectIds)
                     {
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-                        if (checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT, Result = subjectId };
-                        var newSubjectInGroup = new SubjectInGroup();
-                        newSubjectInGroup.SubjectId = subjectId;
-                        newSubjectInGroup.SubjectGroupId = subjectGroupAdd.Id;
-                        newSubjectInGroup.IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subjectId);
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
+                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+                        if (checkSubject.IsRequired)
+                            return new BaseResponseModel
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT,
+                                Result = subjectId
+                            };
+
+                        var newSubjectInGroup = new SubjectInGroup
+                        {
+                            SubjectId = subjectId,
+                            SubjectGroupId = subjectGroupAdd.Id,
+                            IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subjectId)
+                        };
+
                         foreach (Term term in schoolYear.Terms)
                         {
+                            newSubjectInGroup.CreateDate = DateTime.UtcNow;
                             newSubjectInGroup.TermId = term.Id;
-                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                             _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                            newSubjectInGroupAdded.Add(newSubjectInGroup);
                         }
                     }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    //add required subject
+                    var requiredSubjects = await _unitOfWork.SubjectRepo.GetAsync(
+                        filter: t => t.SchoolId == schoolId && t.IsDeleted == false && t.IsRequired == true);
+                    //var requiredSubjectList = new List<SubjectInGroup>();
+                    foreach (var subject in requiredSubjects)
+                    {
+                        var newSubjectRequiredInGroup = new SubjectInGroup
+                        {
+                            SubjectId = subject.Id,
+                            SubjectGroupId = subjectGroupAdd.Id,
+                            IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subject.Id)
+                        };
+
+                        foreach (Term term in schoolYear.Terms)
+                        {
+                            newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
+                            newSubjectRequiredInGroup.TermId = term.Id;
+                             await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
+                            newSubjectInGroupAdded.Add(newSubjectRequiredInGroup);
+                        }
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
 
                     //Specialized Subject
                     var specializedSubjectNotInElectiveSubjects = subjectGroupAddModel.SpecializedSubjectIds.Where(s => !subjectGroupAddModel.ElectiveSubjectIds.Contains(s));
 
                     foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
                     {
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-                        if (!checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT, Result = subjectId };
-                        var newSubjectInGroup = new SubjectInGroup();
-                        newSubjectInGroup.SubjectId = subjectId;
-                        newSubjectInGroup.SubjectGroupId = subjectGroupAdd.Id;
-                        newSubjectInGroup.IsSpecialized = true;
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
+                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
 
-                        foreach (Term term in schoolYear.Terms)
-                        {
-                            newSubjectInGroup.TermId = term.Id;
-                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
-                        }
+                        if (!checkSubject.IsRequired)
+                            return new BaseResponseModel
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT,
+                                Result = subjectId
+                            };
+                    }
+
+                    //var subjectInGroupAdded = newSubjectInGroupAdded.FirstOrDefault(s => subjectGroupAddModel.SpecializedSubjectIds.Contains(s.SubjectId));
+                    transaction.Commit();
+                    //var subjectInGroupAdded = newSubjectInGroupAdded
+                    //    .Where(c => subjectGroupAddModel.SpecializedSubjectIds.Contains(c.SubjectId)).ToList();
+
+                    var updateSpecialSubject = await _unitOfWork.SubjectInGroupRepo.GetAsync(
+                        filter: t => t.SubjectGroupId == subjectGroupAdd.Id && subjectGroupAddModel.SpecializedSubjectIds.Contains(t.SubjectId));
+
+                    foreach (var subjectInGroup in updateSpecialSubject)
+                    {
+                        subjectInGroup.IsSpecialized = true;
+                        _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
                     }
                     await _unitOfWork.SaveChangesAsync();
-                    transaction.Commit();
                     var result = _mapper.Map<SubjectGroupViewModel>(subjectGroupAdd);
                     return new BaseResponseModel()
                     {
@@ -126,7 +184,7 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId, int? termId)
         {
             var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
-                filter: t => t.Id == subjectGroupId && t.IsDeleted == false ,
+                filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
                 include: query => query.Include(c => c.SubjectInGroups)
                            .ThenInclude(sg => sg.Subject));
 
@@ -139,8 +197,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var result = _mapper.Map<SubjectGroupViewDetailModel>(subjectGroupDb);
 
-           
-            var listSBInGroup = termId ==null ? subjectGroupDb.SubjectInGroups.ToList() : subjectGroupDb.SubjectInGroups.Where(sig => sig.TermId == termId);
+
+            var listSBInGroup = termId == null ? subjectGroupDb.SubjectInGroups.ToList() : subjectGroupDb.SubjectInGroups.Where(sig => sig.TermId == termId);
             var subjectInGroupList = _mapper.Map<List<SubjectInGroupViewDetailModel>>(listSBInGroup);
 
             result.SubjectInGroups = subjectInGroupList;
@@ -194,7 +252,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region
         public async Task<BaseResponseModel> UpdateSubjectGroup(int subjectGroupId, SubjectGroupUpdateModel subjectGroupUpdateModel)
         {
-            using(var transaction = await _unitOfWork.BeginTransactionAsync())
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
