@@ -14,7 +14,7 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
 {
     public record ClassPeriodScheduleModel 
     {
-
+        private static int count = 0;
         public int Id { get; set; }
 
         public int? ClassScheduleId { get; set; }
@@ -45,17 +45,18 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
         public int StartAt { get; set; }
         
         public EPriority Priority { get; set; } = EPriority.None;
+        public MainSession Session { get; set; }
         
         public List<ConstraintErrorModel> ConstraintErrors { get; set; } = [];
 
         public ClassPeriodScheduleModel()
         {
-            
+            Id = ++count;
         }
 
         public ClassPeriodScheduleModel(TeacherAssigmentScheduleModel assignment)
         {
-           
+            Id = ++count;
             SubjectId = assignment.Subject.SubjectId;
             SubjectAbbreviation = assignment.Subject.Abbreviation;
             SubjectName = assignment.Subject.SubjectName;
