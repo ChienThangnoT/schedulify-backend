@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,5 +32,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels
         public int TermId { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
+        public List<SubjectViewDetailModel>? subjectSelectiveViews { get; set; }
+        public List<SubjectViewDetailModel>? subjecSpecializedtViews { get; set; }
     }
 }
