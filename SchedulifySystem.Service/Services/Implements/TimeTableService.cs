@@ -358,18 +358,22 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 //lấy ra ds tiết học của lớp đó trong timetableUnits
                 var classTimetableUnits = timetableUnits.Where(u => u.ClassId == classes[i].Id).ToList();
-
+                var mainSession = classes[i].MainSession;
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
-                    //lấy ra ds tiết học có short name = môn tại vị trí j trong tham số môn đôi, take 2 để lấy 2 tiết đầu tiên 
-                    var numPeriods = TakeNumberDoubleSlot(doubleSubjects[j].MainSlotPerWeek) + TakeNumberDoubleSlot(doubleSubjects[j].SubSlotPerWeek);
-                    var dPeriods = classTimetableUnits
-                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId).Take(numPeriods).ToList();
+                    //lấy ra ds tiết học đôi  theo chính khóa 
+                    
+                    var mainPeriods = classTimetableUnits
+                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session == mainSession).Take(TakeNumberDoubleSlot(doubleSubjects[j].MainSlotPerWeek)).ToList();
 
+                    var subPeriods = classTimetableUnits
+                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session != mainSession).Take(TakeNumberDoubleSlot(doubleSubjects[j].SubSlotPerWeek)).ToList();
+
+                    mainPeriods.AddRange(subPeriods);
                     //đặt ưu tiên là tiết đôi 
-                    for (var k = 0; k < dPeriods.Count; k++)
+                    for (var k = 0; k < mainPeriods.Count; k++)
                     {
-                        dPeriods[k].Priority = EPriority.Double;
+                        mainPeriods[k].Priority = EPriority.Double;
                     }
                 }
             }
@@ -421,15 +425,12 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < src.TimetableFlag.GetLength(0); i++)
             {
                 // danh sách chứa tất cả các tiết học chưa được lấp đầy (có cờ trạng thái là Unfilled) của lớp hiện tại
-                //var startAts = new List<int>();
-                //main
                 var morningStartAts = new List<int>();
                 var afternoonStartAts = new List<int>();
                 for (var j = 1; j < src.TimetableFlag.GetLength(1); j++)
                     if (src.TimetableFlag[i, j] == ETimetableFlag.Unfilled)
                     {
-                        var startAt = (j - 1) % 10 + 1;
-                        if (startAt <= 5)
+                        if (IsMorningSlot(j))
                         {
                             morningStartAts.Add(j);
                         }
@@ -439,7 +440,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 /*mục tiêu: tìm các cặp tiết liên tiếp từ danh sách startAts
                 consecs: danh sách các cặp tiết liên tiếp as 
                 quan trọng để đảm bảo các tiết đôi được xếp vào các vị trí liên tiếp nhau*/
-                //var consecs = new List<(int, int)>();
+
                 var morningConsecs = new List<(int, int)>();
                 var afternoonConsecs = new List<(int, int)>();
 
@@ -461,6 +462,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 // rãi các tiết đôi vàoo các slot liên tiếp
                 var fClass = src.Classes[i];
+                var mainSession = fClass.MainSession;
                 for (var j = 0; j < src.DoubleSubjects.Count; j++)
                 {
                     var mainNumPeriod = TakeNumberDoubleSlot(src.DoubleSubjects[j].MainSlotPerWeek);
@@ -469,15 +471,14 @@ namespace SchedulifySystem.Service.Services.Implements
                     var mainPeriods = src.TimetableUnits
                                 .Where(u => u.ClassId == fClass.Id &&
                                             u.SubjectId == src.DoubleSubjects[j].SubjectId &&
-                                            u.Priority == EPriority.Double)
+                                            u.Priority == EPriority.Double && (int)u.Session == mainSession)
                                 .Take(mainNumPeriod)
                                 .ToList();
-                    var mainNumPeriodIds = mainPeriods.Select(u => u.Id).ToList();
 
                     var subPeriods = src.TimetableUnits
                        .Where(u => u.ClassId == fClass.Id &&
                                    u.SubjectId == src.DoubleSubjects[j].SubjectId &&
-                                   u.Priority == EPriority.Double && !mainNumPeriodIds.Contains(u.Id))
+                                   u.Priority == EPriority.Double && (int)u.Session != mainSession)
                        .Take(subNumPeriod)
                        .ToList();
 
@@ -507,15 +508,23 @@ namespace SchedulifySystem.Service.Services.Implements
                         }
                     }
                 }
-                var timetableUnits = src.TimetableUnits
-                   .Where(u => u.ClassId == src.Classes[i].Id && u.StartAt == 0)
+
+                // rải các tiết đơn còn lại 
+                var morningPeriods = src.TimetableUnits
+                   .Where(u => u.ClassId == src.Classes[i].Id && u.StartAt == 0 && u.Session == MainSession.Morning)
                    .Shuffle()
                    .ToList();
-                morningStartAts.AddRange(afternoonStartAts);
-                if (morningStartAts.Count < timetableUnits.Count) throw new Exception(); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
-                                                                                         // dải ngẫu nhiên assignment vào các tiết 
-                for (var j = 0; j < timetableUnits.Count; j++)
-                    timetableUnits[j].StartAt = morningStartAts[j];
+                var afternoonPeriods = src.TimetableUnits
+                   .Where(u => u.ClassId == src.Classes[i].Id && u.StartAt == 0 && u.Session == MainSession.Afternoon)
+                   .Shuffle()
+                   .ToList();
+
+                if (morningStartAts.Count < morningPeriods.Count) throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
+                if (afternoonStartAts.Count < afternoonPeriods.Count) throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!");                                                                       // dải ngẫu nhiên assignment vào các tiết 
+                for (var j = 0; j < morningPeriods.Count; j++)
+                    morningPeriods[j].StartAt = morningStartAts[j];
+                for (var j = 0; j < afternoonPeriods.Count; j++)
+                    afternoonPeriods[j].StartAt = afternoonStartAts[j];
             }
         }
 
@@ -528,8 +537,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 var randConsecIndex = consecs.IndexOf(consecs.Shuffle().First());// index của các cặp sau khi shuffle
                 periods[j].StartAt = consecs[randConsecIndex].Item1;
                 periods[j + 1].StartAt = consecs[randConsecIndex].Item2;
-                src.TimetableFlag[i, periods[0].StartAt] = ETimetableFlag.Filled;// update slot đó đã được filled
-                src.TimetableFlag[i, periods[1].StartAt] = ETimetableFlag.Filled;//update slot thứ 2 trong tiết đôi đã được filled
+                src.TimetableFlag[i, periods[j].StartAt] = ETimetableFlag.Filled;// update slot đó đã được filled
+                src.TimetableFlag[i, periods[j+1].StartAt] = ETimetableFlag.Filled;//update slot thứ 2 trong tiết đôi đã được filled
 
                 if (randConsecIndex > 0 && randConsecIndex < consecs.Count - 1)
                     consecs.RemoveRange(randConsecIndex - 1, 3);
