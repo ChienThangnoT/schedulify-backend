@@ -19,10 +19,4 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
     }
-
-    public class SubjectInGroupViewDetailModel
-    {
-        public List<SubjectViewDetailModel>? subjectSelectiveViews { get; set; }
-        public List<SubjectViewDetailModel>? subjecSpecializedtViews { get; set; }
-    }
 }
