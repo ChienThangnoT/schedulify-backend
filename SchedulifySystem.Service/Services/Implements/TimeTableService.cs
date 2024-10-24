@@ -450,7 +450,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //Trước khi tính toán lại điểm thích nghi, hệ thống cần xóa tất cả các lỗi cũ.
             src.TimetableUnits.ForEach(u => u.ConstraintErrors.Clear());//Xóa các lỗi vi phạm cũ của từng tiết học (timetable unit).
             src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
-            src.Adaptability = CheckHC03(src, parameters) + CheckHC02(src);
+            src.Adaptability = CheckHC03(src, parameters) + CheckHC02(src) + CheckHC05(src);
         }
 
         #region CheckHC02
@@ -531,6 +531,53 @@ namespace SchedulifySystem.Service.Services.Implements
                     fixedPeriods[i].ConstraintErrors.Add(error);
                     count++;
                 }
+            return count;
+        }
+        #endregion
+
+        #region CheckHC05
+        /*
+         * HC05: Ràng buộc về tiết học liên tiếp (tiết đôi)
+         * Các môn học được chỉ định là có tiết đôi phải có một và chỉ một cặp phân công có khung giờ học liên tiếp trong cùng một ngày.
+         */
+        private static int CheckHC05(TimetableIndividual src)
+        {
+            // số lượng tiết vi phạm 
+            var count = 0;
+            for (var classIndex = 0; classIndex < src.Classes.Count; classIndex++)
+            {
+                // lấy ra các tiết học của lớp đó 
+                var classTimetableUnits = src.TimetableUnits.Where(u => u.ClassId == src.Classes[classIndex].Id).ToList();
+
+                // loop qua ds tiết đôi 
+                for (var subjectIndex = 0; subjectIndex < src.DoubleSubjects.Count; subjectIndex++)
+                {
+                    // lấy ra ds tiết tiết đôi của môn có trong class đó 
+                    var doublePeriodUnits = classTimetableUnits
+                        .Where(u => u.SubjectId == src.DoubleSubjects[subjectIndex].SubjectId &&
+                                    u.Priority == EPriority.Double)
+                        .OrderBy(u => u.StartAt)
+                        .ToList();
+                    // nếu k nằm kề nhau
+                    if (doublePeriodUnits[0].StartAt != doublePeriodUnits[1].StartAt - 1)
+                    {
+                        var errorMessage =
+                            $"Lớp {doublePeriodUnits[0].ClassName}: " +
+                            $"Môn {doublePeriodUnits[0].SubjectName} " +
+                            $"chưa được phân công tiết đôi";
+                        var error = new ConstraintErrorModel()
+                        {
+                            Code = "HC05",
+                            ClassName = doublePeriodUnits[0].ClassName,
+                            SubjectName = doublePeriodUnits[0].SubjectName,
+                            Description = errorMessage
+                        };
+                        doublePeriodUnits[0].ConstraintErrors.Add(error);
+                        doublePeriodUnits[1].ConstraintErrors.Add(error);
+                        count += 2;
+                    }
+                }
+            }
             return count;
         }
         #endregion
