@@ -450,8 +450,52 @@ namespace SchedulifySystem.Service.Services.Implements
             //Trước khi tính toán lại điểm thích nghi, hệ thống cần xóa tất cả các lỗi cũ.
             src.TimetableUnits.ForEach(u => u.ConstraintErrors.Clear());//Xóa các lỗi vi phạm cũ của từng tiết học (timetable unit).
             src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
-            src.Adaptability = CheckHC03(src, parameters);
+            src.Adaptability = CheckHC03(src, parameters) + CheckHC02(src);
         }
+
+        #region CheckHC02
+        /*
+         * HC02: Ràng buộc đụng độ giáo viên
+         * Các phân công khác nhau ứng với các lớp học khác nhau của cùng một giáo viên,
+         * không được xếp vào cùng một khung giờ học trong cùng một ngày.
+         */
+        private static int CheckHC02(TimetableIndividual src)
+        {
+            // số lượng vi phạm 
+            var count = 0;
+            for (var i = 0; i < src.Teachers.Count; i++)
+            {
+                // lấy ra số tiết trong tkb có giáo viên đó 
+                var timetableUnits = src.TimetableUnits.Where(u => u.TeacherId == src.Teachers[i].Id).ToList();
+                var errorMessage = "";
+
+                for (var j = 0; j < timetableUnits.Count; j++)
+                    // kiểm tra đụng độ 
+                    if (timetableUnits.Count(u => u.StartAt == timetableUnits[j].StartAt) > 1)
+                    {
+                        var units = timetableUnits
+                            .Where(u => u.StartAt == timetableUnits[j].StartAt)
+                            .OrderBy(u => u.SubjectName)
+                            .ToList();
+                        var (day, period) = GetDayAndPeriod(timetableUnits[j].StartAt);
+                        errorMessage =
+                            $"Giáo viên {timetableUnits[j].TeacherAbbreviation}: " +
+                            $"dạy môn {string.Join(", ", units.Select(u => u.SubjectName))} " +
+                            $"cùng lúc tại tiết {period} vào thứ {day}";
+                        var error = new ConstraintErrorModel()
+                        {
+                            Code = "HC02",
+                            TeacherName = timetableUnits[j].TeacherAbbreviation,
+                            SubjectName = timetableUnits[j].SubjectName,
+                            Description = errorMessage
+                        };
+                        timetableUnits[j].ConstraintErrors.Add(error);
+                        count++;
+                    }
+            }
+            return count;
+        }
+        #endregion
 
         #region CheckHC03
         /*
@@ -490,6 +534,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return count;
         }
         #endregion
+
         #endregion
 
         #region Crossover Methods
@@ -685,7 +730,9 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private static (int day, int period) GetDayAndPeriod(int startAt)
         {
+            // 1 ngày 10 slot 
             var day = startAt / 10 + 1;
+            // 1 buổi 5 tiết 
             var period = (startAt - 1) % 5 + 1;
             return (day, period);
         }
