@@ -11,8 +11,8 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public int SubjectId { get; set; }
         public int SubjectGroupId { get; set; }
-        public int MoringSlotPerWeek { get; set; }
-        public int AfternoonSlotPerWeek { get; set; }
+        public int MainSlotPerWeek { get; set; }
+        public int SubSlotPerWeek { get; set; }
         public int SlotPerTerm { get; set; }
         public int? TermId { get; set; }
         public bool IsSpecialized { get; set; }

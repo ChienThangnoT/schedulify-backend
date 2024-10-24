@@ -198,7 +198,8 @@ namespace SchedulifySystem.Service.Services.Implements
             var result = _mapper.Map<SubjectGroupViewDetailModel>(subjectGroupDb);
 
 
-            var listSBInGroup = termId == null ? subjectGroupDb.SubjectInGroups.ToList() : subjectGroupDb.SubjectInGroups.Where(sig => sig.TermId == termId);
+            var listSBInGroup = termId == null 
+                ? [.. subjectGroupDb.SubjectInGroups] : subjectGroupDb.SubjectInGroups.Where(sig => sig.TermId == termId);
             var subjectInGroupList = _mapper.Map<List<SubjectInGroupViewDetailModel>>(listSBInGroup);
 
             result.SubjectInGroups = subjectInGroupList;

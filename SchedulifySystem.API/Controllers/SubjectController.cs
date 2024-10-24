@@ -18,14 +18,14 @@ namespace SchedulifySystem.API.Controllers
             _subjectService = subjectService;
         }
 
-        [HttpGet("{subjectId}")]
+        [HttpGet("{id}")]
         [Authorize]
-        public Task<IActionResult> GetSubjectBySubjectId(int subjectId)
+        public Task<IActionResult> GetSubjectBySubjectId(int id)
         {
-            return ValidateAndExecute(() => _subjectService.GetSubjectById(subjectId));
+            return ValidateAndExecute(() => _subjectService.GetSubjectById(id));
         }
 
-        [HttpGet("{schoolId:int}")]
+        [HttpGet("{schoolId}/subjects")]
         [Authorize]
         public Task<IActionResult> GetSubjectListWithSchoolId(int schoolId, string? subjectName, bool? isRequired,bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
