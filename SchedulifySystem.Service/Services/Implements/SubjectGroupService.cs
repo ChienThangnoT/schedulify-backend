@@ -234,8 +234,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     Abbreviation = item.Subject?.Abbreviation,
                     IsRequired = item.Subject?.IsRequired ?? false,
                     Description = item.Subject?.Description,
-                    MoringSlotPerWeek = item.MainSlotPerWeek,
-                    AfternoonSlotPerWeek = item.SubSlotPerWeek,
+                    MainSlotPerWeek = item.MainSlotPerWeek,
+                    SubSlotPerWeek = item.SubSlotPerWeek,
+                    TootalSlotPerWeek = item.MainSlotPerWeek + item.SubSlotPerWeek,
                     IsSpecialized = item.IsSpecialized,
                     IsDoublePeriod = item.IsDoublePeriod,
                     SlotPerTerm = item.SlotPerTerm,
@@ -318,7 +319,8 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
         #endregion
-        #region
+
+        #region Update Subject Group
         public async Task<BaseResponseModel> UpdateSubjectGroup(int subjectGroupId, SubjectGroupUpdateModel subjectGroupUpdateModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())

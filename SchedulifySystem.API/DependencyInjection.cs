@@ -205,7 +205,7 @@ namespace SchedulifySystem.API
 
             //config Subject in group service and repo
             services.AddTransient<ISubjectInGroupRepository, SubjectInGroupRepository>();
-            //services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+            services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
 
             //config Timetable service
             services.AddTransient<ITimetableService, TimeTableService>();

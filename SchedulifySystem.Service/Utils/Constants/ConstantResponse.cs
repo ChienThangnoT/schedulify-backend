@@ -91,7 +91,10 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string REQUIRE_ELECTIVE_SUBJECT = "Môn lựa chọn phải khác môn bắt buộc.";
         public const string INVALID_SPECIALIZED_SUBJECT = "Môn chuyên đề phải nằm trong nhóm môn bắt buộc hoặc là trong tổ hợp môn";
         public const string DELETE_SUBJECT_SUCCESS = "Delete subject success.";
-        
+
+        //subject in group
+        public const string SUBJECT_IN_GROUP_NOT_FOUND = "Subject in group not found.";
+
 
         //Room Type
         public const string ROOM_TYPE_NOT_EXIST = "The room type does not exist.";

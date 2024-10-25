@@ -31,8 +31,9 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
-        public int MoringSlotPerWeek { get; set; }
-        public int AfternoonSlotPerWeek { get; set; }
+        public int MainSlotPerWeek { get; set; }
+        public int SubSlotPerWeek { get; set; }
+        public int TootalSlotPerWeek { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
         public int SlotPerTerm { get; set; }
