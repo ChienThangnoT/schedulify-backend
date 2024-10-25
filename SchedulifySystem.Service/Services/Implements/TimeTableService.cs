@@ -809,7 +809,67 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private void Mutate(List<TimetableIndividual> individuals, EChromosomeType type, float mutationRate)
         {
+            for (var i = 0; i < individuals.Count; i++)
+            {
+                if (_random.Next(0, 100) > mutationRate * 100)
+                    continue;
 
+                var className = "";
+                var teacherName = "";
+                List<int> randNumList = null!;
+                List<ClassPeriodScheduleModel> timetableUnits = null!;
+
+                switch (type)
+                {
+                    case EChromosomeType.ClassChromosome:
+                        className = individuals[i].Classes[_random.Next(0, individuals[i].Classes.Count)].Name;
+                        timetableUnits = individuals[i].TimetableUnits
+                            .Where(u => u.ClassName == className && u.Priority != EPriority.Fixed).ToList();
+                        randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
+                        if (timetableUnits[randNumList[0]].Priority != EPriority.Double)
+                            TimeTableUtils.Swap(timetableUnits[randNumList[0]], timetableUnits[randNumList[1]]);
+                        else
+                        {
+                            var doublePeriods = new List<ClassPeriodScheduleModel>()
+                            {
+                                timetableUnits[randNumList[0]],
+                                timetableUnits.First(
+                                    u => u.SubjectName == timetableUnits[randNumList[0]].SubjectName &&
+                                         u.Priority == timetableUnits[randNumList[0]].Priority)
+                            };
+                            randNumList.Remove(timetableUnits.IndexOf(doublePeriods[0]));
+                            randNumList.Remove(timetableUnits.IndexOf(doublePeriods[1]));
+
+                            doublePeriods = [.. doublePeriods.OrderBy(p => p.StartAt)];
+
+                            var consecs = new List<(int, int)>();
+                            randNumList.Sort();
+                            for (var index = 0; index < randNumList.Count - 1; index++)
+                                if (randNumList[index + 1] - randNumList[index] == 1)
+                                    consecs.Add((randNumList[index], randNumList[index + 1]));
+
+                            var randConsecIndex = consecs.IndexOf(consecs.Shuffle().First());
+
+                            TimeTableUtils.Swap(doublePeriods[0], timetableUnits[randConsecIndex]);
+                            TimeTableUtils.Swap(doublePeriods[1], timetableUnits[randConsecIndex + 1]);
+                        }
+                        //for (var j = 0; j < randNumList.Count - rand.Next(1, randNumList.Count - 1); j++)
+                        //    Swap(timetableUnits[randNumList[j]], timetableUnits[randNumList[j + 1]]);
+                        break;
+                    case EChromosomeType.TeacherChromosome:
+                        //fix lai
+                        teacherName = individuals[i].Teachers[_random.Next(0, individuals[i].Teachers.Count)].Abbreviation;
+                        timetableUnits = individuals[i].TimetableUnits
+                            .Where(u => u.TeacherAbbreviation == teacherName && u.Priority != EPriority.Fixed).ToList();
+                        randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
+
+                        for (var j = 0; j < randNumList.Count - _random.Next(1, randNumList.Count - 1); j++)
+                            TimeTableUtils.Swap(timetableUnits[randNumList[j]], timetableUnits[randNumList[j + 1]]);
+                        break;
+                }
+
+
+            }
         }
         #endregion
 

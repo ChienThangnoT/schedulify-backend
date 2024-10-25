@@ -215,7 +215,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     var studenClassName = new StudentClassViewName
                     {
-                        Name = student.Name
+                        StudentClassName = student.Name
                     };
                     result.StudentClassViews.Add(studenClassName);
                 }
