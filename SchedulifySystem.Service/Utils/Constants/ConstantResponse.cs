@@ -94,6 +94,7 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //subject in group
         public const string SUBJECT_IN_GROUP_NOT_FOUND = "Subject in group not found.";
+        public const string UPDATE_SUBJECT_IN_GROUP_SUCCESS = "Update subject in group success.";
 
 
         //Room Type

@@ -1,4 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
@@ -23,33 +26,33 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
-        public async Task<BaseResponseModel> GetSubjectInGroup(int schoolId, int? termId, int schoolYearId, int? subjectGroupId,int? subbjectInGroupId, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> UpdateSubjectInGroup(List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel)
         {
-            var schoool = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.IsDeleted == false) 
-                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var subjectInGroupIds = subjectInGroupUpdateModel.Select(x => x.SubjectInGroupId).ToList();
 
-            var schooolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: t => t.IsDeleted == false) 
-                ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+            var subjectInGroups = await _unitOfWork.SubjectInGroupRepo.GetAsync(
+                filter: t => subjectInGroupIds.Contains(t.Id) && t.IsDeleted == false);
 
-            if(termId != null)
+            if (subjectInGroups == null || !subjectInGroups.Any())
+                throw new NotExistsException(ConstantResponse.SUBJECT_IN_GROUP_NOT_FOUND);
+
+            foreach (var subject in subjectInGroupUpdateModel)
             {
-                var _ = await _unitOfWork.TermRepo.GetByIdAsync((int)termId, filter: t => t.IsDeleted == false)
-                    ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+                var subjectInGroup = subjectInGroups.FirstOrDefault(s => s.Id == subject.SubjectInGroupId);
+                if (subjectInGroup != null)
+                {
+                    _mapper.Map(subject, subjectInGroup);
+                    _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
+                }
             }
 
-            if(subbjectInGroupId != null)
+            await _unitOfWork.SaveChangesAsync();
+
+            return new BaseResponseModel()
             {
-                var _ = await _unitOfWork.SubjectInGroupRepo.GetByIdAsync((int)subbjectInGroupId, filter: t => t.IsDeleted == false)
-                    ?? throw new NotExistsException(ConstantResponse.SUBJECT_IN_GROUP_NOT_FOUND);
-            }
-
-            if(subjectGroupId != null)
-            {
-                var _ = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId, filter: t => t.IsDeleted == false)
-                    ?? throw new NotExistsException(ConstantResponse.SUBJECT_IN_GROUP_NOT_FOUND);
-            }
-
-
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.UPDATE_SUBJECT_IN_GROUP_SUCCESS
+            };
         }
     }
 }

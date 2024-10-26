@@ -13,7 +13,9 @@ namespace SchedulifySystem.Repository.EntityModels
         public int? WeekNumber { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
-
+        public int? StartAt { get; set; }
+        public int? Priority { get; set; }
+        public string? Reason { get; set; }
         public Teacher? Teacher { get; set; }
     }
 }
