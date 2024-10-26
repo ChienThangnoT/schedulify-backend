@@ -39,6 +39,8 @@ namespace SchedulifySystem.Service.Services.Implements
         private readonly ECrossoverMethod CROSSOVER_METHOD = ECrossoverMethod.SinglePoint;
         private readonly EChromosomeType CHROMOSOME_TYPE = EChromosomeType.ClassChromosome;
         private readonly EMutationType MUTATION_TYPE = EMutationType.Default;
+        private static readonly List<string> DAY_OF_WEEKS = new List<string>() { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật" };
+        private static readonly List<string> SLOTS = new List<string>() { "Tiết 1", "Tiết 2", "Tiết 3", "Tiết 4", "Tiết 5", "Tiết 6", "Tiết 7", "Tiết 8", "Tiết 9", "Tiết 10" };
 
         public TimeTableService(IUnitOfWork unitOfWork, IMapper mapper)
         {
@@ -65,6 +67,7 @@ namespace SchedulifySystem.Service.Services.Implements
         public async void ConvertData(GenerateTimetableModel parameters)
         {
             parameters.NoAssignTimetablePeriods = _mapper.Map<List<ClassPeriodScheduleModel>>(parameters.NoAssignPeriodsPara);
+            parameters.FreeTimetablePeriods = _mapper.Map<List<ClassPeriodScheduleModel>>(parameters.FreeTimetablePeriodsPara);
         }
         #endregion
 
@@ -289,17 +292,27 @@ namespace SchedulifySystem.Service.Services.Implements
                     for (var k = j; k < j + maxSlot; k++)
                         timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
 
-                //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp  
-                var list = parameters.NoAssignPeriodsPara.Where(u => u.ClassId == classes[i].Id).ToList();
+                var list = parameters.FreeTimetablePeriods.Where(u => u.ClassId == classes[i].Id).ToList();
+                //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp 
                 for (var j = 0; j < list.Count; j++)
                     timetableFlags[i, list[j].StartAt] = ETimetableFlag.None;
             }
 
-            /* Tạo danh sách tiết được xếp sẵn trước*/
+            // kiểm tra tiết cố định có trùng tiết trống cố định 
+            var freePeriodIds = parameters.FreeTimetablePeriods.Select(u => u.StartAt).ToList();
+            var fixedPeriodsInvalid = parameters.FixedPeriods.Where(u => freePeriodIds.Contains(u.StartAt));
+            if (fixedPeriodsInvalid.Any())
+            {
+                throw new DefaultException("Tiết cố định và tiết trống cố định trùng nhau! " +
+                    $"Tiết cố định {string.Join(", ", fixedPeriodsInvalid.Select(p => $"[{p.SubjectName} - {GetDayAndPeriodString(p.StartAt)}]"))}");
+            }
+
+            
+            // Tạo danh sách tiết được xếp sẵn trước
             var timetableUnits = new List<ClassPeriodScheduleModel>();
             timetableUnits.AddRange(parameters.FixedPeriods);
 
-            /* Đánh dấu các tiết này vào timetableFlags là các tiết cố định và xếp các tiết này vào slot bao nhiêu  */
+            // Đánh dấu các tiết này vào timetableFlags là các tiết cố định và xếp các tiết này vào slot bao nhiêu  
             for (var i = 0; i < timetableUnits.Count; i++)
             {
                 // lấy ra index của class dựa vào class list vs điều kiện là tìm thấy class này trong timetableUnit (các tiết cố định)
@@ -307,7 +320,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 var startAt = timetableUnits[i].StartAt;
                 timetableFlags[classIndex, startAt] = ETimetableFlag.Fixed;
             }
-            /* Thêm các tiết phân công chưa được xếp vào sau */
+
+            // Thêm các tiết phân công chưa được xếp vào sau 
             for (var i = 0; i < assignments.Count; i++)
             {
                 // đếm ra số tiết đã phân công theo tiết cố định 
@@ -351,7 +365,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             }
 
-            /* Danh sách các môn có tiết đôi */
+            // Danh sách các môn có tiết đôi 
             var doubleSubjects = subjects.Where(s => s.IsDoublePeriod).ToList();
 
             for (var i = 0; i < classes.Count; i++)
@@ -362,7 +376,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
                     //lấy ra ds tiết học đôi  theo chính khóa 
-                    
+
                     var mainPeriods = classTimetableUnits
                         .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session == mainSession).Take(TakeNumberDoubleSlot(doubleSubjects[j].MainSlotPerWeek)).ToList();
 
@@ -538,7 +552,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 periods[j].StartAt = consecs[randConsecIndex].Item1;
                 periods[j + 1].StartAt = consecs[randConsecIndex].Item2;
                 src.TimetableFlag[i, periods[j].StartAt] = ETimetableFlag.Filled;// update slot đó đã được filled
-                src.TimetableFlag[i, periods[j+1].StartAt] = ETimetableFlag.Filled;//update slot thứ 2 trong tiết đôi đã được filled
+                src.TimetableFlag[i, periods[j + 1].StartAt] = ETimetableFlag.Filled;//update slot thứ 2 trong tiết đôi đã được filled
 
                 if (randConsecIndex > 0 && randConsecIndex < consecs.Count - 1)
                     consecs.RemoveRange(randConsecIndex - 1, 3);
@@ -721,7 +735,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 for (var day = 2; day <= 7; day++)
                 {
-                    foreach(MainSession session in sessions)
+                    foreach (MainSession session in sessions)
                     {
                         // slot buổi sáng 1 -> 5, buổi chiều 6 -> 10 
                         var startSlot = session == MainSession.Morning ? 1 : 6;
@@ -731,7 +745,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         var singlePeriodUnits = classSingleTimetableUnits
                         .Where(u => u.StartAt >= (day - 2) * 10 + startSlot &&
                                     u.StartAt <= (day - 2) * 10 + endSlot &&
-                                    u.Priority != EPriority.Double && 
+                                    u.Priority != EPriority.Double &&
                                     u.Session == session)
                         .ToList();
 
@@ -766,7 +780,7 @@ namespace SchedulifySystem.Service.Services.Implements
                                 count += 1;
                             }
                     }
-                    
+
                 }
             }
             return count;
@@ -786,7 +800,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < parameters.NoAssignTimetablePeriods.Count; i++)
             {
                 var param = parameters.NoAssignTimetablePeriods[i];
-                
+
                 // lấy ra tiết k xếp tại vị trí k xếp  
                 var unit = src.TimetableUnits
                     .FirstOrDefault(u => (param.TeacherId == null || u.TeacherId == param.TeacherId) &&
@@ -854,7 +868,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Đây là bước đột biến, nơi một số phần của cá thể con có thể được thay đổi ngẫu nhiên để tăng tính đa dạng cho quần thể
             // và tránh bị mắc kẹt ở các giải pháp tối ưu cục bộ.
-             Mutate(children, CHROMOSOME_TYPE, MUTATION_RATE);
+            Mutate(children, CHROMOSOME_TYPE, MUTATION_RATE);
 
             // Tính toán độ thích nghi
             CalculateAdaptability(children[0], parameters, true);
@@ -1082,6 +1096,14 @@ namespace SchedulifySystem.Service.Services.Implements
             // 1 buổi 5 tiết 
             var period = (startAt - 1) % 5 + 1;
             return (day, period);
+        }
+
+        private static (string day, string period) GetDayAndPeriodString(int startAt)
+        {
+            
+            var day = startAt / 10 ;
+            var period = (startAt - 1) % 10;
+            return (DAY_OF_WEEKS[day], SLOTS[period]);
         }
         private static bool IsMorningSlot(int startAt)
         {

@@ -15,6 +15,7 @@ namespace SchedulifySystem.Service.Mapper
         {
             CreateMap<FixedPeriodScheduleModel, ClassPeriodScheduleModel>();
             CreateMap<NoAssignPeriodScheduleModel, ClassPeriodScheduleModel>();
+            CreateMap<FreeTimetablePeriodScheduleModel, ClassPeriodScheduleModel>();
         }
     }
 }
