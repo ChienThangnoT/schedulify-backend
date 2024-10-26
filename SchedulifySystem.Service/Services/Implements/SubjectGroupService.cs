@@ -297,6 +297,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 && (grade == null || t.Grade == (int)grade)
                 && (schoolYearId == null || t.SchoolYearId == schoolYearId)
                 && t.IsDeleted == includeDeleted,
+                orderBy: q => q.OrderBy(s => s.GroupCode),
                 pageIndex: pageIndex,
                 pageSize: pageSize
                 );

@@ -811,7 +811,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Đây là bước đột biến, nơi một số phần của cá thể con có thể được thay đổi ngẫu nhiên để tăng tính đa dạng cho quần thể
             // và tránh bị mắc kẹt ở các giải pháp tối ưu cục bộ.
-            Mutate(children, CHROMOSOME_TYPE, MUTATION_RATE);
+             Mutate(children, CHROMOSOME_TYPE, MUTATION_RATE);
 
             // Tính toán độ thích nghi
             CalculateAdaptability(children[0], parameters, true);
@@ -935,7 +935,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         //    Swap(timetableUnits[randNumList[j]], timetableUnits[randNumList[j + 1]]);
                         break;
                     case EChromosomeType.TeacherChromosome:
-                        //fix lai
+                        //fix lai ở đây 
                         teacherName = individuals[i].Teachers[_random.Next(0, individuals[i].Teachers.Count)].Abbreviation;
                         timetableUnits = individuals[i].TimetableUnits
                             .Where(u => u.TeacherAbbreviation == teacherName && u.Priority != EPriority.Fixed).ToList();
