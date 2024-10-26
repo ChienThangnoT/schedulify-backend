@@ -9,10 +9,6 @@ namespace SchedulifySystem.Repository.EntityModels
     public partial class TeacherUnavailability : BaseEntity
     {
         public int TeacherId { get; set; }
-        public int? DateOfWeek { get; set; }
-        public int? WeekNumber { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
         public int? StartAt { get; set; }
         public int? Priority { get; set; }
         public string? Reason { get; set; }
