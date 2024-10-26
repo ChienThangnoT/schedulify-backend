@@ -774,6 +774,49 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
+        #region CheckHC09
+        /*
+         * HC09: Ràng buộc về tiết không xếp
+         * Tiết không xếp là một vị trí tiết học được chỉ định cho một giáo viên hoặc một môn học 
+         * mà phân công của giáo viên hoặc phân công có môn học đó không được xếp vào vị trí tiết học này.
+         */
+        private static int CheckHC09(TimetableIndividual src, GenerateTimetableModel parameters)
+        {
+            var count = 0;
+            for (var i = 0; i < parameters.NoAssignTimetablePeriods.Count; i++)
+            {
+                var param = parameters.NoAssignTimetablePeriods[i];
+                
+                // lấy ra tiết k xếp tại vị trí k xếp  
+                var unit = src.TimetableUnits
+                    .FirstOrDefault(u => (param.TeacherId == null || u.TeacherId == param.TeacherId) &&
+                                u.ClassId == param.ClassId &&
+                                (param.SubjectId == null || u.SubjectId == param.SubjectId) &&
+                                u.StartAt == param.StartAt);
+                // nếu có 
+                if (unit != null)
+                {
+                    var (day, period) = GetDayAndPeriod(unit.StartAt);
+                    var errorMessage =
+                            $"Lớp {unit.ClassName}: " +
+                            $"Môn {unit.SubjectName} " +
+                            $"không được xếp tại tiết {period} vào thứ {day}";
+                    var error = new ConstraintErrorModel()
+                    {
+                        Code = "HC09",
+                        ClassName = unit.ClassName,
+                        SubjectName = unit.SubjectName,
+                        Description = errorMessage
+                    };
+                    unit.ConstraintErrors.Add(error);
+                    count++;
+                }
+
+            }
+            return count;
+        }
+        #endregion
+
         #endregion
 
         #region Crossover Methods

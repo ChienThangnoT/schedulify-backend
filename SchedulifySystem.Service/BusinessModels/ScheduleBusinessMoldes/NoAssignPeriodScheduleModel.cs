@@ -9,6 +9,8 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
     public class NoAssignPeriodScheduleModel
     {
         public int StartAt { get; set; }
-        public int? ClassId { get; set; }
+        public int ClassId { get; set; }
+        public int? TeacherId { get; set; }
+        public int? SubjectId { get; set; }
     }
 }
