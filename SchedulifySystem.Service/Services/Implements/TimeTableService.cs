@@ -696,6 +696,84 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region CheckHC08
+        /*
+         * HC08: Ràng buộc môn học chỉ học 1 lần trong một buổi 
+         * Trong một buổi học, các phân công được xếp phải là các phân công có môn học khác nhau (trừ cặp phân công được chỉ định là tiết đôi)
+         */
+        private static int CheckHC08(TimetableIndividual src)
+        {
+            // count num error
+            var count = 0;
+            for (var classIndex = 0; classIndex < src.Classes.Count; classIndex++)
+            {
+                var classObj = src.Classes[classIndex];
+                // lấy ra các tiết học của lớp đó 
+                var classSingleTimetableUnits = src.TimetableUnits
+                    .Where(u => u.ClassId == classObj.Id)
+                    .OrderBy(u => u.StartAt)
+                    .ToList();
+
+                List<MainSession> sessions = classObj.IsFullDay
+                ? new List<MainSession> { MainSession.Morning, MainSession.Afternoon }
+                : new List<MainSession> { (MainSession)classObj.MainSession };
+
+
+                for (var day = 2; day <= 7; day++)
+                {
+                    foreach(MainSession session in sessions)
+                    {
+                        // slot buổi sáng 1 -> 5, buổi chiều 6 -> 10 
+                        var startSlot = session == MainSession.Morning ? 1 : 6;
+                        var endSlot = session == MainSession.Morning ? 5 : 10;
+
+                        // lấy các tiết đơn trong buổi 
+                        var singlePeriodUnits = classSingleTimetableUnits
+                        .Where(u => u.StartAt >= (day - 2) * 10 + startSlot &&
+                                    u.StartAt <= (day - 2) * 10 + endSlot &&
+                                    u.Priority != EPriority.Double && 
+                                    u.Session == session)
+                        .ToList();
+
+                        // lấy các tiết đôi trong buổi 
+                        var doublePeriodUnits = classSingleTimetableUnits
+                            .Where(u => u.StartAt >= (day - 2) * 10 + startSlot &&
+                                        u.StartAt <= (day - 2) * 10 + endSlot &&
+                                        u.Priority == EPriority.Double &&
+                                        u.Session == session)
+                            .ToList();
+
+                        // kiểm tra 
+                        for (var i = 0; i < singlePeriodUnits.Count; i++)
+
+                            // nếu có tiết đơn > 1 or tiết đơn trùng tiết đôi 
+                            if (singlePeriodUnits
+                                .Count(u => u.SubjectName == singlePeriodUnits[i].SubjectName) > 1 ||
+                                doublePeriodUnits.Select(s => s.SubjectName).Contains(singlePeriodUnits[i].SubjectName))
+                            {
+                                var errorMessage =
+                                $"Lớp {singlePeriodUnits[i].ClassName}: " +
+                                $"Môn {singlePeriodUnits[i].SubjectName} " +
+                                $"chỉ được học một lần trong một buổi";
+                                var error = new ConstraintErrorModel()
+                                {
+                                    Code = "HC08",
+                                    ClassName = singlePeriodUnits[i].ClassName,
+                                    SubjectName = singlePeriodUnits[i].SubjectName,
+                                    Description = errorMessage
+                                };
+                                singlePeriodUnits[i].ConstraintErrors.Add(error);
+                                count += 1;
+                            }
+                    }
+                    
+                }
+            }
+            return count;
+        }
+
+        #endregion
+
         #endregion
 
         #region Crossover Methods
