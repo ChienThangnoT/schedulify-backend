@@ -162,6 +162,10 @@ namespace SchedulifySystem.API
             services.AddTransient<IRoomRepository, RoomRepository>();
             services.AddTransient<IRoomService, RoomService>();
 
+            //config room subject  repo
+            services.AddTransient<IRoomSubjectRepository, RoomSubjectRepository>();
+            
+
             //config subject group service and repo
             services.AddTransient<ISubjectGroupRepository, SubjectGroupRepository>();
             services.AddTransient<ISubjectGroupService, SubjectGroupService>();

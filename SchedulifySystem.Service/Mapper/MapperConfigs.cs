@@ -57,6 +57,9 @@ namespace SchedulifySystem.Service.Mapper
             //add term Mapper Config
             TermMapperConfig();
 
+            //add Room Subject Mapper Config
+            RoomSubjectMapperConfig();
+
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
@@ -72,7 +75,6 @@ namespace SchedulifySystem.Service.Mapper
         partial void DepartmentMapperConfig();
         partial void TimetableMapperConfig();
         partial void TermMapperConfig();
-
-
+        partial void RoomSubjectMapperConfig();
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using SchedulifySystem.Repository;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
+using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
@@ -261,6 +262,24 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             parameters.FixedPeriods = fixedPeriods;
 
+            // lấy ra ds các phòng học có môn thực hành
+            var roomLabsDb = await _unitOfWork.RoomSubjectRepo.GetV2Async(
+                filter: r => r.Room.Building.SchoolId == parameters.SchoolId && !r.IsDeleted, include: query => query.Include(r => r.Room));
+
+            // nhóm theo phòng
+            var groupByRoom = roomLabsDb
+                .GroupBy(r => r.RoomId)
+                .Select(g => new RoomSubjectScheduleModel()
+                {
+                    RoomId = g.Key ?? 0,
+                    TeachableSubjectIds = g.Select(r => r.SubjectId ?? 0).ToList(),
+                    MaxClassPerTime = g.First().Room?.MaxClassPerTime ?? 1,
+                    RoomCode = g.First().Room?.RoomCode ?? "",
+                    Name = g.First().Room?.Name ?? ""
+                })
+                .ToList();
+            parameters.PracticeRoomWithSubjects = groupByRoom;
+
             return (classes, teachers, subjects, assignments, timetableFlags);
         }
         #endregion
@@ -307,7 +326,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     $"Tiết cố định {string.Join(", ", fixedPeriodsInvalid.Select(p => $"[{p.SubjectName} - {GetDayAndPeriodString(p.StartAt)}]"))}");
             }
 
-            
+
             // Tạo danh sách tiết được xếp sẵn trước
             var timetableUnits = new List<ClassPeriodScheduleModel>();
             timetableUnits.AddRange(parameters.FixedPeriods);
@@ -580,6 +599,46 @@ namespace SchedulifySystem.Service.Services.Implements
             src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
             src.Adaptability = CheckHC03(src, parameters) + CheckHC02(src) + CheckHC05(src);
         }
+        #region CheckHC01
+        /*
+         * HC01: Ràng buộc đụng độ phòng học
+         * Mỗi phòng học chỉ được xếp một phân công trong cùng một thời điểm.
+         */
+        private static int CheckHC01(TimetableIndividual src, GenerateTimetableModel parameters)
+        {
+            // đếm số lượng vi phạm
+            var count = 0;
+
+            foreach(RoomSubjectScheduleModel roomSubject in parameters.PracticeRoomWithSubjects)
+            {
+                // lấy ra các tiết học có môn thực hành 
+                var timetableUnits = src.TimetableUnits
+                    .Where(u => roomSubject.TeachableSubjectIds.Contains(u.SubjectId ?? 0))
+                    .ToList();
+                // nhóm lại theo tiết học 
+                var groups = timetableUnits.GroupBy(u => u.StartAt).ToList();
+
+                foreach(var group in groups)
+                {
+                    var units = group.Select(g => g).ToList();
+                    if(units.Count > roomSubject.MaxClassPerTime)
+                    {
+                        var (day, period) = GetDayAndPeriod(group.Key);
+                        units.ForEach(u => u.ConstraintErrors.Add(new ConstraintErrorModel()
+                        {
+                            Code = "HC01",
+                            ClassName = u.ClassName,
+                            SubjectName = u.SubjectName,
+                            Description = $"Đụng độ phòng thực hành môn {u.SubjectName} tại tiết {period} vào thứ {day}"
+                        }));
+                        count += units.Count;
+                    }
+                }
+            }
+            return count;
+        }
+
+        #endregion
 
         #region CheckHC02
         /*
@@ -1100,8 +1159,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private static (string day, string period) GetDayAndPeriodString(int startAt)
         {
-            
-            var day = startAt / 10 ;
+
+            var day = startAt / 10;
             var period = (startAt - 1) % 10;
             return (DAY_OF_WEEKS[day], SLOTS[period]);
         }
