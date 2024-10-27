@@ -285,11 +285,17 @@ namespace SchedulifySystem.Service.Services.Implements
         #region get subject groups
         public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (subjectGroupId != null)
             {
                 var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId)
                     ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            }
+            if (schoolYearId  != null)
+            {
+                var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync((int)schoolYearId, filter: t => t.IsDeleted == false)
+                    ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
             }
 
             var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
@@ -307,7 +313,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel()
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_SUCCESS
+                    Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_FAILED
                 };
             }
             var result = _mapper.Map<Pagination<SubjectGroupViewModel>>(subjects);

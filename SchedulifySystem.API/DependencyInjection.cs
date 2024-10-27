@@ -185,7 +185,7 @@ namespace SchedulifySystem.API
 
             //config school year service and repo
             services.AddTransient<ISchoolYearRepository, SchoolYearRepository>();
-            //services.AddTransient<IOtpService, OtpService>();
+            services.AddTransient<ISchoolYearService, SchoolYearService>();
 
             //config Department service and repo
             services.AddTransient<IDepartmentRepository, DepartmentRepository>();
