@@ -1177,6 +1177,73 @@ namespace SchedulifySystem.Service.Services.Implements
             return count;
         }
         #endregion
+
+        #region CheckSC07
+        /*
+         * SC07: Ràng buộc về các tiết cách ngày
+         * Trong thời khóa biểu, các phân công có cùng môn học không được xếp vào hai ngày liên tiếp.
+         */
+        private static int CheckSC07(TimetableIndividual src)
+        {
+            var count = 0;
+
+            // Lặp qua từng lớp trong thời khóa biểu
+            foreach (var classItem in src.Classes)
+            {
+                // Nhóm các tiết học theo môn học của lớp hiện tại
+                var subjectGroups = src.TimetableUnits
+                    .Where(u => u.ClassId == classItem.Id)
+                    .GroupBy(u => u.SubjectId);
+
+                // Lặp qua từng nhóm môn học
+                foreach (var subjectGroup in subjectGroups)
+                {
+                    // Lấy danh sách các tiết học của môn, sắp xếp theo thứ tự thời gian
+                    var timetableUnits = subjectGroup.OrderBy(u => u.StartAt).ToList();
+
+                    // Kiểm tra nếu có các tiết bị xếp vào hai ngày liên tiếp
+                    for (var i = 0; i < timetableUnits.Count - 1; i++)
+                    {
+                        var currentUnit = timetableUnits[i];
+                        var nextUnit = timetableUnits[i + 1];
+
+                        // Tính toán ngày từ vị trí tiết học (mỗi ngày có 10 tiết)
+                        var currentDay = (currentUnit.StartAt - 1) / 10 + 1;
+                        var nextDay = (nextUnit.StartAt - 1) / 10 + 1;
+
+                        if (nextDay == currentDay + 1) // Nếu hai ngày là liên tiếp
+                        {
+                            count++;
+
+                            currentUnit.ConstraintErrors.Add(new ConstraintErrorModel
+                            {
+                                Code = "SC07", 
+                                IsHardConstraint = false, 
+                                ClassName = currentUnit.ClassName,
+                                SubjectName = currentUnit.SubjectName,
+                                Description = $"Lớp {currentUnit.ClassName}: " +
+                                              $"Môn {currentUnit.SubjectName} bị xếp vào hai ngày liên tiếp."
+                            });
+
+                            nextUnit.ConstraintErrors.Add(new ConstraintErrorModel
+                            {
+                                Code = "SC07", 
+                                IsHardConstraint = false, 
+                                ClassName = nextUnit.ClassName,
+                                SubjectName = nextUnit.SubjectName,
+                                Description = $"Lớp {nextUnit.ClassName}: " +
+                                              $"Môn {nextUnit.SubjectName} bị xếp vào hai ngày liên tiếp."
+                            });
+                        }
+                    }
+                }
+            }
+
+            return count; 
+        }
+
+        #endregion
+
         #endregion
 
         #region Crossover Methods
