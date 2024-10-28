@@ -890,6 +890,86 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region CheckHC07
+        /*
+         * HC07: Ràng buộc về môn học có số lượng tiết dạy đồng thời
+         * Trong cùng một khung giờ học, số tiết dạy của môn học không vượt quá số phòng thực hành có sẵn. 
+         */
+        private static int CheckHC07(TimetableIndividual src, GenerateTimetableModel parameters)
+        {
+            var count = 0;
+
+            // Sử dụng dictionary để lưu số lượng tiết học của từng môn tại mỗi thời điểm
+            var subjectUsage = new Dictionary<int, Dictionary<int, List<ClassPeriodScheduleModel>>>();
+
+            // Lặp qua tất cả các tiết học
+            foreach (var unit in src.TimetableUnits)
+            {
+                // Lưu tiết học vào subjectUsage để kiểm tra số lượng tiết của môn tại từng thời điểm
+                if (!subjectUsage.ContainsKey(unit.StartAt))
+                {
+                    subjectUsage[unit.StartAt] = new Dictionary<int, List<ClassPeriodScheduleModel>>();
+                }
+
+                if (!subjectUsage[unit.StartAt].ContainsKey((int)unit.SubjectId))
+                {
+                    subjectUsage[unit.StartAt][(int)unit.SubjectId] = new List<ClassPeriodScheduleModel>();
+                }
+
+                subjectUsage[unit.StartAt][(int)unit.SubjectId].Add(unit);
+            }
+
+            // Kiểm tra số lượng tiết học của từng môn tại từng thời điểm
+            foreach (var timeEntry in subjectUsage)
+            {
+                var time = timeEntry.Key;
+                var subjectsAtSameTime = timeEntry.Value;
+
+                foreach (var subjectEntry in subjectsAtSameTime)
+                {
+                    var subjectId = subjectEntry.Key;
+                    var unitsForSubject = subjectEntry.Value;
+
+                    // Tìm tất cả các phòng có thể dạy môn học này và đảm bảo không vượt quá số phòng
+                    var availableRooms = parameters.PracticeRoomWithSubjects
+                        .Where(room => room.TeachableSubjectIds.Contains(subjectId))
+                        .ToList();
+
+                    // Kiểm tra số phòng có sẵn và xem liệu số tiết học của môn có vượt quá số phòng có sẵn hay không
+                    foreach (var room in availableRooms)
+                    {
+                        // Lọc ra các tiết học của môn trong phòng tại cùng thời điểm và kiểm tra MaxClassPerTime
+                        var unitsInRoom = unitsForSubject
+                            .Where(u => room.TeachableSubjectIds.Contains((int)u.SubjectId))
+                            .ToList();
+
+                        if (unitsInRoom.Count > room.MaxClassPerTime)
+                        {
+                            var (day, period) = GetDayAndPeriod(time);
+
+                            // Thêm lỗi cho tất cả các tiết vi phạm
+                            unitsInRoom.ForEach(u =>
+                            {
+                                u.ConstraintErrors.Add(new ConstraintErrorModel
+                                {
+                                    Code = "H08",
+                                    ClassName = u.ClassName,
+                                    SubjectName = u.SubjectName,
+                                    Description = $"Phòng {room.Name} vượt quá giới hạn {room.MaxClassPerTime} lớp trong cùng một thời điểm tại tiết {period} vào thứ {day}."
+                                });
+                            });
+
+                            count += unitsInRoom.Count; 
+                        }
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        #endregion
+
         #region CheckHC08
         /*
          * HC08: Ràng buộc môn học chỉ học 1 lần trong một buổi 
