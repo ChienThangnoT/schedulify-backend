@@ -22,7 +22,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace SchedulifySystem.Service.Services.Implements
 {
@@ -57,8 +59,115 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var root = CreateRootIndividual(classes, teachers, assignments, subjects, timetableFlags, parameters);
 
-            // Tạo quần thể ban đầu ( các các thể sẽ có data ngẫu nhiên khác nhau ) và tính toán độ thích nghi
+            // tạo quần thể ban đầu ( các các thể sẽ có data ngẫu nhiên khác nhau ) và tính toán độ thích nghi
+            //bao gồm tkb root và các tp của tkb
             var timetablePopulation = CreateInitialPopulation(root, parameters);
+
+            //var timetableIdBacklog = timetablePopulation.First().Id;
+            //var backlogCount = 0;
+            //var backlogCountMax = 0;
+            ///*timetableIdBacklog, backlogCount, và backlogCountMax: Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh 
+            // * việc mắc kẹt trong tối ưu cục bộ.timetableIdBacklog, backlogCount, và backlogCountMax: 
+            //  Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh việc mắc kẹt trong tối ưu cục bộ.*/
+
+
+            //for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
+            //{
+            //    // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
+            //    if (timetablePopulation.First().Adaptability < 1000)
+            //        break;
+
+            //    // lai tạo
+            //    /* Tournament */
+            //    var timetableChildren = new List<TimetableIndividual>();
+            //    var tournamentList = new List<TimetableIndividual>();
+
+            //    //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
+            //    for (var i = 0; i < timetablePopulation.Count; i++)
+            //        tournamentList.Add(timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First());
+
+            //    for (var k = 0; k < tournamentList.Count - 1; k += 2)
+            //    {
+            //        var parent1 = tournamentList[k];
+            //        var parent2 = tournamentList[k + 1];
+
+            //        var children = Crossover(root, [parent1, parent2], parameters);
+
+            //        timetableChildren.AddRange(children);
+            //    }
+
+            //    // Chọn lọc
+            //    timetablePopulation.AddRange(timetableChildren);
+            //    // TabuSearch(timetablePopulation[0], parameters);
+            //    timetablePopulation = timetablePopulation.Where(u => u.Age < u.Longevity).OrderBy(i => i.Adaptability).Take(100).ToList();
+
+            //    var best = timetablePopulation.First();
+            //    best.ConstraintErrors = [.. best.ConstraintErrors.OrderBy(e => e.Code)];
+
+            //    Console.SetCursorPosition(0, 0);
+            //    Console.Clear();
+            //    Console.WriteLine(
+            //        $"step {step}, " +
+            //        $"best score {best.Adaptability}\n" +
+            //        $"errors: ");
+            //    var errors = best.ConstraintErrors.Where(error => error.IsHardConstraint == true).ToList();
+            //    foreach (var error in errors.Take(20))
+            //        Console.WriteLine("  " + error.Description);
+            //    if (errors.Count > 20)
+            //        Console.WriteLine("  ...");
+            //    Console.WriteLine("warning: ");
+            //    var warnings = best.ConstraintErrors.Where(error => error.IsHardConstraint == false).ToList();
+            //    foreach (var error in warnings.Take(20))
+            //        Console.WriteLine("  " + error.Description);
+            //    if (warnings.Count > 20)
+            //        Console.WriteLine("  ...");
+
+            //    if (timetableIdBacklog == best.Id)
+            //    {
+            //        backlogCount++;
+            //        if (backlogCount > 500)
+            //        {
+            //            timetablePopulation = CreateInitialPopulation(root, parameters);
+            //            backlogCountMax = backlogCount;
+            //            backlogCount = 0;
+            //            timetableIdBacklog = Guid.Empty;
+            //        }
+            //    }
+            //    else
+            //    {
+            //        timetableIdBacklog = best.Id;
+            //        backlogCountMax = backlogCountMax < backlogCount ? backlogCount : backlogCountMax;
+            //        backlogCount = 0;
+            //    }
+            //    Console.WriteLine($"backlog count:  {backlogCount}\t max: {backlogCountMax}");
+            //    Console.WriteLine("time: " + sw.Elapsed.ToString());
+            //}
+
+            //var timetableFirst = timetablePopulation.OrderBy(i => i.Adaptability).First();
+
+            //var timetableDb = _mapper.Map<Timetable>(timetableFirst);
+            //timetableFirst.Id = timetableDb.Id = Guid.NewGuid();
+            //timetableFirst.StartYear = timetableDb.StartYear = parameters.StartYear;
+            //timetableFirst.EndYear = timetableDb.EndYear = parameters.EndYear;
+            //timetableFirst.Semester = timetableDb.Semester = parameters.Semester;
+            //timetableFirst.Name = timetableDb.Name = "Thời khóa biểu mới";
+            //foreach (var unit in timetableDb.TimetableUnits)
+            //    unit.TimetableId = timetableDb.Id;
+            //JsonSerializerOptions jso = new JsonSerializerOptions();
+            //jso.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+            //timetableDb.Parameters = JsonSerializer.Serialize(parameters, jso);
+            //_context.Add(timetableDb);
+            //_context.SaveChanges();
+
+            //sw.Stop();
+            //Console.SetCursorPosition(0, 0);
+            //Console.Clear();
+            //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
+
+            ////timetableFirst.ToCsv();
+            ////timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
+
+            //return timetableFirst;
 
             return new BaseResponseModel() { Status = StatusCodes.Status200OK };
         }
@@ -71,8 +180,6 @@ namespace SchedulifySystem.Service.Services.Implements
             parameters.FreeTimetablePeriods = _mapper.Map<List<ClassPeriodScheduleModel>>(parameters.FreeTimetablePeriodsPara);
         }
         #endregion
-
-
 
         #region GetData -- Thắng
         public async Task<(
@@ -593,11 +700,25 @@ namespace SchedulifySystem.Service.Services.Implements
          */
         private static void CalculateAdaptability(TimetableIndividual src, GenerateTimetableModel parameters, bool isMinimized = false)
         {
+            var rate = isMinimized ? 0 : 1; //được đặt là 0 nếu bài toán tối thiểu hóa, và 1 nếu không
             //Mỗi cá thể có thể có danh sách các lỗi vi phạm ràng buộc (constraint errors).
             //Trước khi tính toán lại điểm thích nghi, hệ thống cần xóa tất cả các lỗi cũ.
             src.TimetableUnits.ForEach(u => u.ConstraintErrors.Clear());//Xóa các lỗi vi phạm cũ của từng tiết học (timetable unit).
             src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
-            src.Adaptability = CheckHC03(src, parameters) + CheckHC02(src) + CheckHC05(src);
+            src.Adaptability = 
+                CheckHC03(src, parameters) * 1000
+                + CheckHC02(src) * 1000
+                + CheckHC05(src) * 10000;
+
+            if (!isMinimized)
+            {
+            //    src.Adaptability +=
+            //  CheckS01(src)
+            //+ CheckS02(src)
+            //+ CheckS03(src)
+            //+ CheckS04(src);
+            }
+            //src.GetConstraintErrors();
         }
         #region CheckHC01
         /*
@@ -1108,12 +1229,14 @@ namespace SchedulifySystem.Service.Services.Implements
             // tạo ra 1 ds rỗng để lưu các cá thể tkb 
             var timetablePopulation = new List<TimetableIndividual>();
             //lặp qua INITIAL_NUMBER_OF_INDIVIDUALS số cá thể cần tạo 
+            int currentId = 1;
             for (var i = 0; i < INITIAL_NUMBER_OF_INDIVIDUALS; i++)
             {
                 // sao chép cá thể gốc để tạo ra cá thể mới ( new instance)
                 var individual = Clone(root);
                 //gán ngẫu nhiên các tiết học, giáo viên và phòng học cho cá thể vừa được sao chép
                 RandomlyAssign(individual, parameters);
+                individual.Id = currentId++;
                 //tính toán độ thích nghi (adaptability) của cá thể đó dựa trên các ràng buộc trong parameters
                 CalculateAdaptability(individual, parameters, true);
                 //cá thể vừa được tạo ra và tính toán độ thích nghi sẽ được thêm vào danh sách

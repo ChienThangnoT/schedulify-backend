@@ -118,6 +118,7 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //School Year
         public const string SCHOOL_YEAR_NOT_EXIST = "The school year does not exist.";
+        public const string GET_SCHOOL_YEAR_SUCCESS = "Get school year success.";
 
         //Teacher
         public const string TEACHER_NOT_EXIST = "The teacher does not exist.";
