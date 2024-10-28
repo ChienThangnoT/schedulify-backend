@@ -1078,6 +1078,10 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region CheckSC02
+        /*
+         * SC02: Ràng buộc về số lượng buổi dạy của giáo viên
+         * Xếp các phân công sao cho số buổi dạy của giáo viên là ít nhất.
+         */
         private static int CheckSC02(TimetableIndividual src)
         {
             // tổng số buổi tất cả gv phải đi dạy ( số này càng bé càng tốt )
@@ -1099,6 +1103,36 @@ namespace SchedulifySystem.Service.Services.Implements
             return count;
         }
         #endregion
+
+        #region CheckS03
+        /*
+         * SC03: Ràng buộc về tiết trống của giáo viên trong trong một buổi học
+         * Hạn chế tối đa tiết trống (gap) của giáo viên trong một buổi học.
+         */
+        private static int CheckS03(TimetableIndividual src)
+        {
+            // đếm số tiết trống 
+            var count = 0;
+            for (var i = 0; i < src.Teachers.Count; i++)
+            {
+                var teacherPeriods = src.TimetableUnits
+                    .Where(u => u.TeacherId == src.Teachers[i].Id)
+                    .OrderBy(u => u.StartAt)
+                    .ToList();
+                for (var j = 1; j < 60; j += 5)
+                {
+                    var periods = teacherPeriods
+                        .Where(p => p.StartAt < j + 5 && p.StartAt >= j)
+                        .OrderBy(p => p.StartAt)
+                        .ToList();
+                    for (var k = 0; k < periods.Count - 1; k++)
+                        if (periods[k].StartAt != periods[k + 1].StartAt - 1)
+                            count++;
+                }
+            }
+            return count;
+        }
+        #endregion 
 
         #endregion
 
