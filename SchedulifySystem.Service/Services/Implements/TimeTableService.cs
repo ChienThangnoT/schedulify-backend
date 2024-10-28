@@ -63,87 +63,95 @@ namespace SchedulifySystem.Service.Services.Implements
             //bao gồm tkb root và các tp của tkb
             var timetablePopulation = CreateInitialPopulation(root, parameters);
 
-            //var timetableIdBacklog = timetablePopulation.First().Id;
-            //var backlogCount = 0;
-            //var backlogCountMax = 0;
-            ///*timetableIdBacklog, backlogCount, và backlogCountMax: Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh 
-            // * việc mắc kẹt trong tối ưu cục bộ.timetableIdBacklog, backlogCount, và backlogCountMax: 
-            //  Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh việc mắc kẹt trong tối ưu cục bộ.*/
+            //timetableIdBacklog là biến để theo dõi xem cá thể tốt nhất có bị lặp lại qua nhiều vòng lặp liên tiếp hay không,
+            //nhằm phát hiện hiện tượng mắc kẹt tại một giải pháp tối ưu cục bộ
+            var timetableIdBacklog = timetablePopulation.First().Id;
+            var backlogCount = 0;
+            var backlogCountMax = 0;
+            /*timetableIdBacklog, backlogCount, và backlogCountMax: Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh 
+             * việc mắc kẹt trong tối ưu cục bộ.timetableIdBacklog, backlogCount, và backlogCountMax: 
+              Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh việc mắc kẹt trong tối ưu cục bộ.*/
 
 
-            //for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
-            //{
-            //    // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-            //    if (timetablePopulation.First().Adaptability < 1000)
-            //        break;
+            for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
+            {
+                // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
+                if (timetablePopulation.First().Adaptability < 1000)
+                    break;
 
-            //    // lai tạo
-            //    /* Tournament */
-            //    var timetableChildren = new List<TimetableIndividual>();
-            //    var tournamentList = new List<TimetableIndividual>();
+                // lai tạo
+                /* Tournament */
+                var timetableChildren = new List<TimetableIndividual>();
+                var tournamentList = new List<TimetableIndividual>();
 
-            //    //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
-            //    for (var i = 0; i < timetablePopulation.Count; i++)
-            //        tournamentList.Add(timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First());
+                //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
+                for (var i = 0; i < timetablePopulation.Count; i++)
+                    tournamentList.Add(timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First());
 
-            //    for (var k = 0; k < tournamentList.Count - 1; k += 2)
-            //    {
-            //        var parent1 = tournamentList[k];
-            //        var parent2 = tournamentList[k + 1];
+                for (var k = 0; k < tournamentList.Count - 1; k += 2)
+                {
+                    var parent1 = tournamentList[k];
+                    var parent2 = tournamentList[k + 1];
+                    // lai
+                    var children = Crossover(root, [parent1, parent2], parameters);
 
-            //        var children = Crossover(root, [parent1, parent2], parameters);
+                    timetableChildren.AddRange(children);
+                }
 
-            //        timetableChildren.AddRange(children);
-            //    }
+                // Chọn lọc
+                timetablePopulation.AddRange(timetableChildren);
+                // TabuSearch(timetablePopulation[0], parameters);
+                timetablePopulation = timetablePopulation.Where(u => u.Age < u.Longevity).OrderBy(i => i.Adaptability).Take(100).ToList();
 
-            //    // Chọn lọc
-            //    timetablePopulation.AddRange(timetableChildren);
-            //    // TabuSearch(timetablePopulation[0], parameters);
-            //    timetablePopulation = timetablePopulation.Where(u => u.Age < u.Longevity).OrderBy(i => i.Adaptability).Take(100).ToList();
+                var best = timetablePopulation.First();
+                best.ConstraintErrors = [.. best.ConstraintErrors.OrderBy(e => e.Code)];
 
-            //    var best = timetablePopulation.First();
-            //    best.ConstraintErrors = [.. best.ConstraintErrors.OrderBy(e => e.Code)];
+                Console.SetCursorPosition(0, 0);
+                Console.Clear();
+                Console.WriteLine(
+                    $"step {step}, " +
+                    $"best score {best.Adaptability}\n" +
+                    $"errors: ");
+                var errors = best.ConstraintErrors.Where(error => error.IsHardConstraint == true).ToList();
+                foreach (var error in errors.Take(20))
+                    Console.WriteLine("  " + error.Description);
+                if (errors.Count > 20)
+                    Console.WriteLine("  ...");
+                Console.WriteLine("warning: ");
+                var warnings = best.ConstraintErrors.Where(error => error.IsHardConstraint == false).ToList();
+                foreach (var error in warnings.Take(20))
+                    Console.WriteLine("  " + error.Description);
+                if (warnings.Count > 20)
+                    Console.WriteLine("  ...");
 
-            //    Console.SetCursorPosition(0, 0);
-            //    Console.Clear();
-            //    Console.WriteLine(
-            //        $"step {step}, " +
-            //        $"best score {best.Adaptability}\n" +
-            //        $"errors: ");
-            //    var errors = best.ConstraintErrors.Where(error => error.IsHardConstraint == true).ToList();
-            //    foreach (var error in errors.Take(20))
-            //        Console.WriteLine("  " + error.Description);
-            //    if (errors.Count > 20)
-            //        Console.WriteLine("  ...");
-            //    Console.WriteLine("warning: ");
-            //    var warnings = best.ConstraintErrors.Where(error => error.IsHardConstraint == false).ToList();
-            //    foreach (var error in warnings.Take(20))
-            //        Console.WriteLine("  " + error.Description);
-            //    if (warnings.Count > 20)
-            //        Console.WriteLine("  ...");
 
-            //    if (timetableIdBacklog == best.Id)
-            //    {
-            //        backlogCount++;
-            //        if (backlogCount > 500)
-            //        {
-            //            timetablePopulation = CreateInitialPopulation(root, parameters);
-            //            backlogCountMax = backlogCount;
-            //            backlogCount = 0;
-            //            timetableIdBacklog = Guid.Empty;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        timetableIdBacklog = best.Id;
-            //        backlogCountMax = backlogCountMax < backlogCount ? backlogCount : backlogCountMax;
-            //        backlogCount = 0;
-            //    }
-            //    Console.WriteLine($"backlog count:  {backlogCount}\t max: {backlogCountMax}");
-            //    Console.WriteLine("time: " + sw.Elapsed.ToString());
-            //}
+                /*kiểm tra xem id cá thể tốt nhất hiện tại có = timetableIdBacklog ko
+                 nếu bằng tức là cá thể tốt nhất chưa thay đổi, thuật toán đang mắc kẹt ở vòng lặp này
+                backlogCount sẽ đếm số vòng lặp liên tiếp giữ nguyên của cá thể tốt nhất
+                 */
+                if (timetableIdBacklog == best.Id)
+                {
+                    backlogCount++;
+                    if (backlogCount > 500)
+                    {
+                        timetablePopulation = CreateInitialPopulation(root, parameters);
+                        backlogCountMax = backlogCount;
+                        backlogCount = 0;
+                        timetableIdBacklog = -1;
+                    }
+                }
+                else
+                {
+                    timetableIdBacklog = best.Id;
+                    backlogCountMax = backlogCountMax < backlogCount ? backlogCount : backlogCountMax;
+                    backlogCount = 0;
+                }
 
-            //var timetableFirst = timetablePopulation.OrderBy(i => i.Adaptability).First();
+                Console.WriteLine($"backlog count:  {backlogCount}\t max: {backlogCountMax}");
+                //Console.WriteLine("time: " + sw.Elapsed.ToString());
+            }
+
+            var timetableFirst = timetablePopulation.OrderBy(i => i.Adaptability).First();
 
             //var timetableDb = _mapper.Map<Timetable>(timetableFirst);
             //timetableFirst.Id = timetableDb.Id = Guid.NewGuid();
@@ -164,12 +172,12 @@ namespace SchedulifySystem.Service.Services.Implements
             //Console.Clear();
             //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
 
-            ////timetableFirst.ToCsv();
-            ////timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
+            timetableFirst.ToCsv();
+            timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
             //return timetableFirst;
 
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK };
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK , Result = timetableFirst};
         }
         #endregion
 
