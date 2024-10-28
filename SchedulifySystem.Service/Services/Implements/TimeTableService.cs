@@ -1011,6 +1011,72 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region CheckSC01
+        /*
+         * SC01: Ràng buộc về các tiết đôi không có giờ ra chơi xem giữa
+         * Cặp phân công được chỉ định là tiết đôi được ưu tiên tránh các cặp tiết học (2, 3) vào buổi sáng và (3, 4) vào buổi chiểu.
+         */
+        private static int CheckSC01(TimetableIndividual src)
+        {
+            // đếm số vi phạm 
+            var count = 0;
+            
+            // lấy ra các tiết đôi 
+            var doublePeriods = src.TimetableUnits
+                .Where(u => u.Priority == EPriority.Double)
+                .OrderBy(u => u.ClassId)
+                .ThenBy(u => u.StartAt)
+                .ToList();
+
+            // ds start at k hợp lệ 
+            var invalidStartAts = new List<int>() { 2, 3, 8, 9 };
+
+            for (var i = 0; i < doublePeriods.Count - 1; i++)
+            {
+                var current = doublePeriods[i];
+                var next = doublePeriods[i + 1];
+
+                // lấy ra tiết học 
+                var currentPeriod = GetPeriod(current.StartAt);
+                var nextPeriod = GetPeriod(next.StartAt);
+
+                // kiểm tra nếu là 2 tiết liền kề , cùng môn, cùng lớp và là cặp invalid start at 
+                if (invalidStartAts.Contains(currentPeriod) &&
+                    invalidStartAts.Contains(nextPeriod) &&
+                    current.ClassId == next.ClassId &&
+                    current.SubjectId == next.SubjectId && 
+                    nextPeriod - currentPeriod == 1)
+                {
+                    current.ConstraintErrors.Add(new()
+                    {
+                        Code = "SC01",
+                        IsHardConstraint = false,
+                        TeacherName = current.TeacherAbbreviation,
+                        ClassName = current.ClassName,
+                        SubjectName = current.SubjectName,
+                        Description = $"Lớp {current.ClassName}: " +
+                        $"Môn {current.SubjectName} " +
+                        $"nên tránh xếp vào các tiết 2,3 buổi sáng và 3,4 buổi chiều",
+                    });
+                    next.ConstraintErrors.Add(new()
+                    {
+                        Code = "SC01",
+                        IsHardConstraint = false,
+                        TeacherName = next.TeacherAbbreviation,
+                        ClassName = next.ClassName,
+                        SubjectName = next.SubjectName,
+                        Description = $"Lớp {next.ClassName}: " +
+                        $"Môn {next.SubjectName} " +
+                        $"nên tránh xếp vào các tiết 2,3 buổi sáng và 3,4 buổi chiều",
+                    });
+                    count += 2;
+                }
+            }
+
+            return count;
+        }
+        #endregion
+
         #endregion
 
         #region Crossover Methods
@@ -1058,12 +1124,13 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+
+        #region SinglePointCrossover
         /*
          * SinglePointCrossover thực hiện lai tạo điểm đơn (Single-Point Crossover) giữa hai cá thể bố mẹ để tạo ra hai cá thể con. 
          * Trong quá trình này, một điểm ngẫu nhiên được chọn trên chuỗi "nhiễm sắc thể" (chromosome), 
          * sau đó các phần trước và sau điểm đó sẽ được trao đổi giữa hai bố mẹ để tạo ra các cá thể con.
          */
-        #region SinglePointCrossover
         private List<TimetableIndividual> SinglePointCrossover(
             List<TimetableIndividual> parents,
             List<TimetableIndividual> children,
@@ -1284,12 +1351,17 @@ namespace SchedulifySystem.Service.Services.Implements
         {
 
             var day = startAt / 10;
-            var period = (startAt - 1) % 10;
+            var period = (startAt - 1) % 10 + 1 ;
             return (DAY_OF_WEEKS[day], SLOTS[period]);
+        }
+
+        private static int GetPeriod(int startAt)
+        {
+            return (startAt - 1) % 10 + 1;
         }
         private static bool IsMorningSlot(int startAt)
         {
-            return (startAt - 1) % 10 + 1 <= 5;
+            return GetPeriod(startAt) <= 5;
         }
 
         #endregion
