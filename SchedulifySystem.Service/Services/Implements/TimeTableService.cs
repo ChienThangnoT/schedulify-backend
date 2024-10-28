@@ -1244,6 +1244,53 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
+        #region CheckSC10
+        /*
+         * SC10: Ràng buộc về giáo viên có buổi nghỉ trong tuần
+         * Mỗi giáo viên có ít nhất một ngày nghỉ hoàn toàn (cả sáng lẫn chiều) trong tuần
+         */
+        private static int CheckSC10(TimetableIndividual src)
+        {
+            var count = 0;
+
+            // Lặp qua từng giáo viên  trong thời khóa biểu
+            foreach (var teacher in src.Teachers)
+            {
+                // Mảng đánh dấu xem giáo viên có dạy vào các ngày thứ 2 -> chủ nhật hay không
+                var daysTaught = new bool[7]; 
+
+                // Duyệt qua các tiết học của giáo viên này
+                foreach (var unit in src.TimetableUnits.Where(u => u.TeacherId == teacher.Id))
+                {
+                    // Tính ra ngày (từ thứ 2 -> thứ 7, tương ứng với day từ 0 -> 6)
+                    var day = (unit.StartAt - 1) / 10; 
+                    daysTaught[day] = true; 
+                }
+
+                // Kiểm tra xem có ít nhất một ngày mà giáo viên không phải dạy
+                if (!daysTaught.Contains(false)) 
+                {
+                    count++;
+
+                    // Ghi lại lỗi ràng buộc mềm cho tất cả các tiết của giáo viên này
+                    foreach (var unit in src.TimetableUnits.Where(u => u.TeacherId == teacher.Id))
+                    {
+                        unit.ConstraintErrors.Add(new ConstraintErrorModel
+                        {
+                            Code = "SC10", 
+                            IsHardConstraint = false, 
+                            TeacherName = teacher.Abbreviation,
+                            Description = $"Giáo viên {teacher.FirstName} {teacher.LastName} không có ngày nghỉ trong tuần."
+                        });
+                    }
+                }
+            }
+
+            return count; // Trả về số lượng vi phạm ràng buộc
+        }
+
+        #endregion
+
         #endregion
 
         #region Crossover Methods
