@@ -1104,27 +1104,33 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region CheckS03
+        #region CheckSC03
         /*
          * SC03: Ràng buộc về tiết trống của giáo viên trong trong một buổi học
          * Hạn chế tối đa tiết trống (gap) của giáo viên trong một buổi học.
          */
-        private static int CheckS03(TimetableIndividual src)
+        private static int CheckSC03(TimetableIndividual src)
         {
-            // đếm số tiết trống 
+            // đếm số vi phạm  
             var count = 0;
             for (var i = 0; i < src.Teachers.Count; i++)
             {
+                // lấy ra ds tiết học của gv đó 
                 var teacherPeriods = src.TimetableUnits
                     .Where(u => u.TeacherId == src.Teachers[i].Id)
                     .OrderBy(u => u.StartAt)
                     .ToList();
+
+                // loop qua theo buổi trong tuần 
                 for (var j = 1; j < 60; j += 5)
                 {
+                    // lấy ra ds tiết trong buổi đó 
                     var periods = teacherPeriods
                         .Where(p => p.StartAt < j + 5 && p.StartAt >= j)
                         .OrderBy(p => p.StartAt)
                         .ToList();
+
+                    // kiểm tra tiết học liên tiếp 
                     for (var k = 0; k < periods.Count - 1; k++)
                         if (periods[k].StartAt != periods[k + 1].StartAt - 1)
                             count++;
@@ -1132,8 +1138,45 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             return count;
         }
-        #endregion 
+        #endregion
 
+        #region CheckSC04
+        /*
+         * SC04:  Ràng buộc về thời gian nghỉ giữa hai buổi của giáo viên
+         * Đối với giáo viên dạy cả hai buổi trong một ngày, hạn chế việc xếp các phân công vào tiết cuối buổi sáng và tiết đầu buổi chiều.
+         */
+        private static int CheckSC04(TimetableIndividual src)
+        {
+            // đếm số vi phạm 
+            var count = 0;
+            for (var i = 0; i < src.Teachers.Count; i++)
+            {
+                // lấy ra ds các tiết của gv đó 
+                var teacherPeriods = src.TimetableUnits
+                    .Where(u => u.TeacherId == src.Teachers[i].Id)
+                    .OrderBy(u => u.StartAt)
+                    .ToList();
+
+                // loop theo ngày 
+                for (var j = 1; j < 60; j += 10)
+                {
+                    // kiểm tra gv có dạy cả buổi sáng và buổi chiều trong cùng 1 ngày 
+                    if (teacherPeriods.Any(p => p.StartAt >= j && p.StartAt < j + 5) &&
+                        teacherPeriods.Any(p => p.StartAt >= j + 5 && p.StartAt < j + 10))
+                    {
+                        // lấy ra ds tiết học có trong ngày 
+                        var periods = teacherPeriods
+                            .Where(p => p.StartAt < j + 10 && p.StartAt >= j)
+                            .ToList();
+                        // kiểm tra có tiết nào rơi vào tiết năm hoặc tiết 6 k 
+                        if (periods.Any(p => p.StartAt % 10 == 5 && p.StartAt % 10 == 6))
+                            count++;
+                    }
+                }
+            }
+            return count;
+        }
+        #endregion
         #endregion
 
         #region Crossover Methods
