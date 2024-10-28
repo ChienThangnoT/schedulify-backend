@@ -1077,6 +1077,29 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region CheckSC02
+        private static int CheckSC02(TimetableIndividual src)
+        {
+            // tổng số buổi tất cả gv phải đi dạy ( số này càng bé càng tốt )
+            var count = 0;
+
+            for (var i = 0; i < src.Teachers.Count; i++)
+            {
+                // ds tiết học của gv đó 
+                var teacherPeriods = src.TimetableUnits
+                    .Where(u => u.TeacherId == src.Teachers[i].Id)
+                    .ToList();
+                for (var j = 1; j < 60; j += 10)
+                {
+                    // nếu gv có tiết dạy 
+                    if (teacherPeriods.Any(p => p.StartAt >= j && p.StartAt < j + 10))
+                        count++;
+                }
+            }
+            return count;
+        }
+        #endregion
+
         #endregion
 
         #region Crossover Methods
