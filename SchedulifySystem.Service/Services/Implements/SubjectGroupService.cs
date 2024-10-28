@@ -215,7 +215,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     var studenClassName = new StudentClassViewName
                     {
-                        Name = student.Name
+                        StudentClassName = student.Name
                     };
                     result.StudentClassViews.Add(studenClassName);
                 }
@@ -234,8 +234,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     Abbreviation = item.Subject?.Abbreviation,
                     IsRequired = item.Subject?.IsRequired ?? false,
                     Description = item.Subject?.Description,
-                    MoringSlotPerWeek = item.MainSlotPerWeek,
-                    AfternoonSlotPerWeek = item.SubSlotPerWeek,
+                    MainSlotPerWeek = item.MainSlotPerWeek,
+                    SubSlotPerWeek = item.SubSlotPerWeek,
+                    TootalSlotPerWeek = item.MainSlotPerWeek + item.SubSlotPerWeek,
                     IsSpecialized = item.IsSpecialized,
                     IsDoublePeriod = item.IsDoublePeriod,
                     SlotPerTerm = item.SlotPerTerm,
@@ -284,11 +285,17 @@ namespace SchedulifySystem.Service.Services.Implements
         #region get subject groups
         public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (subjectGroupId != null)
             {
                 var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId)
                     ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            }
+            if (schoolYearId  != null)
+            {
+                var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync((int)schoolYearId, filter: t => t.IsDeleted == false)
+                    ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
             }
 
             var subjects = await _unitOfWork.SubjectGroupRepo.GetPaginationAsync(
@@ -297,6 +304,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 && (grade == null || t.Grade == (int)grade)
                 && (schoolYearId == null || t.SchoolYearId == schoolYearId)
                 && t.IsDeleted == includeDeleted,
+                orderBy: q => q.OrderBy(s => s.GroupCode),
                 pageIndex: pageIndex,
                 pageSize: pageSize
                 );
@@ -305,7 +313,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel()
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_SUCCESS
+                    Message = ConstantResponse.GET_SUBJECT_GROUP_LIST_FAILED
                 };
             }
             var result = _mapper.Map<Pagination<SubjectGroupViewModel>>(subjects);
@@ -317,7 +325,8 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
         #endregion
-        #region
+
+        #region Update Subject Group
         public async Task<BaseResponseModel> UpdateSubjectGroup(int subjectGroupId, SubjectGroupUpdateModel subjectGroupUpdateModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())

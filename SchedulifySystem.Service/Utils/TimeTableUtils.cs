@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,6 +20,11 @@ namespace SchedulifySystem.Service.Utils
                 yield return elements[swapIndex];
                 elements[swapIndex] = elements[i];
             }
+        }
+
+        public static void Swap(ClassPeriodScheduleModel a, ClassPeriodScheduleModel b)
+        {
+            (a.StartAt, b.StartAt) = (b.StartAt, a.StartAt);
         }
     }
 }

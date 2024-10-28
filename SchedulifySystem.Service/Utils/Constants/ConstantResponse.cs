@@ -91,7 +91,11 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string REQUIRE_ELECTIVE_SUBJECT = "Môn lựa chọn phải khác môn bắt buộc.";
         public const string INVALID_SPECIALIZED_SUBJECT = "Môn chuyên đề phải nằm trong nhóm môn bắt buộc hoặc là trong tổ hợp môn";
         public const string DELETE_SUBJECT_SUCCESS = "Delete subject success.";
-        
+
+        //subject in group
+        public const string SUBJECT_IN_GROUP_NOT_FOUND = "Subject in group not found.";
+        public const string UPDATE_SUBJECT_IN_GROUP_SUCCESS = "Update subject in group success.";
+
 
         //Room Type
         public const string ROOM_TYPE_NOT_EXIST = "The room type does not exist.";
@@ -114,6 +118,7 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //School Year
         public const string SCHOOL_YEAR_NOT_EXIST = "The school year does not exist.";
+        public const string GET_SCHOOL_YEAR_SUCCESS = "Get school year success.";
 
         //Teacher
         public const string TEACHER_NOT_EXIST = "The teacher does not exist.";
