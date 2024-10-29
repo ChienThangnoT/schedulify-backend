@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int? MainSession { get; set; }
         public bool IsFullDay { get; set; } = false;
         public int PeriodCount { get; set; }
-        public int Grade { get; set; }
+        public EGrade Grade { get; set; }
         
         [JsonIgnore]
         public int? HomeroomTeacherId { get; set; }

@@ -20,7 +20,7 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin, SchoolManager")]
-        public Task<IActionResult> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade,int? schoolYearId, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
+        public Task<IActionResult> GetSubjectGroups(int schoolId, int? subjectGroupId, EGrade? grade,int? schoolYearId, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade,schoolYearId, includeDeleted, pageIndex, pageSize));
         }

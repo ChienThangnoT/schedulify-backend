@@ -138,7 +138,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region GetStudentClassById
         public async Task<BaseResponseModel> GetStudentClassById(int id)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, include: query => query.Include(sc => sc.Teacher)) ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, include: query => query.Include(sc => sc.Teacher).Include(sc => sc.SubjectGroup) ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST));
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_CLASS_SUCCESS, Result = _mapper.Map<StudentClassViewModel>(existedClass) };
         }
         #endregion
@@ -149,7 +149,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var studentClasses = await _unitOfWork.StudentClassesRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
                 filter: sc => sc.SchoolId == schoolId && (includeDeleted ? true : sc.IsDeleted == false) && (grade == null ? true : sc.Grade == (int)grade ) && (schoolYearId == null ? true : sc.SchoolYearId == schoolYearId),
-                include: query => query.Include(sc => sc.Teacher));
+                include: query => query.Include(sc => sc.Teacher).Include(sc => sc.SubjectGroup));
             var studentClassesViewModel = _mapper.Map<Pagination<StudentClassViewModel>>(studentClasses);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_CLASS_SUCCESS, Result = studentClassesViewModel };
 
