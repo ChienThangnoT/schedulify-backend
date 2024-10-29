@@ -708,23 +708,29 @@ namespace SchedulifySystem.Service.Services.Implements
          */
         private static void CalculateAdaptability(TimetableIndividual src, GenerateTimetableModel parameters, bool isMinimized = false)
         {
-            var rate = isMinimized ? 0 : 1; //được đặt là 0 nếu bài toán tối thiểu hóa, và 1 nếu không
+            //var rate = isMinimized ? 0 : 1; //được đặt là 0 nếu bài toán tối thiểu hóa, và 1 nếu không
             //Mỗi cá thể có thể có danh sách các lỗi vi phạm ràng buộc (constraint errors).
             //Trước khi tính toán lại điểm thích nghi, hệ thống cần xóa tất cả các lỗi cũ.
             src.TimetableUnits.ForEach(u => u.ConstraintErrors.Clear());//Xóa các lỗi vi phạm cũ của từng tiết học (timetable unit).
             src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
-            src.Adaptability = 
-                CheckHC03(src, parameters) * 1000
+            src.Adaptability =
+                CheckHC01(src, parameters) * 10000
                 + CheckHC02(src) * 1000
-                + CheckHC05(src) * 10000;
+                + CheckHC03(src, parameters) * 1000
+                + CheckHC05(src) * 10000
+                + CheckHC07(src, parameters) * 1000
+                + CheckHC08(src) * 1000
+                + CheckHC09(src, parameters) * 1000;
 
             if (!isMinimized)
             {
-            //    src.Adaptability +=
-            //  CheckS01(src)
-            //+ CheckS02(src)
-            //+ CheckS03(src)
-            //+ CheckS04(src);
+                src.Adaptability +=
+                  CheckSC01(src)
+                + CheckSC02(src)
+                + CheckSC03(src)
+                + CheckSC04(src)
+                + CheckSC07(src)
+                + CheckSC10(src);
             }
             //src.GetConstraintErrors();
         }
