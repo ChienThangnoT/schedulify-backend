@@ -94,13 +94,13 @@ namespace SchedulifySystem.Service.Services.Implements
                     var parent2 = tournamentList[k + 1];
                     // lai
                     var children = Crossover(root, [parent1, parent2], parameters);
-
+                    //children.Id = currentId++;
                     timetableChildren.AddRange(children);
                 }
 
                 // Chọn lọc
                 timetablePopulation.AddRange(timetableChildren);
-                // TabuSearch(timetablePopulation[0], parameters);
+                //TabuSearch(timetablePopulation[0], parameters);
                 timetablePopulation = timetablePopulation.Where(u => u.Age < u.Longevity).OrderBy(i => i.Adaptability).Take(100).ToList();
 
                 var best = timetablePopulation.First();
