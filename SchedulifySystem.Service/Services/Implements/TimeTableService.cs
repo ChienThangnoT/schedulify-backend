@@ -69,6 +69,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var timetableIdBacklog = timetablePopulation.First().Id;
             var backlogCount = 0;
             var backlogCountMax = 0;
+            var currentId = 1;
             /*timetableIdBacklog, backlogCount, và backlogCountMax: Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh 
              * việc mắc kẹt trong tối ưu cục bộ.timetableIdBacklog, backlogCount, và backlogCountMax: 
               Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh việc mắc kẹt trong tối ưu cục bộ.*/
@@ -95,7 +96,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     var parent2 = tournamentList[k + 1];
                     // lai
                     var children = Crossover(root, [parent1, parent2], parameters);
-                    //children.Id = currentId++;
+                    foreach (var child in children)
+                    {
+                        child.Id = currentId++;
+                    }
                     timetableChildren.AddRange(children);
                 }
 
@@ -724,7 +728,7 @@ namespace SchedulifySystem.Service.Services.Implements
             if (!isMinimized)
             {
                 src.Adaptability +=
-                  CheckSC01(src)
+                 CheckSC01(src)
                 + CheckSC02(src)
                 + CheckSC03(src)
                 + CheckSC04(src)
