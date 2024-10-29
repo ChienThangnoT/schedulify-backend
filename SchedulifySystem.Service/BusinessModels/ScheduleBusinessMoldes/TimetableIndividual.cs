@@ -49,5 +49,18 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
             Teachers = teachers;
             DoubleSubjects = doubleSubjects;
         }
+
+        public void GetConstraintErrors()
+        {
+            if (TimetableUnits.Count == 0)
+                return;
+            // lấy ra các vi phạm ràng buộc  
+            foreach (var u in TimetableUnits)
+                ConstraintErrors.AddRange(u.ConstraintErrors);
+            // cập nhật constraint error , những lỗi giống nhau thì gộp , và order theo age
+            ConstraintErrors = [.. ConstraintErrors
+                .DistinctBy(x => new { x.SubjectName, x.TeacherName, x.ClassName, x.Code })
+                .OrderBy(x => x.Age)];
+        }
     }
 }

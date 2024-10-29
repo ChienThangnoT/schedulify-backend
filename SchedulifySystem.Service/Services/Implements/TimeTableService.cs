@@ -175,8 +175,6 @@ namespace SchedulifySystem.Service.Services.Implements
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
-            //return timetableFirst;
-
             return new BaseResponseModel() { Status = StatusCodes.Status200OK , Result = timetableFirst};
         }
         #endregion
@@ -652,7 +650,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         }
                         else
                         {
-                            RandomConsec(afternoonConsecs, afternoonStartAts, i, subPeriods, src);
+                            RandomConsec(afternoonConsecs, afternoonStartAts, i, mainPeriods, src);
                         }
                     }
                 }
@@ -732,7 +730,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckSC07(src)
                 + CheckSC10(src);
             }
-            //src.GetConstraintErrors();
+            src.GetConstraintErrors();
         }
         #region CheckHC01
         /*
@@ -1613,7 +1611,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 RandomlyAssign(individual, parameters);
                 individual.Id = currentId++;
                 //tính toán độ thích nghi (adaptability) của cá thể đó dựa trên các ràng buộc trong parameters
-                CalculateAdaptability(individual, parameters, true);
+                CalculateAdaptability(individual, parameters, false);
                 //cá thể vừa được tạo ra và tính toán độ thích nghi sẽ được thêm vào danh sách
                 timetablePopulation.Add(individual);
             }
@@ -1622,7 +1620,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private static void SortChromosome(TimetableIndividual src, EChromosomeType type)
         {
-
+            src.TimetableUnits = type switch
+            {
+                EChromosomeType.ClassChromosome => [.. src.TimetableUnits.OrderBy(u => u.ClassName)],
+                EChromosomeType.TeacherChromosome => [.. src.TimetableUnits.OrderBy(u => u.TeacherAbbreviation)],
+                _ => throw new NotImplementedException(),
+            };
         }
 
         //cập nhật lại flag dựa trên timetableUnits 

@@ -33,8 +33,21 @@ namespace SchedulifySystem.Service.Utils
 
         public static void ToCsv(this TimetableIndividual src)
         {
-            var path = "D:\\WorkPlace\\CSV\\Timetable.csv";
-            var errorPath = "D:\\WorkPlace\\CSV\\TimetableError.txt";
+            //var path = "D:\\WorkPlace\\CSV\\Timetable.csv";
+            //var errorPath = "D:\\WorkPlace\\CSV\\TimetableError.txt";
+            // Lấy thư mục gốc của ứng dụng
+            var basePath = AppDomain.CurrentDomain.BaseDirectory; // hoặc Directory.GetCurrentDirectory()
+            var csvDirectory = Path.Combine(basePath, "CSV");
+
+            // Kiểm tra xem thư mục CSV đã tồn tại hay chưa, nếu chưa thì tạo mới
+            if (!Directory.Exists(csvDirectory))
+            {
+                Directory.CreateDirectory(csvDirectory);
+            }
+
+            // Tạo đường dẫn đến file CSV và file lỗi
+            var path = Path.Combine(csvDirectory, "Timetable.csv");
+            var errorPath = Path.Combine(csvDirectory, "TimetableError.txt");
 
             //var path = "D:\\Workspace\\dotnet-asp\\fix\\10-be\\Timetable.csv";
             //var errorPath = "D:\\Workspace\\dotnet-asp\\fix\\10-be\\TimetableError.txt";
@@ -75,8 +88,22 @@ namespace SchedulifySystem.Service.Utils
 
         public static void ToCsv(this ETimetableFlag[,] timetableFlag, List<ClassScheduleModel> classes)
         {
-            var path = "D:\\WorkPlace\\CSV\\TimetableFlag.csv";
+            //var path = "D:\\WorkPlace\\CSV\\TimetableFlag.csv";
             //var path = "D:\\Workspace\\dotnet-asp\\fix\\10-be\\TimetableFlag.csv";
+
+            // Lấy thư mục gốc của ứng dụng
+            var basePath = AppDomain.CurrentDomain.BaseDirectory; // hoặc Directory.GetCurrentDirectory()
+            var csvDirectory = Path.Combine(basePath, "CSV");
+
+            // Kiểm tra xem thư mục CSV đã tồn tại hay chưa, nếu chưa thì tạo mới
+            if (!Directory.Exists(csvDirectory))
+            {
+                Directory.CreateDirectory(csvDirectory);
+            }
+
+            // Tạo đường dẫn đến file CSV và file lỗi
+            var path = Path.Combine(csvDirectory, "TimetableFlag.csv");
+
             var file = new StreamWriter(path);
             var columnCount = timetableFlag.GetLength(0);
             var rowCount = timetableFlag.GetLength(1);
