@@ -25,6 +25,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
+using static System.Collections.Specialized.BitVector32;
 
 namespace SchedulifySystem.Service.Services.Implements
 {
@@ -175,7 +176,7 @@ namespace SchedulifySystem.Service.Services.Implements
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK , Result = timetableFirst};
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = timetableFirst };
         }
         #endregion
 
@@ -742,7 +743,7 @@ namespace SchedulifySystem.Service.Services.Implements
             // đếm số lượng vi phạm
             var count = 0;
 
-            foreach(RoomSubjectScheduleModel roomSubject in parameters.PracticeRoomWithSubjects)
+            foreach (RoomSubjectScheduleModel roomSubject in parameters.PracticeRoomWithSubjects)
             {
                 // lấy ra các tiết học có môn thực hành 
                 var timetableUnits = src.TimetableUnits
@@ -751,10 +752,10 @@ namespace SchedulifySystem.Service.Services.Implements
                 // nhóm lại theo tiết học 
                 var groups = timetableUnits.GroupBy(u => u.StartAt).ToList();
 
-                foreach(var group in groups)
+                foreach (var group in groups)
                 {
                     var units = group.Select(g => g).ToList();
-                    if(units.Count > roomSubject.MaxClassPerTime)
+                    if (units.Count > roomSubject.MaxClassPerTime)
                     {
                         var (day, period) = GetDayAndPeriod(group.Key);
                         units.ForEach(u => u.ConstraintErrors.Add(new ConstraintErrorModel()
@@ -971,7 +972,7 @@ namespace SchedulifySystem.Service.Services.Implements
                                 });
                             });
 
-                            count += unitsInRoom.Count; 
+                            count += unitsInRoom.Count;
                         }
                     }
                 }
@@ -1103,6 +1104,76 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region
+        public int CheckHC10(TimetableIndividual src)
+        {
+            var count = 0;
+
+            // Lặp qua tất cả các lớp trong thời khóa biểu
+            foreach (var classItem in src.Classes)
+            {
+                // Lấy tất cả các tiết học của lớp, sắp xếp theo thời gian bắt đầu
+                var timetableUnits = src.TimetableUnits
+                    .Where(u => u.ClassId == classItem.Id)
+                    .OrderBy(u => u.StartAt)
+                    .ToList();
+
+                // Nhóm các tiết học theo buổi (sáng hoặc chiều)
+                var sessionGroups = timetableUnits
+                    .GroupBy(u => u.Session);
+
+                // Duyệt qua các nhóm buổi học để kiểm tra số lượng tiết
+                foreach (var sessionGroup in sessionGroups)
+                {
+                    var subjectGroups = sessionGroup.GroupBy(u => u.SubjectId);
+
+                    // Duyệt qua từng nhóm môn học trong buổi học
+                    foreach (var subjectGroup in subjectGroups)
+                    {
+                        var lessonCount = subjectGroup.Count();
+                        var firstSubject = subjectGroup.First();
+
+                        (string slot, string day) = GetDayAndPeriodString(firstSubject.StartAt);
+
+                        // Kiểm tra vi phạm nếu số lượng tiết lớn hơn 2
+                        if (lessonCount > 2)
+                        {
+                            count += AddConstraintErrors(subjectGroup, "HC10", $"Môn {firstSubject.SubjectName} có quá nhiều tiết trong buổi {(firstSubject.Session == MainSession.Morning ? "Sáng" : "Chiều")} vào thứ {day}.");
+                        }
+                        // Nếu là 2 tiết, kiểm tra xem đó có phải là tiết đôi không
+                        else if (lessonCount == 2)
+                        {
+                            var invalidDoubleLessons = subjectGroup.Where(u => u.Priority != EPriority.Double).ToList();
+                            if (invalidDoubleLessons.Any())
+                            {
+                                count += AddConstraintErrors(subjectGroup, "HC10", $"Môn {firstSubject.SubjectName} có quá nhiều tiết trong buổi {(firstSubject.Session == MainSession.Morning ? "Sáng" : "Chiều")} vào thứ {day}.");
+                            }
+                        }
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        private int AddConstraintErrors(IEnumerable<ClassPeriodScheduleModel> units, string errorCode, string description)
+        {
+            var count = 0;
+            foreach (var unit in units)
+            {
+                unit.ConstraintErrors.Add(new ConstraintErrorModel
+                {
+                    Code = errorCode,
+                    ClassName = unit.ClassName,
+                    SubjectName = unit.SubjectName,
+                    Description = description
+                });
+                count++;
+            }
+            return count;
+        }
+        #endregion
+
         #region CheckSC01
         /*
          * SC01: Ràng buộc về các tiết đôi không có giờ ra chơi xem giữa
@@ -1112,7 +1183,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             // đếm số vi phạm 
             var count = 0;
-            
+
             // lấy ra các tiết đôi 
             var doublePeriods = src.TimetableUnits
                 .Where(u => u.Priority == EPriority.Double)
@@ -1136,7 +1207,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (invalidStartAts.Contains(currentPeriod) &&
                     invalidStartAts.Contains(nextPeriod) &&
                     current.ClassId == next.ClassId &&
-                    current.SubjectId == next.SubjectId && 
+                    current.SubjectId == next.SubjectId &&
                     nextPeriod - currentPeriod == 1)
                 {
                     current.ConstraintErrors.Add(new()
@@ -1309,8 +1380,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
                             currentUnit.ConstraintErrors.Add(new ConstraintErrorModel
                             {
-                                Code = "SC07", 
-                                IsHardConstraint = false, 
+                                Code = "SC07",
+                                IsHardConstraint = false,
                                 ClassName = currentUnit.ClassName,
                                 SubjectName = currentUnit.SubjectName,
                                 Description = $"Lớp {currentUnit.ClassName}: " +
@@ -1319,8 +1390,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
                             nextUnit.ConstraintErrors.Add(new ConstraintErrorModel
                             {
-                                Code = "SC07", 
-                                IsHardConstraint = false, 
+                                Code = "SC07",
+                                IsHardConstraint = false,
                                 ClassName = nextUnit.ClassName,
                                 SubjectName = nextUnit.SubjectName,
                                 Description = $"Lớp {nextUnit.ClassName}: " +
@@ -1331,7 +1402,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            return count; 
+            return count;
         }
 
         #endregion
@@ -1349,18 +1420,18 @@ namespace SchedulifySystem.Service.Services.Implements
             foreach (var teacher in src.Teachers)
             {
                 // Mảng đánh dấu xem giáo viên có dạy vào các ngày thứ 2 -> chủ nhật hay không
-                var daysTaught = new bool[7]; 
+                var daysTaught = new bool[7];
 
                 // Duyệt qua các tiết học của giáo viên này
                 foreach (var unit in src.TimetableUnits.Where(u => u.TeacherId == teacher.Id))
                 {
                     // Tính ra ngày (từ thứ 2 -> thứ 7, tương ứng với day từ 0 -> 6)
-                    var day = (unit.StartAt - 1) / 10; 
-                    daysTaught[day] = true; 
+                    var day = (unit.StartAt - 1) / 10;
+                    daysTaught[day] = true;
                 }
 
                 // Kiểm tra xem có ít nhất một ngày mà giáo viên không phải dạy
-                if (!daysTaught.Contains(false)) 
+                if (!daysTaught.Contains(false))
                 {
                     count++;
 
@@ -1369,8 +1440,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     {
                         unit.ConstraintErrors.Add(new ConstraintErrorModel
                         {
-                            Code = "SC10", 
-                            IsHardConstraint = false, 
+                            Code = "SC10",
+                            IsHardConstraint = false,
                             TeacherName = teacher.Abbreviation,
                             Description = $"Giáo viên {teacher.FirstName} {teacher.LastName} không có ngày nghỉ trong tuần."
                         });
@@ -1662,7 +1733,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
 
             var day = startAt / 10;
-            var period = (startAt - 1) % 10 + 1 ;
+            var period = (startAt - 1) % 10 + 1;
             return (DAY_OF_WEEKS[day], SLOTS[period]);
         }
 
