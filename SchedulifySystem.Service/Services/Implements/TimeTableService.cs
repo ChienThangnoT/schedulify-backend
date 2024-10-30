@@ -697,8 +697,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     consecs.RemoveRange(randConsecIndex - 1, 2);
                 else
                     consecs.RemoveRange(randConsecIndex, 2);
-                startAts.Remove(periods[0].StartAt);
-                startAts.Remove(periods[1].StartAt);
+                startAts.Remove(periods[j].StartAt);
+                startAts.Remove(periods[j+1].StartAt);
             }
         }
 
@@ -779,6 +779,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region CheckHC02
+        
         /*
          * HC02: Ràng buộc đụng độ giáo viên
          * Các phân công khác nhau ứng với các lớp học khác nhau của cùng một giáo viên,
@@ -820,6 +821,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             return count;
         }
+
         #endregion
 
         #region CheckHC03
@@ -1578,17 +1580,22 @@ namespace SchedulifySystem.Service.Services.Implements
                     continue;
 
                 var className = "";
-                var teacherName = "";
+                var teacherAbbre = "";
                 List<int> randNumList = null!;
                 List<ClassPeriodScheduleModel> timetableUnits = null!;
 
                 switch (type)
                 {
                     case EChromosomeType.ClassChromosome:
+                        /*chọn ngẫu nhiên một lớp học từ cá thể hiện tại
+                        lấy danh sách các tiết học của lớp này nhưng không bao gồm các tiết fixed
+                        Tạo danh sách ngẫu nhiên randNumList để chọn ngẫu nhiên các tiết học.
+                         */
                         className = individuals[i].Classes[_random.Next(0, individuals[i].Classes.Count)].Name;
                         timetableUnits = individuals[i].TimetableUnits
                             .Where(u => u.ClassName == className && u.Priority != EPriority.Fixed).ToList();
                         randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
+
                         if (timetableUnits[randNumList[0]].Priority != EPriority.Double)
                             TimeTableUtils.Swap(timetableUnits[randNumList[0]], timetableUnits[randNumList[1]]);
                         else
@@ -1621,9 +1628,9 @@ namespace SchedulifySystem.Service.Services.Implements
                         break;
                     case EChromosomeType.TeacherChromosome:
                         //fix lai ở đây 
-                        teacherName = individuals[i].Teachers[_random.Next(0, individuals[i].Teachers.Count)].Abbreviation;
+                        teacherAbbre = individuals[i].Teachers[_random.Next(0, individuals[i].Teachers.Count)].Abbreviation;
                         timetableUnits = individuals[i].TimetableUnits
-                            .Where(u => u.TeacherAbbreviation == teacherName && u.Priority != EPriority.Fixed).ToList();
+                            .Where(u => u.TeacherAbbreviation == teacherAbbre && u.Priority != EPriority.Fixed).ToList();
                         randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
 
                         for (var j = 0; j < randNumList.Count - _random.Next(1, randNumList.Count - 1); j++)
