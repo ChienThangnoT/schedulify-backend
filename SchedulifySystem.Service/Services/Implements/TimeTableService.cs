@@ -723,7 +723,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckHC05(src) * 10000
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
-                + CheckHC09(src, parameters) * 1000;
+                + CheckHC09(src, parameters) * 1000
+                + CheckH11(src) * 1000;
 
             if (!isMinimized)
             {
@@ -1143,7 +1144,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region
+        #region CheckHC10
         public int CheckHC10(TimetableIndividual src)
         {
             var count = 0;
@@ -1213,6 +1214,75 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region CheckH11
+        // Ràng buuôcj về số tiết trống của 1 lớp trong buổi
+        // Các tiết trống nên được xếp vào cuối buổi
+        private static int CheckH11(TimetableIndividual src)
+        {
+            // Biến đếm số lỗi
+            var count = 0;
+
+            // Lặp qua tất cả các lớp
+            foreach (var classObj in src.Classes)
+            {
+                // Lấy ra các tiết học của lớp đó
+                var classTimetableUnits = src.TimetableUnits
+                    .Where(u => u.ClassId == classObj.Id)
+                    .OrderBy(u => u.StartAt)
+                    .ToList();
+
+                // Nhóm các tiết theo buổi sáng và chiều
+                var sessionGroups = classTimetableUnits.GroupBy(u => u.Session);
+
+                // Duyệt qua từng buổi (sáng hoặc chiều)
+                foreach (var sessionGroup in sessionGroups)
+                {
+                    var periodsInSession = sessionGroup.OrderBy(u => u.StartAt).ToList();
+                    var foundNonEmpty = false;
+
+                    // Duyệt qua tất cả các tiết trong buổi
+                    for (var i = 0; i < periodsInSession.Count; i++)
+                    {
+                        var period = periodsInSession[i];
+                        var classIndex = src.Classes.IndexOf(classObj);
+                        var timetableFlag = src.TimetableFlag[classIndex, period.StartAt];
+
+                        // Nếu phát hiện có tiết học (không phải Unfilled hoặc None)
+                        if (timetableFlag != ETimetableFlag.Unfilled && timetableFlag != ETimetableFlag.None)
+                        {
+                            foundNonEmpty = true;
+                        }
+
+                        // Nếu có tiết Unfilled nhưng đã tìm thấy tiết học trước đó, báo lỗi
+                        if (timetableFlag == ETimetableFlag.Unfilled && foundNonEmpty)
+                        {
+                            var (day, periodNumber) = GetDayAndPeriod(period.StartAt);
+
+                            var errorMessage =
+                                $"Lớp {period.ClassName}: " +
+                                $"Có tiết trống chưa được xếp (Unfilled) không được xếp vào cuối buổi " +
+                                $"vào thứ {day}, tiết {periodNumber}.";
+
+                            var error = new ConstraintErrorModel()
+                            {
+                                Code = "H11",
+                                ClassName = period.ClassName,
+                                Description = errorMessage
+                            };
+
+                            // Thêm lỗi vào danh sách lỗi của tiết Unfilled
+                            period.ConstraintErrors.Add(error);
+                            count++;
+                        }
+                    }
+                }
+            }
+
+            return count;
+        }
+
+
+        #endregion
         #region CheckSC01
         /*
          * SC01: Ràng buộc về các tiết đôi không có giờ ra chơi xem giữa
