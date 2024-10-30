@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.Enums
 {
-    public enum Grade
+    public enum ERoomType
     {
-        Khoi_10 = 1,
-        Khoi_11 = 2,
-        Khoi_12 = 3
+        PRACTICE_ROOM = 1,
+        LECTURE_ROOM = 2
     }
 }

@@ -30,7 +30,6 @@ public partial class SchedulifyContext : DbContext
     public DbSet<Department> Departments { get; set; }
     public DbSet<Room> Rooms { get; set; }
     public DbSet<Holiday> Holidays { get; set; }
-    public DbSet<RoomType> RoomTypes { get; set; }
     public DbSet<ScheduleConfig> ScheduleConfigs { get; set; }
     public DbSet<School> Schools { get; set; }
     public DbSet<SchoolSchedule> SchoolSchedules { get; set; }
@@ -263,21 +262,6 @@ public partial class SchedulifyContext : DbContext
             .HasOne(r => r.Building)
             .WithMany(b => b.Rooms)
             .HasForeignKey(r => r.BuildingId);
-        modelBuilder.Entity<Room>()
-            .HasOne(r => r.RoomType)
-            .WithMany(rt => rt.Rooms)
-            .HasForeignKey(r => r.RoomTypeId);
-
-        // RoomType Entity
-        modelBuilder.Entity<RoomType>()
-            .HasKey(rt => rt.Id);
-        modelBuilder.Entity<RoomType>()
-            .Property(rt => rt.Name)
-            .HasMaxLength(50);
-        modelBuilder.Entity<RoomType>()
-            .HasOne(r => r.School)
-            .WithMany(rt => rt.RoomTypes)
-            .HasForeignKey(r => r.SchoolId);
 
         // ScheduleConfig Entity
         modelBuilder.Entity<ScheduleConfig>()

@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.Repositories.Implements
 {
-    public class RoomTypeRepository : GenericRepository<RoomType>, IRoomTypeRepository
+    public class RoomSubjectRepository : GenericRepository<RoomSubject>, IRoomSubjectRepository
     {
-        public RoomTypeRepository(SchedulifyContext context) : base(context)
+        public RoomSubjectRepository(SchedulifyContext context) : base(context)
         {
         }
     }

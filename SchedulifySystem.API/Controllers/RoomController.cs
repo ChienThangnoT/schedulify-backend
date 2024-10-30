@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
@@ -26,7 +27,7 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize]
-        public Task<IActionResult> GetRooms(int schoolId, int? buildingId,int? RoomTypeId, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetRooms(int schoolId, int? buildingId,ERoomType? RoomTypeId, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _roomService.GetRooms(schoolId, buildingId,RoomTypeId, pageIndex, pageSize));
         }

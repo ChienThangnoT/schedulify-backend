@@ -283,7 +283,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region get subject groups
-        public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, Grade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, EGrade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) 
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
@@ -363,7 +363,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     //if have any class used subject group prevent update grade
-                    if (subjectGroupUpdateModel.Grade != 0 && subjectGroupUpdateModel.Grade != (Grade)subjectGroupDb.Grade)
+                    if (subjectGroupUpdateModel.Grade != 0 && subjectGroupUpdateModel.Grade != (EGrade)subjectGroupDb.Grade)
                     {
                         var classes = await _unitOfWork.StudentClassesRepo.GetAsync(
                             filter: t => t.Grade == (int)subjectGroupUpdateModel.Grade && t.SubjectGroupId == subjectGroupId && !t.IsDeleted);

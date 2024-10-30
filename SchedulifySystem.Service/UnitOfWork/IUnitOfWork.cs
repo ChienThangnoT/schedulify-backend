@@ -19,7 +19,6 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubjectRepository SubjectRepo{ get; }
         public IBuildingRepository BuildingRepo { get; }
         public IRoomRepository RoomRepo { get; }
-        public IRoomTypeRepository RoomTypeRepo { get; }
         public ISubjectGroupRepository SubjectGroupRepo { get; }
         public IDistrictRepository DistrictRepo { get; }
         public IProvinceRepository ProvinceRepo { get; }
@@ -30,6 +29,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ITeachableSubjectRepository TeachableSubjectRepo { get; }
         public ITermRepository TermRepo { get; }
         public ISubjectInGroupRepository SubjectInGroupRepo { get; }
+        public IRoomSubjectRepository RoomSubjectRepo { get; }
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

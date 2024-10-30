@@ -1,5 +1,6 @@
-﻿using SchedulifySystem.Repository.EntityModels;
+﻿
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
+using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,8 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<ClassPeriodScheduleModel> BusyTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết bận của gv 
         [JsonIgnore] 
         public List<ClassPeriodScheduleModel> FreeTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // Ds tiết trống - dùng cho kiểm tra tiết lủng // bỏ
+        [JsonIgnore]
+        public List<RoomSubjectScheduleModel> PracticeRoomWithSubjects { get; set; } = new List<RoomSubjectScheduleModel>(); //
 
         public int MaxPeriodPerSession { get; set; } = 5;
         public int MinPeriodPerSession { get; set; } = 0;

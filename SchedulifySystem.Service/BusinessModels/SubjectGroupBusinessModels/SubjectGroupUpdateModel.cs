@@ -13,7 +13,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
         public string? GroupName { get; set; }
         public string? GroupCode { get; set; }
         public string? GroupDescription { get; set; }
-        public Grade Grade { get; set; }
+        public EGrade Grade { get; set; }
         public bool IsDeleted { get; set; }
         public int? SchoolYearId { get; set; }
         public List<int> ElectiveSubjectIds { get; set; } = new List<int>();

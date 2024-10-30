@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.Repositories.Interfaces
 {
-    public interface IRoomTypeRepository : IGenericRepository<RoomType>
+    public interface IRoomSubjectRepository : IGenericRepository<RoomSubject>
     {
     }
 }
