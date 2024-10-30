@@ -1008,8 +1008,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 List<MainSession> sessions = classObj.IsFullDay
-                ? new List<MainSession> { MainSession.Morning, MainSession.Afternoon }
-                : new List<MainSession> { (MainSession)classObj.MainSession };
+                    ? new List<MainSession> { MainSession.Morning, MainSession.Afternoon }
+                    : new List<MainSession> { (MainSession)classObj.MainSession };
 
 
                 for (var day = 2; day <= 7; day++)
@@ -1022,11 +1022,11 @@ namespace SchedulifySystem.Service.Services.Implements
 
                         // lấy các tiết đơn trong buổi 
                         var singlePeriodUnits = classSingleTimetableUnits
-                        .Where(u => u.StartAt >= (day - 2) * 10 + startSlot &&
-                                    u.StartAt <= (day - 2) * 10 + endSlot &&
-                                    u.Priority != EPriority.Double &&
-                                    u.Session == session)
-                        .ToList();
+                            .Where(u => u.StartAt >= (day - 2) * 10 + startSlot &&
+                                        u.StartAt <= (day - 2) * 10 + endSlot &&
+                                        u.Priority != EPriority.Double &&
+                                        u.Session == session)
+                            .ToList();
 
                         // lấy các tiết đôi trong buổi 
                         var doublePeriodUnits = classSingleTimetableUnits
@@ -1036,10 +1036,10 @@ namespace SchedulifySystem.Service.Services.Implements
                                         u.Session == session)
                             .ToList();
 
-                        // kiểm tra 
+                        // kiểm tra
                         for (var i = 0; i < singlePeriodUnits.Count; i++)
-
-                            // nếu có tiết đơn > 1 or tiết đơn trùng tiết đôi 
+                        {
+                            // nếu có tiết đơn > 1 hoặc tiết đơn trùng tiết đôi 
                             if (singlePeriodUnits
                                 .Count(u => u.SubjectName == singlePeriodUnits[i].SubjectName) > 1 ||
                                 doublePeriodUnits.Select(s => s.SubjectName).Contains(singlePeriodUnits[i].SubjectName))
@@ -1056,10 +1056,43 @@ namespace SchedulifySystem.Service.Services.Implements
                                     Description = errorMessage
                                 };
                                 singlePeriodUnits[i].ConstraintErrors.Add(error);
-                                count += 1;
+                                count++;
                             }
-                    }
+                        }
 
+                        //update check nếu xuất hiện quá nhiều tiết đôi
+                        // kiểm tra số tiết đôi trong buổi
+                        var doublePeriodGroups = doublePeriodUnits
+                            .GroupBy(u => u.SubjectName)
+                            .ToList();
+
+                        foreach (var group in doublePeriodGroups)
+                        {
+                            // nếu có hơn 2 tiết đôi liên tiếp cho cùng một môn trong một buổi
+                            if (group.Count() > 2)
+                            {
+                                var errorMessage =
+                                    $"Lớp {group.First().ClassName}: " +
+                                    $"Môn {group.First().SubjectName} " +
+                                    $"có quá nhiều tiết đôi liên tiếp trong buổi {(session == MainSession.Morning ? "Sáng" : "Chiều")}.";
+
+                                var error = new ConstraintErrorModel()
+                                {
+                                    Code = "HC08",
+                                    ClassName = group.First().ClassName,
+                                    SubjectName = group.First().SubjectName,
+                                    Description = errorMessage
+                                };
+
+                                foreach (var unit in group)
+                                {
+                                    unit.ConstraintErrors.Add(error);
+                                }
+
+                                count++;
+                            }
+                        }
+                    }
                 }
             }
             return count;
@@ -1457,6 +1490,10 @@ namespace SchedulifySystem.Service.Services.Implements
 
             return count; // Trả về số lượng vi phạm ràng buộc
         }
+        #endregion
+
+        #region SC11
+        //
 
         #endregion
 
