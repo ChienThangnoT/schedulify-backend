@@ -49,6 +49,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string UPDATE_ROOM_SUCCESS = "Update room success.";
         public const string DELETE_ROOM_SUCCESS = "Delete room success.";
         public const string GET_ROOM_SUCCESS = "Get rooms success.";
+        public const string ROOM_TYPE_BAD_REQUEST = "Each pactical room require at least one subjects abreviation and it exists in database.";
 
         //Building
         public const string BUILDING_NOT_EXIST = "The building does not exist.";

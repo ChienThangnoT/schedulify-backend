@@ -22,7 +22,15 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.RoomCode, otp => otp.MapFrom(src => src.RoomCode.ToUpper()));
 
-            CreateMap<Room, RoomViewModel > ();
+            CreateMap<Room, RoomViewModel > ()
+               .ForMember(dest => dest.Subjects, opt => opt.MapFrom(src => src.RoomSubjects.Select(rs => new RoomSubjectViewModel
+               {
+                   SubjectId = (int)rs.SubjectId, 
+                   SubjectName = rs.Subject.SubjectName,
+                   Abbreviation = rs.Subject.Abbreviation
+
+               })));
+
         }
 
     }
