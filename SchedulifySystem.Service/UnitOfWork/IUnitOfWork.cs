@@ -19,7 +19,6 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubjectRepository SubjectRepo{ get; }
         public IBuildingRepository BuildingRepo { get; }
         public IRoomRepository RoomRepo { get; }
-        public IRoomTypeRepository RoomTypeRepo { get; }
         public ISubjectGroupRepository SubjectGroupRepo { get; }
         public IDistrictRepository DistrictRepo { get; }
         public IProvinceRepository ProvinceRepo { get; }
