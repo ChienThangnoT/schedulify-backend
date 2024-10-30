@@ -175,10 +175,6 @@ namespace SchedulifySystem.API
             services.AddTransient<IDistrictRepository, DistrictRepository>();
             //services.AddTransient<IDistrictService, IDistrictService>();
 
-            //config room type service and repo
-            services.AddTransient<IRoomTypeRepository, RoomTypeRepository>();
-            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
-
             //config province service and repo
             services.AddTransient<IProvinceRepository, ProvinceRepository>();
             //services.AddTransient<ISubjectGroupService, SubjectGroupService>();

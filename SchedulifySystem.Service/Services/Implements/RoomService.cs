@@ -6,6 +6,7 @@ using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.BuildingBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
@@ -94,25 +95,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.BUILDING_CODE_NOT_EXIST, Result = errorList };
             }
 
-            //check have room type in db
-            foreach (AddRoomModel model in models)
-            {
-                var found = await _unitOfWork.RoomTypeRepo.ToPaginationIncludeAsync(filter: rt => rt.SchoolId == schoolId && !rt.IsDeleted && rt.RoomTypeCode.Equals(model.RoomTypeCode.ToUpper()));
-                if (!found.Items.Any())
-                {
-                    errorList.Add(model);
-                }
-                else
-                {
-                    model.RoomTypeId = found.Items.FirstOrDefault()?.Id;
-                }
-            }
-
-            if (errorList.Any())
-            {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.ROOM_TYPE_CODE_NOT_EXIST, Result = errorList };
-            }
-
 
             // List of room names && code to check in the database
             var modelNames = models.Select(m => m.Name.ToLower()).ToList();
@@ -150,21 +132,17 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_ROOM_SUCCESS };
         }
 
-        public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, int? roomTypeId, int pageIndex = 1, int pageSize = 20)
+        public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, ERoomType? roomType, int pageIndex = 1, int pageSize = 20)
         {
             var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (buildingId != null)
             {
                 var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
             }
-            if (roomTypeId != null)
-            {
-                var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync((int)roomTypeId) ?? throw new NotExistsException(ConstantResponse.ROOM_TYPE_NOT_EXIST);
-            }
             var found = await _unitOfWork.RoomRepo
                 .ToPaginationIncludeAsync(
                     pageIndex, pageSize,
-                    filter: r => r.Building.SchoolId == schoolId && (buildingId == null ? true : r.Building.Id == buildingId) && (roomTypeId == null ? true : r.RoomTypeId == roomTypeId) && !r.IsDeleted
+                    filter: r => r.Building.SchoolId == schoolId && (buildingId == null ? true : r.Building.Id == buildingId) && (roomType == null || roomType == (ERoomType) r.RoomType) && !r.IsDeleted
                 );
             var response = _mapper.Map<Pagination<RoomViewModel>>(found);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_ROOM_SUCCESS, Result = response };
@@ -174,8 +152,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
             var _ = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
-            var __ = await _unitOfWork.RoomTypeRepo.GetByIdAsync(model.RoomTypeId) ?? throw new NotExistsException(ConstantResponse.ROOM_TYPE_NOT_EXIST);
-            
+             
             //check existed name or code
             var foundRooms = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
                 filter: b => !b.IsDeleted && b.Id != room.Id &&
