@@ -78,7 +78,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
             {
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.First().Adaptability < 1000)
+                if (timetablePopulation.First().Adaptability < 1000 && step > 2000 )
                     break;
 
                 // lai tạo
@@ -736,7 +736,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
-                + CheckH11(src) * 1000;
+                + CheckH11(src) * 10000;
 
             if (!isMinimized)
             {
@@ -1207,24 +1207,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
             return count;
         }
-
-        private int AddConstraintErrors(IEnumerable<ClassPeriodScheduleModel> units, string errorCode, string description)
-        {
-            var count = 0;
-            foreach (var unit in units)
-            {
-                unit.ConstraintErrors.Add(new ConstraintErrorModel
-                {
-                    Code = errorCode,
-                    ClassName = unit.ClassName,
-                    SubjectName = unit.SubjectName,
-                    Description = description
-                });
-                count++;
-            }
-            return count;
-        }
         #endregion
+
 
         #region CheckH11
         // Ràng buuôcj về số tiết trống của 1 lớp trong buổi
@@ -1292,9 +1276,34 @@ namespace SchedulifySystem.Service.Services.Implements
 
             return count;
         }
+        #endregion
 
+        #region 
+        /*
+         Rangf buộc về thời gian nghĩ giữa 2 buổi
+         Tức là buổi phụ phải cách buổi chính khóa ít nhất 1 slot
+         */
 
         #endregion
+
+        private int AddConstraintErrors(IEnumerable<ClassPeriodScheduleModel> units, string errorCode, string description)
+        {
+            var count = 0;
+            foreach (var unit in units)
+            {
+                unit.ConstraintErrors.Add(new ConstraintErrorModel
+                {
+                    Code = errorCode,
+                    ClassName = unit.ClassName,
+                    SubjectName = unit.SubjectName,
+                    Description = description
+                });
+                count++;
+            }
+            return count;
+        }
+        #endregion
+
         #region CheckSC01
         /*
          * SC01: Ràng buộc về các tiết đôi không có giờ ra chơi xem giữa
@@ -1576,8 +1585,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #region SC11
         //
-
-        #endregion
 
         #endregion
 
