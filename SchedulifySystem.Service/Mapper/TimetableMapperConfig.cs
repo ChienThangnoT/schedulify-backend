@@ -19,18 +19,24 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<FreeTimetablePeriodScheduleModel, ClassPeriodScheduleModel>();
 
             CreateMap<TimetableIndividual, SchoolSchedule>()
-            .ForMember(dest => dest.ClassSchedules, otp => otp.MapFrom(src => src.TimetableUnits.Select(p => new ClassSchedule() 
+            .ForMember(dest => dest.ClassSchedules, otp => otp.MapFrom(src => src.Classes.Select(c => new ClassSchedule() 
             { 
-                StudentClassId = p.ClassId,
-                Name = $"Thời khóa biểu lớp {p.ClassName}",
+                StudentClassId = c.Id,
+                Name = $"Thời khóa biểu lớp {c.Name}",
                 CreateDate = DateTime.UtcNow,
-                StudentClassName = p.ClassName,
-                ClassPeriods = src.TimetableUnits.Where(cp => cp.ClassId == p.ClassId).Select(cp => new ClassPeriod() 
+                StudentClassName = c.Name,
+                ClassPeriods = src.TimetableUnits.Where(cp => cp.ClassId == c.Id).Select(cp => new ClassPeriod() 
                 {
                     StartAt = cp.StartAt,
                     Priority = (int) cp.Priority,
-
-                }).ToList()
+                    TeacherAbbreviation = cp.TeacherAbbreviation,
+                    TeacherAssignmentId = cp.TeacherAssignmentId,
+                    TeacherId = cp.TeacherId,
+                    SubjectAbbreviation = cp.SubjectAbbreviation,
+                    SubjectId = cp.SubjectId,
+                    CreateDate = DateTime.UtcNow,
+                    DateOfWeek = cp.StartAt / 10,
+                }).OrderBy(cp => cp.StartAt).ToList()
             }
             )));
 

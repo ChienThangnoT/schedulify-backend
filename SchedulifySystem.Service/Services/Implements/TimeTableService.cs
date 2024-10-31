@@ -176,7 +176,18 @@ namespace SchedulifySystem.Service.Services.Implements
             //Console.SetCursorPosition(0, 0);
             //Console.Clear();
             //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
-
+            var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
+            timetableDb.SchoolId = parameters.SchoolId;
+            timetableDb.SchoolYearId = parameters.SchoolYearId;
+            timetableDb.Name = parameters.TimetableName;
+            timetableDb.TermId = parameters.TermId;
+            timetableDb.WeeklyRange = 6;
+            timetableDb.CreateDate = DateTime.UtcNow;
+            timetableDb.ExpiredDate = DateTime.UtcNow;
+            timetableDb.ApplyDate = DateTime.UtcNow;
+            timetableDb.FitnessPoint = timetableFirst.Adaptability;
+            _unitOfWork.SchoolScheduleRepo.AddAsync(timetableDb);
+            await _unitOfWork.SaveChangesAsync();
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
@@ -188,7 +199,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region SaveTimetableToDatabase
         private async void SaveTimetableToDatabase(TimetableIndividual src, GenerateTimetableModel para)
         {
-            
+           
         }
 
         #endregion
@@ -1304,6 +1315,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #endregion
+
         #region CheckSC01
         /*
          * SC01: Ràng buộc về các tiết đôi không có giờ ra chơi xem giữa
