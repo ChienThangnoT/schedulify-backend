@@ -80,7 +80,7 @@ namespace SchedulifySystem.Service.Services.Implements
             // check subject abreviation
 
             var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == schoolId));
-            var subjectAbreviations = subjects.Select(s => s.Abbreviation);
+            var subjectAbreviations = subjects.Select(s => s.Abbreviation.ToLower());
             foreach (var model in models)
             {
                 if(model.RoomType == ERoomType.PRACTICE_ROOM)
@@ -101,7 +101,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             {
                                 model.RoomSubjects.Add(new RoomSubject()
                                 {
-                                    SubjectId = subjects.First(sj => sj.Abbreviation == s).Id,
+                                    SubjectId = subjects.First(sj => sj.Abbreviation == s.ToLower()).Id,
                                     CreateDate = DateTime.UtcNow,
                                 });
                             }

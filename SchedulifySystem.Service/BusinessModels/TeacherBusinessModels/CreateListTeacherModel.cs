@@ -1,4 +1,5 @@
-﻿using SchedulifySystem.Service.Enums;
+﻿using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -40,5 +41,10 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public int? SchoolId { get; set; }
         [JsonIgnore]
         public int? DepartmentId { get; set; }
+
+        public List<string>? SubjectsAbreviation { get; set; }
+
+        [JsonIgnore]
+        public ICollection<TeachableSubject> TeachableSubjects { get; set; } = new List<TeachableSubject>();
     }
 }
