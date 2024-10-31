@@ -166,6 +166,9 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string CREATE_TERM_SUCCESS = "Create term success.";
         public const string UPDATE_TERM_SUCCESS = "Update term success.";
 
+        //Timetable
+        public const string TIMETABLE_NOT_FOUND = "The timetable does not exist.";
+        public const string GET_TIMETABLE_SUCCESS = "Get timetable success.";
 
     }
 }

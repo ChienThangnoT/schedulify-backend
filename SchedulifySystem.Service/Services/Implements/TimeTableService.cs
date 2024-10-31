@@ -7,6 +7,7 @@ using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+using SchedulifySystem.Service.BusinessModels.SchoolBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
@@ -1892,9 +1893,19 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #endregion
-        public Task<BaseResponseModel> Get(Guid id)
+        public async Task<BaseResponseModel> Get(int id)
         {
-            throw new NotImplementedException();
+          var timetable = await _unitOfWork.SchoolScheduleRepo.GetByIdAsync(id, 
+              include: query => query.Include(ss => ss.Term).Include(ss => ss.SchoolYear)
+              .Include(ss => ss.ClassSchedules).ThenInclude(cs => cs.ClassPeriods)) 
+                ?? throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_TIMETABLE_SUCCESS,
+                Result = _mapper.Map<SchoolScheduleViewModel>(timetable)
+            };
         }
 
         public Task<BaseResponseModel> Check(Guid timetableId)
@@ -1902,7 +1913,7 @@ namespace SchedulifySystem.Service.Services.Implements
             throw new NotImplementedException();
         }
 
-        public Task<BaseResponseModel> Delete(Guid id)
+        public Task<BaseResponseModel> Delete(int id)
         {
             throw new NotImplementedException();
         }
