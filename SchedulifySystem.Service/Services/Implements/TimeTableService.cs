@@ -176,6 +176,8 @@ namespace SchedulifySystem.Service.Services.Implements
             //Console.SetCursorPosition(0, 0);
             //Console.Clear();
             //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
+
+            // save to database 
             var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
             timetableDb.SchoolId = parameters.SchoolId;
             timetableDb.SchoolYearId = parameters.SchoolYearId;
@@ -188,20 +190,13 @@ namespace SchedulifySystem.Service.Services.Implements
             timetableDb.FitnessPoint = timetableFirst.Adaptability;
             _unitOfWork.SchoolScheduleRepo.AddAsync(timetableDb);
             await _unitOfWork.SaveChangesAsync();
+
+            // export csv
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = timetableFirst };
         }
-        #endregion
-
-
-        #region SaveTimetableToDatabase
-        private async void SaveTimetableToDatabase(TimetableIndividual src, GenerateTimetableModel para)
-        {
-           
-        }
-
         #endregion
 
         #region Convert Data 
@@ -1315,7 +1310,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         #endregion
-
         #region CheckSC01
         /*
          * SC01: Ràng buộc về các tiết đôi không có giờ ra chơi xem giữa
