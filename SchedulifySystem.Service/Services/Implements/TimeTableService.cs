@@ -670,12 +670,24 @@ namespace SchedulifySystem.Service.Services.Implements
                    .Shuffle()
                    .ToList();
 
-                if (morningStartAts.Count < morningPeriods.Count) throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
-                if (afternoonStartAts.Count < afternoonPeriods.Count) throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!");                                                                       // dải ngẫu nhiên assignment vào các tiết 
+                if (morningStartAts.Count < morningPeriods.Count) 
+                    throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
+                if (afternoonStartAts.Count < afternoonPeriods.Count) 
+                    throw new DefaultException("Số lượng tiết trống buổi chiều trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!");                                                                       // dải ngẫu nhiên assignment vào các tiết 
                 for (var j = 0; j < morningPeriods.Count; j++)
-                    morningPeriods[j].StartAt = morningStartAts[j];
+                {
+                    var randIndex = new Random().Next(morningStartAts.Count);
+                    morningPeriods[j].StartAt = morningStartAts[randIndex];
+                    morningStartAts.RemoveAt(randIndex);
+                }
+
                 for (var j = 0; j < afternoonPeriods.Count; j++)
-                    afternoonPeriods[j].StartAt = afternoonStartAts[j];
+                {
+                    var randIndex = new Random().Next(afternoonStartAts.Count);
+                    afternoonPeriods[j].StartAt = afternoonStartAts[randIndex];
+                    afternoonStartAts.RemoveAt(randIndex);
+                }
+
             }
         }
 
