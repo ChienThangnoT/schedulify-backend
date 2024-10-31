@@ -230,6 +230,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var subjectDetail = new SubjectViewDetailModel
                 {
+                    Id = item.Id,
                     SubjectName = item.Subject?.SubjectName,
                     Abbreviation = item.Subject?.Abbreviation,
                     IsRequired = item.Subject?.IsRequired ?? false,

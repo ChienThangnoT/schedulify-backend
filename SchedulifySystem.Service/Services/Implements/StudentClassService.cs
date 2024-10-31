@@ -89,14 +89,22 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_ABBREVIATION_NOT_EXIST, Result = errorList };
+                return new BaseResponseModel() 
+                { 
+                    Status = StatusCodes.Status404NotFound, 
+                    Message = ConstantResponse.TEACHER_ABBREVIATION_NOT_EXIST, 
+                    Result = errorList 
+                };
             }
 
 
             //check teacher is assigned other class
             foreach (CreateListStudentClassModel model in models)
             {
-                if (await _unitOfWork.StudentClassesRepo.ExistsAsync(filter: c => !c.IsDeleted && c.SchoolId == schoolId && c.HomeroomTeacherId == model.HomeroomTeacherId))
+                if (await _unitOfWork.StudentClassesRepo.ExistsAsync(
+                    filter: c => !c.IsDeleted && c.SchoolId == schoolId && 
+                    c.HomeroomTeacherId == model.HomeroomTeacherId)
+                    )
                 {
                     errorList.Add(model);
                 }
@@ -104,7 +112,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.HOMEROOM_TEACHER_ASSIGNED, Result = errorList };
+                return new BaseResponseModel() 
+                { 
+                    Status = StatusCodes.Status400BadRequest, 
+                    Message = ConstantResponse.HOMEROOM_TEACHER_ASSIGNED, 
+                    Result = errorList 
+                };
             }
 
 
