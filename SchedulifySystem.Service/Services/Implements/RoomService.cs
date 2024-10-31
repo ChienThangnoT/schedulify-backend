@@ -101,7 +101,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             {
                                 model.RoomSubjects.Add(new RoomSubject()
                                 {
-                                    SubjectId = subjects.First(sj => sj.Abbreviation == s.ToLower()).Id,
+                                    SubjectId = subjects.First(sj => sj.Abbreviation.ToLower().Equals(s.ToLower())).Id,
                                     CreateDate = DateTime.UtcNow,
                                 });
                             }

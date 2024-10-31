@@ -184,6 +184,15 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+
+        #region SaveTimetableToDatabase
+        private async void SaveTimetableToDatabase(TimetableIndividual src, GenerateTimetableModel para)
+        {
+            
+        }
+
+        #endregion
+
         #region Convert Data 
         public async void ConvertData(GenerateTimetableModel parameters)
         {
