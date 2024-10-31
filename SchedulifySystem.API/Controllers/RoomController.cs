@@ -32,6 +32,13 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _roomService.GetRooms(schoolId, buildingId,RoomTypeId, pageIndex, pageSize));
         }
 
+        [HttpGet("{id}")]
+        [Authorize]
+        public Task<IActionResult> GetRoomById(int id)
+        {
+            return ValidateAndExecute(() => _roomService.GetRoomById(id));
+        }
+
         [HttpDelete("{id}")]
         [Authorize]
         public Task<IActionResult> DeleteRoom(int id)

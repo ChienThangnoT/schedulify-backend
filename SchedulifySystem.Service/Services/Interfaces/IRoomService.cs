@@ -17,5 +17,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> CheckValidDataAddRooms(int schoolId, List<AddRoomModel> models);
         Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model);
         Task<BaseResponseModel> DeleteRoom(int RoomId);
+        Task<BaseResponseModel> GetRoomById(int roomId);
+
     }
 }

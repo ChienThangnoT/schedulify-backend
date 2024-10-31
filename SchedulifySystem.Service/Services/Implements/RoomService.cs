@@ -178,6 +178,19 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_ROOM_SUCCESS };
         }
 
+        public async Task<BaseResponseModel> GetRoomById(int roomId)
+        {
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(roomId, 
+                include: query => query.Include(r => r.RoomSubjects).ThenInclude(rs => rs.Subject)) 
+                ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_ROOM_SUCCESS,
+                Result = _mapper.Map<RoomViewModel>(room)
+            };
+        }
+
         public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, ERoomType? roomType, int pageIndex = 1, int pageSize = 20)
         {
             var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
