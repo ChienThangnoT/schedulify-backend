@@ -108,6 +108,43 @@ namespace SchedulifySystem.Repository.Repositories.Implements
             return await query.ToListAsync();
         }
 
+        public async Task<IEnumerable<T>> GetV2Async(
+    Expression<Func<T, bool>> filter = null,
+    Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
+    Func<IQueryable<T>, IQueryable<T>> include = null, // Thay thế includeProperties bằng Func
+    int? pageIndex = null,
+    int? pageSize = null)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            if (include != null)
+            {
+                query = include(query); // Thực hiện Include qua biểu thức
+            }
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            // Implementing pagination
+            if (pageIndex.HasValue && pageSize.HasValue)
+            {
+                int validPageIndex = pageIndex.Value > 0 ? pageIndex.Value - 1 : 0;
+                int validPageSize = pageSize.Value > 0 ? pageSize.Value : 10;
+
+                query = query.Skip(validPageIndex * validPageSize).Take(validPageSize);
+            }
+
+            return await query.ToListAsync();
+        }
+
+
         public async Task<int> CountAsync(Expression<Func<T, bool>> filter = null)
         {
             IQueryable<T> query = _dbSet;

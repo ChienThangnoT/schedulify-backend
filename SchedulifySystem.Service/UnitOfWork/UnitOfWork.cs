@@ -18,19 +18,21 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly ITeacherRepository _teacherRepository;
         private readonly ISchoolRepository _schoolRepository;
         private readonly IStudentClassesRepository _studentClassesRepository;
-        private readonly IStudentClassInGroupRepository _studentClassInGroupRepository;
-        private readonly IClassGroupRepository _classGroupRepository;
         private readonly ISubjectRepository _subjectRepository;
         private readonly IBuildingRepository _buildingRepository;
         private readonly IRoomRepository _roomRepository;
-        private readonly IRoomTypeRepository _roomTypeRepository;
         private readonly IProvinceRepository _provinceRepository;
         private readonly IOtpRepository _otpRepository;
-        private readonly ISubjectGroupTypeRepository _subjectGroupTypeRepository;
         private readonly ISubjectGroupRepository _subjectGroupRepository;
         private readonly IDistrictRepository _districtRepository;
         private readonly ISchoolYearRepository _schoolYearRepository;
         private readonly IDepartmentRepository _departmentRepository;
+        private readonly ITeacherAssignmentRepository _teacherAssignmentRepository;
+        private readonly ITeachableSubjectRepository _teachableSubjectRepository;
+        private readonly ITermRepository _termRepository;
+        private readonly ISubjectInGroupRepository _subjectInGroupRepository;
+        private readonly IRoomSubjectRepository _roomSubjectRepository;
+        private readonly ISchoolScheduleRepository _schoolScheduleRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -39,19 +41,21 @@ namespace SchedulifySystem.Service.UnitOfWork
             ITeacherRepository teacherRepository,
             ISchoolRepository schoolRepository,
             IStudentClassesRepository studentClassesRepository,
-            IStudentClassInGroupRepository studentClassInGroupRepository,
-            IClassGroupRepository classGroupRepository,
             ISubjectRepository subjectRepository,
             IBuildingRepository buildingRepository,
             IRoomRepository roomRepository,
-            IRoomTypeRepository roomTypeRepository,
             ISubjectGroupRepository subjectGroupRepository,
             IDistrictRepository districtRepository,
             IProvinceRepository provinceRepository,
             IOtpRepository otpRepository,
             ISchoolYearRepository schoolYearRepository,
             IDepartmentRepository departmentRepository,
-            ISubjectGroupTypeRepository subjectGroupTypeRepository)
+            ITeacherAssignmentRepository teacherAssignmentRepository,
+            ITeachableSubjectRepository teachableSubjectRepository,
+            ITermRepository termRepository,
+            ISubjectInGroupRepository subjectInGroupRepository,
+            IRoomSubjectRepository roomSubjectRepository,
+            ISchoolScheduleRepository schoolScheduleRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -60,19 +64,21 @@ namespace SchedulifySystem.Service.UnitOfWork
             _teacherRepository = teacherRepository;
             _schoolRepository = schoolRepository;
             _studentClassesRepository = studentClassesRepository;
-            _studentClassInGroupRepository = studentClassInGroupRepository;
-            _classGroupRepository = classGroupRepository;
             _subjectRepository = subjectRepository;
             _buildingRepository = buildingRepository;
             _subjectGroupRepository = subjectGroupRepository;
             _districtRepository = districtRepository;
             _roomRepository = roomRepository;
-            _roomTypeRepository = roomTypeRepository;
             _provinceRepository = provinceRepository;
             _otpRepository = otpRepository;
-            _subjectGroupTypeRepository = subjectGroupTypeRepository;
             _schoolYearRepository = schoolYearRepository;
             _departmentRepository = departmentRepository;
+            _teacherAssignmentRepository = teacherAssignmentRepository;
+            _teachableSubjectRepository = teachableSubjectRepository;
+            _termRepository = termRepository;
+            _subjectInGroupRepository = subjectInGroupRepository;
+            _roomSubjectRepository = roomSubjectRepository;
+            _schoolScheduleRepository = schoolScheduleRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -82,20 +88,22 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISchoolRepository SchoolRepo => _schoolRepository;
         public IStudentClassesRepository StudentClassesRepo => _studentClassesRepository;
         public ISubjectRepository SubjectRepo => _subjectRepository;
-        public IStudentClassInGroupRepository StudentClassInGroupRepo => _studentClassInGroupRepository;
-        public IClassGroupRepository ClassGroupRepo => _classGroupRepository;
         public IBuildingRepository BuildingRepo => _buildingRepository;
         public ISubjectGroupRepository SubjectGroupRepo => _subjectGroupRepository;
         public IDistrictRepository DistrictRepo=> _districtRepository;
         public IProvinceRepository ProvinceRepo => _provinceRepository;
         public IRoomRepository RoomRepo => _roomRepository;
-        public IRoomTypeRepository RoomTypeRepo => _roomTypeRepository;
         public IOtpRepository OTPRepo => _otpRepository;
-        public ISubjectGroupTypeRepository SubjectGroupTypeRepo => _subjectGroupTypeRepository;
-
         public ISchoolYearRepository SchoolYearRepo => _schoolYearRepository;
-
         public IDepartmentRepository DepartmentRepo => _departmentRepository;
+        public ITeacherAssignmentRepository TeacherAssigntRepo=> _teacherAssignmentRepository;
+        public ITeacherAssignmentRepository TeacherAssignmentRepo => _teacherAssignmentRepository;
+        public ITeachableSubjectRepository TeachableSubjectRepo => _teachableSubjectRepository;
+        public ITermRepository TermRepo => _termRepository;
+        public ISubjectInGroupRepository SubjectInGroupRepo => _subjectInGroupRepository;
+        public IRoomSubjectRepository RoomSubjectRepo => _roomSubjectRepository;
+
+        public ISchoolScheduleRepository SchoolScheduleRepo => _schoolScheduleRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {

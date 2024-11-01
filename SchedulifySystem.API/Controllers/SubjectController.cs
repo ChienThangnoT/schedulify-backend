@@ -25,11 +25,11 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _subjectService.GetSubjectById(id));
         }
 
-        [HttpGet]
+        [HttpGet("{schoolId}/subjects")]
         [Authorize]
-        public Task<IActionResult> GetSubjectListWithSchoolId(int schoolId, string? schoolName, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetSubjectListWithSchoolId(int schoolId, string? subjectName, bool? isRequired,bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(()=> _subjectService.GetSubjectBySchoolId(schoolId, schoolName, includeDeleted, pageSize, pageIndex));
+            return ValidateAndExecute(()=> _subjectService.GetSubjectBySchoolId(schoolId, subjectName, isRequired, includeDeleted, pageSize, pageIndex));
         }
 
         [HttpPost("{schoolId}/subjects")]
@@ -39,11 +39,18 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _subjectService.CreateSubjectList(schoolId, subjectAddModel));
         }
 
-        [HttpPut("{subjectId}")]
+        [HttpPut("{id}")]
         [Authorize(Roles = "Admin, SchoolManager")]
-        public Task<IActionResult> UpdateSubjectById(int subjectId, SubjectUpdateModel subjectUpdate)
+        public Task<IActionResult> UpdateSubjectById(int id, SubjectUpdateModel subjectUpdate)
         {
-            return ValidateAndExecute(() => _subjectService.UpdateSubjectById(subjectId, subjectUpdate));
+            return ValidateAndExecute(() => _subjectService.UpdateSubjectById(id, subjectUpdate));
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin, SchoolManager")]
+        public Task<IActionResult> DeleteSubjectById(int id)
+        {
+            return ValidateAndExecute(() => _subjectService.DeleteSubjectById(id));
         }
     }
 }

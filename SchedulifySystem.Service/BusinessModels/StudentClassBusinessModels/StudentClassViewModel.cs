@@ -1,4 +1,5 @@
 ﻿using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +16,16 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public string? HomeroomTeacherAbbreviation { get; set; }
         public int MainSession { get; set; }
         public string? MainSessionText { get; set; }
-        public int Status { get; set; }
-        public string? GradeName { get; set; }
-        public int GradeId { get; set; }
-        public int ClassGroupId { get; set; }
+        public EGrade Grade { get; set; }
+        public bool IsFullDay { get; set; }
+        public int PeriodCount { get; set; }
+        public int? SubjectGroupId { get; set; }
+        public string SubjectGroupName { get; set; }
+        public int? SchoolYearId { get; set; }
+    }
+
+    public class StudentClassViewName
+    {
+        public string? StudentClassName { get; set; }
     }
 }

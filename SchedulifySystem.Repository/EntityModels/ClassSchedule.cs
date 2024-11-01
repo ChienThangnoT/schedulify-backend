@@ -11,7 +11,10 @@ namespace SchedulifySystem.Repository.EntityModels
         public int Status { get; set; }
         public string? Name { get; set; }
         public int SchoolScheduleId { get; set; }
+        public int? StudentClassId { get; set; }
+        public string? StudentClassName { get; set; }
 
+        public StudentClass StudentClass { get; set; }
         public SchoolSchedule? SchoolSchedule { get; set; }
         public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();
     }

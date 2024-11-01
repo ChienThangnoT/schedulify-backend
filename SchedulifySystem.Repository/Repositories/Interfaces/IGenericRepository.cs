@@ -25,6 +25,14 @@ namespace SchedulifySystem.Repository.Repositories.Interfaces
             string includeProperties = "",
             int? pageIndex = 1,
             int? pageSize = 20);
+
+        Task<IEnumerable<T>> GetV2Async(
+            Expression<Func<T, bool>> filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
+            Func<IQueryable<T>, IQueryable<T>> include = null,
+            int? pageIndex = null,
+            int? pageSize = null);
+
         Task<Pagination<T>> ToPaginationAsync(int pageIndex = 1, int pageSize = 20);
 
         Task<Pagination<T>> GetPaginationAsync(

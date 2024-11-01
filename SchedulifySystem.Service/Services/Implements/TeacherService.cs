@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
@@ -80,16 +81,24 @@ namespace SchedulifySystem.Service.Services.Implements
         #region CreateTeachers
         public async Task<BaseResponseModel> CreateTeachers(int schoolId, List<CreateListTeacherModel> models)
         {
-            var check = await CheckValidDataAddTeacher(schoolId, models);
-            if (check.Status != StatusCodes.Status200OK)
+            try
             {
-                return check;
-            }
+                var check = await CheckValidDataAddTeacher(schoolId, models);
+                if (check.Status != StatusCodes.Status200OK)
+                {
+                    return check;
+                }
 
-            var teachers = _mapper.Map<List<Teacher>>(models);
-            await _unitOfWork.TeacherRepo.AddRangeAsync(teachers);
-            await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_TEACHER_SUCCESS };
+                var teachers = _mapper.Map<List<Teacher>>(models);
+                await _unitOfWork.TeacherRepo.AddRangeAsync(teachers);
+                await _unitOfWork.SaveChangesAsync();
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_TEACHER_SUCCESS };
+
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         #endregion
@@ -131,6 +140,47 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.DEPARTMENT_NOT_EXIST, Result = errorList };
             }
+
+            // check subject exist 
+            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == schoolId)) ?? new List<Subject>();
+            var subjectAbreviations = subjects.Select(s => s.Abbreviation.ToLower()).ToHashSet();
+            var subjectNotExist = models.SelectMany(g => g.SubjectsAbreviation)
+                .Where(s => !subjectAbreviations.Contains(s.ToLower())).ToList();
+
+            if (subjectNotExist.Any())
+            {
+                foreach (var model in models)
+                {
+                    if (model.SubjectsAbreviation.All(s => subjectNotExist.Contains(s.ToLower())))
+                    {
+                        errorList.Add(model);
+                    }
+                }
+
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.SUBJECT_NOT_EXISTED,
+                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)).ToList(), errorList }
+                };
+            }
+            else
+            {
+                var subjectLookup = subjects.ToDictionary(s => s.Abbreviation.ToLower(), s => s.Id);
+
+                foreach (var model in models)
+                {
+                    var teachableSubject = model.SubjectsAbreviation
+                        .Select(s => new TeachableSubject
+                        {
+                            CreateDate = DateTime.UtcNow,
+                            SubjectId = subjectLookup[s.ToLower()]
+                        }).ToList();
+
+                    model.TeachableSubjects = teachableSubject;
+                }
+            }
+
 
             foreach (var model in models)
             {
@@ -175,7 +225,7 @@ namespace SchedulifySystem.Service.Services.Implements
             _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false),
-                include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects));
+                include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
             var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
         }
@@ -186,28 +236,114 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
-                try
+                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, include: query => query.Include(t => t.TeachableSubjects));
+                if (existedTeacher == null)
                 {
+                    return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
+                }
 
-                    var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
-                    if (existedTeacher == null)
+                // Chỉ cập nhật các trường không null
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.FirstName))
+                {
+                    existedTeacher.FirstName = updateTeacherRequestModel.FirstName;
+                }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.LastName))
+                {
+                    existedTeacher.LastName = updateTeacherRequestModel.LastName;
+                }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.Abbreviation))
+                {
+                    existedTeacher.Abbreviation = updateTeacherRequestModel.Abbreviation;
+                }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.Email))
+                {
+                    existedTeacher.Email = updateTeacherRequestModel.Email;
+                }
+                if (updateTeacherRequestModel.Gender.HasValue)
+                {
+                    existedTeacher.Gender = (int)updateTeacherRequestModel.Gender;
+                }
+                if (updateTeacherRequestModel.DepartmentId.HasValue && updateTeacherRequestModel.DepartmentId != 0)
+                {
+                    var _ = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)updateTeacherRequestModel.DepartmentId)
+                        ?? throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
+                    existedTeacher.DepartmentId = updateTeacherRequestModel.DepartmentId.Value;
+                }
+                if (updateTeacherRequestModel.DateOfBirth.HasValue)
+                {
+                    existedTeacher.DateOfBirth = updateTeacherRequestModel.DateOfBirth.Value;
+                }
+                if (updateTeacherRequestModel.SchoolId.HasValue && updateTeacherRequestModel.SchoolId != 0)
+                {
+                    var _ = await _unitOfWork.SchoolRepo.GetByIdAsync((int)updateTeacherRequestModel.SchoolId)
+                        ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+                    existedTeacher.SchoolId = updateTeacherRequestModel.SchoolId.Value;
+                }
+                if (updateTeacherRequestModel.TeacherRole.HasValue)
+                {
+                    existedTeacher.TeacherRole = (int)updateTeacherRequestModel.TeacherRole;
+                }
+                if (updateTeacherRequestModel.Status.HasValue)
+                {
+                    existedTeacher.Status = (int)updateTeacherRequestModel.Status;
+                }
+                if (!string.IsNullOrEmpty(updateTeacherRequestModel.Phone))
+                {
+                    existedTeacher.Phone = updateTeacherRequestModel.Phone;
+                }
+                if (updateTeacherRequestModel.IsDeleted.HasValue)
+                {
+                    existedTeacher.IsDeleted = updateTeacherRequestModel.IsDeleted.Value;
+                }
+
+                // Check subject
+                var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == updateTeacherRequestModel.SchoolId));
+                var subjectIds = subjects.Select(s => s.Id).ToList();
+                var newTeachableSubjects = new List<TeachableSubject>();
+
+
+                    if (updateTeacherRequestModel.TeachableSubjectIds == null || !updateTeacherRequestModel.TeachableSubjectIds.All(s => subjectIds.Contains(s)))
                     {
-                        return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
+                        return new BaseResponseModel
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.SUBJECT_NOT_EXISTED
+                        };
                     }
-                    _mapper.Map(updateTeacherRequestModel, existedTeacher);
-                    _unitOfWork.TeacherRepo.Update(existedTeacher);
-                    await _unitOfWork.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_TEACHER_SUCCESS };
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
-                }
-            }
 
+                    // Xóa những TeachableSubject không còn nằm trong danh sách SubjectIds và xóa chúng khỏi db
+                    var subjectsToRemove = existedTeacher.TeachableSubjects
+                        .Where(rs => !updateTeacherRequestModel.TeachableSubjectIds.Contains((int)rs.SubjectId))
+                        .ToList();
+
+                    foreach (var subjectToRemove in subjectsToRemove)
+                    {
+                        _unitOfWork.TeachableSubjectRepo.Remove(subjectToRemove); // Xóa trực tiếp từ repo
+                    }
+
+                    // Thêm các môn học mới vào TeachableSubjects nếu chưa có
+                    foreach (var item in updateTeacherRequestModel.TeachableSubjectIds)
+                    {
+                        if (!existedTeacher.TeachableSubjects.Any(rs => rs.SubjectId == item))
+                        {
+                            newTeachableSubjects.Add(new TeachableSubject() { TeacherId = existedTeacher.Id, SubjectId = item, CreateDate = DateTime.UtcNow });
+                        }
+                    }
+
+                    // Thêm các TeachableSubject mới vào db
+                    if (newTeachableSubjects.Any())
+                    {
+                        await _unitOfWork.TeachableSubjectRepo.AddRangeAsync(newTeachableSubjects); // Sử dụng repo để thêm các RoomSubject mới
+                    }
+
+
+                _unitOfWork.TeacherRepo.Update(existedTeacher);
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_TEACHER_SUCCESS };
+            }
         }
+
         #endregion
 
         #region GetTeacherById
@@ -215,7 +351,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             try
             {
-                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
+                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
                 var teachersResponse = _mapper.Map<TeacherViewModel>(teacher);
                 return teacher != null ? new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse } :
                     new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };

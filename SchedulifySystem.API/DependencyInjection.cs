@@ -145,13 +145,6 @@ namespace SchedulifySystem.API
             services.AddTransient<IRoleAssignmentRepository, RoleAssignmentRepository>();
             services.AddTransient<IRoleAssignmentService, RoleAssignmentService>();
 
-            //config class in group  repo
-            services.AddTransient<IStudentClassInGroupRepository, StudentClassInGroupRepository>();
-
-            //config class group service and repo
-            services.AddTransient<IClassGroupRepository, ClassGroupRepository>();
-            services.AddTransient<IClassGroupService, ClassGroupService>();
-
             //config school service and repo
             services.AddTransient<ISchoolRepository, SchoolRepository>();
             services.AddTransient<ISchoolService, SchoolService>();
@@ -169,6 +162,10 @@ namespace SchedulifySystem.API
             services.AddTransient<IRoomRepository, RoomRepository>();
             services.AddTransient<IRoomService, RoomService>();
 
+            //config room subject  repo
+            services.AddTransient<IRoomSubjectRepository, RoomSubjectRepository>();
+            
+
             //config subject group service and repo
             services.AddTransient<ISubjectGroupRepository, SubjectGroupRepository>();
             services.AddTransient<ISubjectGroupService, SubjectGroupService>();
@@ -177,10 +174,6 @@ namespace SchedulifySystem.API
             //config district service and repo
             services.AddTransient<IDistrictRepository, DistrictRepository>();
             //services.AddTransient<IDistrictService, IDistrictService>();
-
-            //config room type service and repo
-            services.AddTransient<IRoomTypeRepository, RoomTypeRepository>();
-            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
 
             //config province service and repo
             services.AddTransient<IProvinceRepository, ProvinceRepository>();
@@ -192,15 +185,33 @@ namespace SchedulifySystem.API
 
             //config school year service and repo
             services.AddTransient<ISchoolYearRepository, SchoolYearRepository>();
-            //services.AddTransient<IOtpService, OtpService>();
+            services.AddTransient<ISchoolYearService, SchoolYearService>();
 
             //config Department service and repo
             services.AddTransient<IDepartmentRepository, DepartmentRepository>();
-            //services.AddTransient<IOtpService, OtpService>();
+            services.AddTransient<IDepartmentService, DepartmentService>();
 
-            //config subject group type service and repo
-            services.AddTransient<ISubjectGroupTypeRepository, SubjectGroupTypeRepository>();
-            //services.AddTransient<ISubjectGroupTypeService, SubjectGroupTypeService>();
+            //config TeacherAssignment service and repo
+            services.AddTransient<ITeacherAssignmentRepository, TeacherAssignmentRepository>();
+            services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
+
+            //config TeachableSubject service and repo
+            services.AddTransient<ITeachableSubjectRepository, TeachableSubjectRepository>();
+            //services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
+
+            //config Term service and repo
+            services.AddTransient<ITermRepository, TermRepository>();
+            services.AddTransient<ITermService, TermService>();
+
+            //config Subject in group service and repo
+            services.AddTransient<ISubjectInGroupRepository, SubjectInGroupRepository>();
+            services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+
+            //config Timetable service and repo
+            services.AddTransient<ISchoolScheduleRepository, SchoolScheduleRepository>();
+            services.AddTransient<ITimetableService, TimeTableService>();
+            
+
 
             #endregion
 

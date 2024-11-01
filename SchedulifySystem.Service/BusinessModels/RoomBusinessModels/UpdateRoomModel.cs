@@ -10,10 +10,11 @@ namespace SchedulifySystem.Service.BusinessModels.RoomBusinessModels
     public class UpdateRoomModel
     {
         public string Name { get; set; }
-        public int RoomTypeId { get; set; }
+        public ERoomType RoomType { get; set; }
         public int MaxClassPerTime { get; set; }
         public string? RoomCode { get; set; }
         public int BuildingId { get; set; }
         public AvailabilityStatus AvailabilityeStatus { get; set; }
+        public List<int>? SubjectIds { get; set; }
     }
 }

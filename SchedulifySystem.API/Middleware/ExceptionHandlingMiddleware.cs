@@ -35,6 +35,10 @@ namespace SchedulifySystem.API.Middleware
             {
                 await HandleExceptionAsync(context, ex, StatusCodes.Status400BadRequest);
             }
+            catch (DefaultException ex)
+            {
+                await HandleExceptionAsync(context, ex, StatusCodes.Status400BadRequest);
+            }
             catch (Exception ex)
             {
                 await HandleExceptionAsync(context, ex, StatusCodes.Status500InternalServerError);
