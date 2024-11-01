@@ -7,6 +7,7 @@ using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+using SchedulifySystem.Service.BusinessModels.SchoolBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
@@ -21,6 +22,7 @@ using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -78,7 +80,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
             {
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.First().Adaptability < 1000)
+                if (timetablePopulation.First().Adaptability < 1000 && step > 50)
                     break;
 
                 // lai tạo
@@ -177,6 +179,21 @@ namespace SchedulifySystem.Service.Services.Implements
             //Console.Clear();
             //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
 
+            // save to database 
+            //var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
+            //timetableDb.SchoolId = parameters.SchoolId;
+            //timetableDb.SchoolYearId = parameters.SchoolYearId;
+            //timetableDb.Name = parameters.TimetableName;
+            //timetableDb.TermId = parameters.TermId;
+            //timetableDb.WeeklyRange = 6;
+            //timetableDb.CreateDate = DateTime.UtcNow;
+            //timetableDb.ExpiredDate = DateTime.UtcNow;
+            //timetableDb.ApplyDate = DateTime.UtcNow;
+            //timetableDb.FitnessPoint = timetableFirst.Adaptability;
+            //_unitOfWork.SchoolScheduleRepo.AddAsync(timetableDb);
+            //await _unitOfWork.SaveChangesAsync();
+
+            // export csv
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
@@ -670,12 +687,24 @@ namespace SchedulifySystem.Service.Services.Implements
                    .Shuffle()
                    .ToList();
 
-                if (morningStartAts.Count < morningPeriods.Count) throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
-                if (afternoonStartAts.Count < afternoonPeriods.Count) throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!");                                                                       // dải ngẫu nhiên assignment vào các tiết 
+                if (morningStartAts.Count < morningPeriods.Count)
+                    throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
+                if (afternoonStartAts.Count < afternoonPeriods.Count)
+                    throw new DefaultException("Số lượng tiết trống buổi chiều trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!");                                                                       // dải ngẫu nhiên assignment vào các tiết 
                 for (var j = 0; j < morningPeriods.Count; j++)
-                    morningPeriods[j].StartAt = morningStartAts[j];
+                {
+                    var randIndex = new Random().Next(morningStartAts.Count);
+                    morningPeriods[j].StartAt = morningStartAts[randIndex];
+                    morningStartAts.RemoveAt(randIndex);
+                }
+
                 for (var j = 0; j < afternoonPeriods.Count; j++)
-                    afternoonPeriods[j].StartAt = afternoonStartAts[j];
+                {
+                    var randIndex = new Random().Next(afternoonStartAts.Count);
+                    afternoonPeriods[j].StartAt = afternoonStartAts[randIndex];
+                    afternoonStartAts.RemoveAt(randIndex);
+                }
+
             }
         }
 
@@ -698,7 +727,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 else
                     consecs.RemoveRange(randConsecIndex, 2);
                 startAts.Remove(periods[j].StartAt);
-                startAts.Remove(periods[j+1].StartAt);
+                startAts.Remove(periods[j + 1].StartAt);
             }
         }
 
@@ -724,7 +753,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
-                + CheckH11(src) * 1000;
+                + CheckHC11(src, parameters) * 10000;
 
             if (!isMinimized)
             {
@@ -780,7 +809,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region CheckHC02
-        
+
         /*
          * HC02: Ràng buộc đụng độ giáo viên
          * Các phân công khác nhau ứng với các lớp học khác nhau của cùng một giáo viên,
@@ -1195,6 +1224,153 @@ namespace SchedulifySystem.Service.Services.Implements
 
             return count;
         }
+        #endregion
+
+
+        #region CheckHC11
+        // Ràng buuôcj về số tiết trống của 1 lớp trong buổi
+        // Các tiết trống nên được xếp vào cuối buổi
+
+        private static int CheckHC11(TimetableIndividual src, GenerateTimetableModel parameters)
+        {
+            var count = 0;
+
+            foreach (var classObj in src.Classes)
+            {
+                var mainSession = (MainSession)classObj.MainSession;
+
+                var classTimetableUnits = src.TimetableUnits
+                    .Where(u => u.ClassId == classObj.Id && u.Session == mainSession)
+                    .OrderBy(u => u.StartAt)
+                    .ToList();
+
+                var providedLessons = classTimetableUnits.Select(u => u.StartAt).ToList();
+
+                var startSlot = mainSession == MainSession.Morning ? 1 : 6;
+
+                for (var i = 0; i < 6; i++)
+                {
+                    var startAts = providedLessons.Where(p => p >= startSlot && p < startSlot + 5);
+                    if (startAts.Count() == 5)
+                    {
+                        startSlot += 10;
+                        continue;
+                    };
+
+                    // nếu lủng 
+                    //var slotInDate = new List<int>();
+                    //for (int j = startSlot; j < startSlot + 5; j += 10)
+                    //{
+                    //    slotInDate.Add(j);
+                    //}
+                    //// lấy ra tiết lủng 
+                    //var freeSlot = slotInDate.Where(s => !startAts.Contains(s));
+
+                    //var lastSlots = slotInDate.TakeLast(freeSlot.Count()).ToList();
+
+                    var slotInDate = Enumerable.Range(startSlot, 5).ToList();
+                    var freeSlots = slotInDate.Where(s => !startAts.Contains(s)).ToList();
+
+                    var isFreeTimeNone = parameters.FreeTimetablePeriods
+                        .Any(freePeriod => freePeriod.ClassId == classObj.Id &&freeSlots.Contains(freePeriod.StartAt));
+
+                    if (isFreeTimeNone)
+                    {
+                        continue;
+                    }
+
+                    // Kiểm tra nếu các tiết trống không nằm ở cuối buổi hoặc không hợp lệ
+                    var lastSlots = slotInDate.TakeLast(freeSlots.Count).ToList();
+
+                    // nếu tiết lủng k nằm ở cuối 
+                    if (!freeSlots.All(lastSlots.Contains))
+                    {
+                        foreach (var slot in freeSlots)
+                        {
+                            var (day, periodNumber) = GetDayAndPeriod(slot);
+
+                            var errorMessage =
+                                $"Lớp {classObj.Name}: " +
+                                $"Có tiết lủng giữa buổi " +
+                                $"vào thứ {day}, tiết {periodNumber}.";
+
+                            var error = new ConstraintErrorModel()
+                            {
+                                Code = "HC11",
+                                ClassName = classObj.Name,
+                                Description = errorMessage
+                            };
+
+                            src.ConstraintErrors.Add(error);
+                            count++;
+                        }
+                    }
+                    // check ngày tiếp 
+                    startSlot += 10;
+                }
+
+                //var validGaps = new[] { 1, 6, 7, 8, 16, 17, 18 };
+
+                //// duyệt qua các tiết để tìm các tiết lủng
+                //for (int i = 0; i < providedLessons.Count - 1; i++)
+                //{
+                //    int currentLesson = providedLessons[i];
+                //    int nextLesson = providedLessons[i + 1];
+                //    int gap = nextLesson - currentLesson;
+
+                //    // nếu khoảng cách giữa các tiết không thuộc khoảng cách hợp lệ
+                //    if (!validGaps.Contains(gap))
+                //    {
+                //        for (int missing = currentLesson + 1; missing < nextLesson; missing++)
+                //        {
+                //            //chỉ tiết cuối cùng mới được phép trống)
+                //            if (missing % 10 == (mainSession == MainSession.Morning ? 5 : 10))
+                //            {
+                //                continue; // tiết cuối cùng trống là hợp lệ
+                //            }
+
+                //            // kiểm tra xem missing có phải là tiết None ?
+                //            var isFreeTimeNone = parameters.FreeTimetablePeriods
+                //                .Any(freePeriod => freePeriod.ClassId == classObj.Id && freePeriod.StartAt == missing);
+
+                //            if (isFreeTimeNone)
+                //            {
+                //                continue; 
+                //            }
+
+                //            var (day, periodNumber) = GetDayAndPeriod(missing);
+
+                //            var errorMessage =
+                //                $"Lớp {classObj.Name}: " +
+                //                $"Có tiết trống chưa được xếp (Unfilled) giữa buổi " +
+                //                $"vào thứ {day}, tiết {periodNumber}.";
+
+                //            var error = new ConstraintErrorModel()
+                //            {
+                //                Code = "H11",
+                //                ClassName = classObj.Name,
+                //                Description = errorMessage
+                //            };
+
+                //            src.ConstraintErrors.Add(error);
+                //            count++;
+                //        }
+                //    }
+                //}
+            }
+            return count;
+        }
+
+
+        #endregion
+
+        #region 
+        /*
+         Rangf buộc về thời gian nghĩ giữa 2 buổi
+         Tức là buổi phụ phải cách buổi chính khóa ít nhất 1 slot
+         */
+
+        #endregion
 
         private int AddConstraintErrors(IEnumerable<ClassPeriodScheduleModel> units, string errorCode, string description)
         {
@@ -1214,75 +1390,6 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region CheckH11
-        // Ràng buuôcj về số tiết trống của 1 lớp trong buổi
-        // Các tiết trống nên được xếp vào cuối buổi
-        private static int CheckH11(TimetableIndividual src)
-        {
-            // Biến đếm số lỗi
-            var count = 0;
-
-            // Lặp qua tất cả các lớp
-            foreach (var classObj in src.Classes)
-            {
-                // Lấy ra các tiết học của lớp đó
-                var classTimetableUnits = src.TimetableUnits
-                    .Where(u => u.ClassId == classObj.Id)
-                    .OrderBy(u => u.StartAt)
-                    .ToList();
-
-                // Nhóm các tiết theo buổi sáng và chiều
-                var sessionGroups = classTimetableUnits.GroupBy(u => u.Session);
-
-                // Duyệt qua từng buổi (sáng hoặc chiều)
-                foreach (var sessionGroup in sessionGroups)
-                {
-                    var periodsInSession = sessionGroup.OrderBy(u => u.StartAt).ToList();
-                    var foundNonEmpty = false;
-
-                    // Duyệt qua tất cả các tiết trong buổi
-                    for (var i = 0; i < periodsInSession.Count; i++)
-                    {
-                        var period = periodsInSession[i];
-                        var classIndex = src.Classes.IndexOf(classObj);
-                        var timetableFlag = src.TimetableFlag[classIndex, period.StartAt];
-
-                        // Nếu phát hiện có tiết học (không phải Unfilled hoặc None)
-                        if (timetableFlag != ETimetableFlag.Unfilled && timetableFlag != ETimetableFlag.None)
-                        {
-                            foundNonEmpty = true;
-                        }
-
-                        // Nếu có tiết Unfilled nhưng đã tìm thấy tiết học trước đó, báo lỗi
-                        if (timetableFlag == ETimetableFlag.Unfilled && foundNonEmpty)
-                        {
-                            var (day, periodNumber) = GetDayAndPeriod(period.StartAt);
-
-                            var errorMessage =
-                                $"Lớp {period.ClassName}: " +
-                                $"Có tiết trống chưa được xếp (Unfilled) không được xếp vào cuối buổi " +
-                                $"vào thứ {day}, tiết {periodNumber}.";
-
-                            var error = new ConstraintErrorModel()
-                            {
-                                Code = "H11",
-                                ClassName = period.ClassName,
-                                Description = errorMessage
-                            };
-
-                            // Thêm lỗi vào danh sách lỗi của tiết Unfilled
-                            period.ConstraintErrors.Add(error);
-                            count++;
-                        }
-                    }
-                }
-            }
-
-            return count;
-        }
-
-
-        #endregion
         #region CheckSC01
         /*
          * SC01: Ràng buộc về các tiết đôi không có giờ ra chơi xem giữa
@@ -1564,8 +1671,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #region SC11
         //
-
-        #endregion
 
         #endregion
 
@@ -1865,9 +1970,19 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #endregion
-        public Task<BaseResponseModel> Get(Guid id)
+        public async Task<BaseResponseModel> Get(int id)
         {
-            throw new NotImplementedException();
+            var timetable = await _unitOfWork.SchoolScheduleRepo.GetByIdAsync(id,
+                include: query => query.Include(ss => ss.Term).Include(ss => ss.SchoolYear)
+                .Include(ss => ss.ClassSchedules).ThenInclude(cs => cs.ClassPeriods))
+                  ?? throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_TIMETABLE_SUCCESS,
+                Result = _mapper.Map<SchoolScheduleViewModel>(timetable)
+            };
         }
 
         public Task<BaseResponseModel> Check(Guid timetableId)
@@ -1875,7 +1990,7 @@ namespace SchedulifySystem.Service.Services.Implements
             throw new NotImplementedException();
         }
 
-        public Task<BaseResponseModel> Delete(Guid id)
+        public Task<BaseResponseModel> Delete(int id)
         {
             throw new NotImplementedException();
         }

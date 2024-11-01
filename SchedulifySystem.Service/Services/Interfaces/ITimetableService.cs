@@ -16,10 +16,10 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface ITimetableService
     {
         public Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel);
-        public Task<BaseResponseModel> Get(Guid id);
+        public Task<BaseResponseModel> Get(int id);
         public Task<BaseResponseModel> Check(Guid timetableId);
         public Task<BaseResponseModel> Update(TimetableIndividual timetable);
-        public Task<BaseResponseModel> Delete(Guid id);
+        public Task<BaseResponseModel> Delete(int id);
         public Task<(
             List<ClassScheduleModel>,
             List<TeacherScheduleModel>,

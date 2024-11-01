@@ -15,6 +15,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
     {
         public int SchoolId { get; set; }
         public int SchoolYearId { get; set; }
+        public string? TimetableName { get; set; }
 
         public List<FixedPeriodScheduleModel> FixedPeriodsPara { get; set; }
         public List<NoAssignPeriodScheduleModel> NoAssignPeriodsPara { get; set; }
@@ -33,6 +34,6 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 
         public int MaxPeriodPerSession { get; set; } = 5;
         public int MinPeriodPerSession { get; set; } = 0;
-        public int? TermId { get; set; }
+        public int TermId { get; set; }
     }
 }
