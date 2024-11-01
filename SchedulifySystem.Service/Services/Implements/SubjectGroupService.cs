@@ -40,7 +40,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, include: query => query.Include(q => q.Terms))
                         ?? throw new NotExistsException($"School not found with id {schoolId}");
                     var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(
                         filter: sy => sy.Id == subjectGroupAddModel.SchoolYearId,
@@ -99,7 +99,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subjectId)
                         };
 
-                        foreach (Term term in schoolYear.Terms)
+                        foreach (Term term in school.Terms)
                         {
                             newSubjectInGroup.CreateDate = DateTime.UtcNow;
                             newSubjectInGroup.TermId = term.Id;
@@ -122,7 +122,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subject.Id)
                         };
 
-                        foreach (Term term in schoolYear.Terms)
+                        foreach (Term term in school.Terms)
                         {
                             newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
                             newSubjectRequiredInGroup.TermId = term.Id;
@@ -134,7 +134,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     await _unitOfWork.SaveChangesAsync();
 
                     //Specialized Subject
-                    var specializedSubjectNotInElectiveSubjects = subjectGroupAddModel.SpecializedSubjectIds.Where(s => !subjectGroupAddModel.ElectiveSubjectIds.Contains(s));
+                    var specializedSubjectNotInElectiveSubjects = subjectGroupAddModel.SpecializedSubjectIds
+                        .Where(s => !subjectGroupAddModel.ElectiveSubjectIds.Contains(s));
 
                     foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
                     {
@@ -286,14 +287,14 @@ namespace SchedulifySystem.Service.Services.Implements
         #region get subject groups
         public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, EGrade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) 
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (subjectGroupId != null)
             {
                 var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId)
                     ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
             }
-            if (schoolYearId  != null)
+            if (schoolYearId != null)
             {
                 var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync((int)schoolYearId, filter: t => t.IsDeleted == false)
                     ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
@@ -337,7 +338,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
                     filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
                     include: query => query.Include(c => c.SubjectInGroups)
-                               .ThenInclude(sg => sg.Subject)
+                               .ThenInclude(sg => sg.Subject).ThenInclude(sc => sc.School)
                                .Include(sg => sg.SchoolYear)
                                .ThenInclude(sy => sy.Terms));
 
@@ -361,6 +362,17 @@ namespace SchedulifySystem.Service.Services.Implements
                         {
                             Status = StatusCodes.Status400BadRequest,
                             Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
+                        };
+                    }
+
+                    // check enough number subject
+                    if (subjectGroupUpdateModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT
+                        || subjectGroupUpdateModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
+                    {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.INVALID_NUMBER_SUBJECT
                         };
                     }
 
@@ -398,7 +410,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     // get list môn học hiện tại trong tổ hợp
-                    var existingSubjectIds = subjectGroupDb.SubjectInGroups.Select(s => s.SubjectId).ToList();
+                    var existingSubjectIds = subjectGroupDb.SubjectInGroups
+                        .Where(query => query.Subject.IsRequired != true)
+                        .Select(s => s.SubjectId).ToList();
 
                     // xác định các môn tự chọn mới và các môn cần xóa bằng except
                     var newElectiveSubjects = subjectGroupUpdateModel.ElectiveSubjectIds.Except(existingSubjectIds).ToList();
@@ -431,7 +445,7 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Result = subjectId
                             };
 
-                        foreach (var term in subjectGroupDb.SchoolYear.Terms)
+                        foreach (var term in subjectGroupDb.School.Terms)
                         {
                             var newSubjectInGroup = new SubjectInGroup
                             {
@@ -444,39 +458,10 @@ namespace SchedulifySystem.Service.Services.Implements
                         }
                     }
                     await _unitOfWork.SaveChangesAsync();
-                    transaction.Commit();
-
-                    // update các môn chuyên đề mới
-                    //var newSpecializedSubjects = subjectGroupUpdateModel.SpecializedSubjectIds.Except(existingSubjectIds).ToList();
-
-                    //foreach (var subjectId in newSpecializedSubjects)
-                    //{
-                    //    var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
-                    //        ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-
-                    //    if (!checkSubject.IsRequired)
-                    //        return new BaseResponseModel
-                    //        {
-                    //            Status = StatusCodes.Status400BadRequest,
-                    //            Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT,
-                    //            Result = subjectId
-                    //        };
-
-                    //    foreach (var term in subjectGroupDb.SchoolYear.Terms)
-                    //    {
-                    //        var newSubjectInGroup = new SubjectInGroup
-                    //        {
-                    //            SubjectId = subjectId,
-                    //            SubjectGroupId = subjectGroupId,
-                    //            IsSpecialized = true,
-                    //            TermId = term.Id
-                    //        };
-                    //        await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
-                    //    }
-                    //}
 
                     //Specialized Subject
-                    var specializedSubjectNotInElectiveSubjects = subjectGroupUpdateModel.SpecializedSubjectIds.Where(s => !subjectGroupUpdateModel.ElectiveSubjectIds.Contains(s));
+                    var specializedSubjectNotInElectiveSubjects = subjectGroupUpdateModel.SpecializedSubjectIds
+                        .Where(s => !subjectGroupUpdateModel.ElectiveSubjectIds.Contains(s));
 
                     foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
                     {
@@ -492,20 +477,46 @@ namespace SchedulifySystem.Service.Services.Implements
                             };
                     }
 
-                    //var subjectInGroupAdded = newSubjectInGroupAdded.FirstOrDefault(s => subjectGroupAddModel.SpecializedSubjectIds.Contains(s.SubjectId));
                     transaction.Commit();
-                    //var subjectInGroupAdded = newSubjectInGroupAdded
-                    //    .Where(c => subjectGroupAddModel.SpecializedSubjectIds.Contains(c.SubjectId)).ToList();
+
+                    var subjectInDB = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+                        filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
+                        include: query => query.Include(q => q.SubjectInGroups));
+
+                    var subjectGroupInDb = subjectInDB.FirstOrDefault();
+
+                    var existingSubjectIdsInDB = subjectGroupInDb.SubjectInGroups
+                        .Where(query => query.IsSpecialized == true)
+                        .Select(s => s.SubjectId).ToList();
+
+                    var newSpecialSubjects = subjectGroupUpdateModel.SpecializedSubjectIds.Except(existingSubjectIdsInDB).ToList();
+
+                    var subjectsSpecialToRemove = existingSubjectIdsInDB
+                        .Except(subjectGroupUpdateModel.SpecializedSubjectIds)
+                        .ToList();
 
                     var updateSpecialSubject = await _unitOfWork.SubjectInGroupRepo.GetAsync(
-                        filter: t => t.SubjectGroupId == subjectGroupId && subjectGroupUpdateModel.SpecializedSubjectIds.Contains(t.SubjectId));
+                        filter: t => t.SubjectGroupId == subjectGroupId && newSpecialSubjects.Contains(t.SubjectId));
 
+                    // update false các môn chuyên đề không có trong danh sách cập nhật
+                    if (subjectsSpecialToRemove.Count != 0)
+                    {
+                        var subjectsToRemoveEntities = subjectGroupDb.SubjectInGroups
+                            .Where(s => subjectsSpecialToRemove.Contains(s.SubjectId))
+                            .ToList();
+                        foreach (var subjectInGroup in subjectsToRemoveEntities)
+                        {
+                            subjectInGroup.IsSpecialized = false;
+                            _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
+                        }
+                    }
+
+                    //update new specialized
                     foreach (var subjectInGroup in updateSpecialSubject)
                     {
                         subjectInGroup.IsSpecialized = true;
                         _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
                     }
-                    await _unitOfWork.SaveChangesAsync();
 
                     _unitOfWork.SubjectGroupRepo.Update(subjectGroupDb);
                     await _unitOfWork.SaveChangesAsync();
