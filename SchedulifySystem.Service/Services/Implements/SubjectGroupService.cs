@@ -348,11 +348,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     var subjectGroupDb = subjectGroup.FirstOrDefault();
 
-                    //check duplicate
+                    // check duplicate groupName hoặc groupCode
                     var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
-                                filter: t => t.GroupName.ToLower() == subjectGroupUpdateModel.GroupName.ToLower() ||
-                                             t.GroupCode.ToLower() == subjectGroupUpdateModel.GroupCode.ToLower()
-                            );
+                        filter: t => (t.GroupName.ToLower() == subjectGroupUpdateModel.GroupName.ToLower() ||
+                                      t.GroupCode.ToLower() == subjectGroupUpdateModel.GroupCode.ToLower()) &&
+                                      t.Id != subjectGroupId
+                    );
 
                     if (checkExistSubjectGroup.Any())
                     {
@@ -363,7 +364,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         };
                     }
 
-                    //if have any class used subject group prevent update grade
+                    // ko update grade nếu đã được sử dụng bởi lớp nào
                     if (subjectGroupUpdateModel.Grade != 0 && subjectGroupUpdateModel.Grade != (EGrade)subjectGroupDb.Grade)
                     {
                         var classes = await _unitOfWork.StudentClassesRepo.GetAsync(
@@ -396,60 +397,133 @@ namespace SchedulifySystem.Service.Services.Implements
                         subjectGroupDb.GroupDescription = subjectGroupUpdateModel.GroupDescription.Trim();
                     }
 
-                    //xóa đi tạo lại các subject in  group cũ
-                    _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroupDb.SubjectInGroups);
+                    // get list môn học hiện tại trong tổ hợp
+                    var existingSubjectIds = subjectGroupDb.SubjectInGroups.Select(s => s.SubjectId).ToList();
 
-                    //ElectiveSubjects
-                    foreach (int subjectId in subjectGroupUpdateModel.ElectiveSubjectIds)
+                    // xác định các môn tự chọn mới và các môn cần xóa bằng except
+                    var newElectiveSubjects = subjectGroupUpdateModel.ElectiveSubjectIds.Except(existingSubjectIds).ToList();
+
+                    var subjectsToRemove = existingSubjectIds
+                        .Except(subjectGroupUpdateModel.ElectiveSubjectIds)
+                        .Except(subjectGroupUpdateModel.SpecializedSubjectIds)
+                        .ToList();
+
+                    // xóa các môn không có trong danh sách cập nhật từ SubjectInGroup
+                    if (subjectsToRemove.Any() || subjectsToRemove.Count != 0)
                     {
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-                        if (checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT, Result = subjectId };
-                        var newSubjectInGroup = new SubjectInGroup();
-                        newSubjectInGroup.SubjectId = subjectId;
-                        newSubjectInGroup.SubjectGroupId = subjectGroupId;
-                        newSubjectInGroup.IsSpecialized = subjectGroupUpdateModel.SpecializedSubjectIds.Contains(subjectId);
-                        foreach (Term term in subjectGroupDb.SchoolYear.Terms)
+                        var subjectsToRemoveEntities = subjectGroupDb.SubjectInGroups
+                            .Where(s => subjectsToRemove.Contains(s.SubjectId))
+                            .ToList();
+                        _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectsToRemoveEntities);
+                    }
+
+                    // thêm các môn tự chọn mới
+                    foreach (var subjectId in newElectiveSubjects)
+                    {
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
+                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+
+                        if (checkSubject.IsRequired)
+                            return new BaseResponseModel
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT,
+                                Result = subjectId
+                            };
+
+                        foreach (var term in subjectGroupDb.SchoolYear.Terms)
                         {
-                            newSubjectInGroup.TermId = term.Id;
-                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                            var newSubjectInGroup = new SubjectInGroup
+                            {
+                                SubjectId = subjectId,
+                                SubjectGroupId = subjectGroupId,
+                                IsSpecialized = subjectGroupUpdateModel.SpecializedSubjectIds.Contains(subjectId),
+                                TermId = term.Id
+                            };
+                            await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
                         }
                     }
+                    await _unitOfWork.SaveChangesAsync();
+                    transaction.Commit();
+
+                    // update các môn chuyên đề mới
+                    //var newSpecializedSubjects = subjectGroupUpdateModel.SpecializedSubjectIds.Except(existingSubjectIds).ToList();
+
+                    //foreach (var subjectId in newSpecializedSubjects)
+                    //{
+                    //    var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
+                    //        ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+
+                    //    if (!checkSubject.IsRequired)
+                    //        return new BaseResponseModel
+                    //        {
+                    //            Status = StatusCodes.Status400BadRequest,
+                    //            Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT,
+                    //            Result = subjectId
+                    //        };
+
+                    //    foreach (var term in subjectGroupDb.SchoolYear.Terms)
+                    //    {
+                    //        var newSubjectInGroup = new SubjectInGroup
+                    //        {
+                    //            SubjectId = subjectId,
+                    //            SubjectGroupId = subjectGroupId,
+                    //            IsSpecialized = true,
+                    //            TermId = term.Id
+                    //        };
+                    //        await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                    //    }
+                    //}
 
                     //Specialized Subject
                     var specializedSubjectNotInElectiveSubjects = subjectGroupUpdateModel.SpecializedSubjectIds.Where(s => !subjectGroupUpdateModel.ElectiveSubjectIds.Contains(s));
 
                     foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
                     {
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-                        if (!checkSubject.IsRequired) return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT, Result = subjectId };
-                        var newSubjectInGroup = new SubjectInGroup();
-                        newSubjectInGroup.SubjectId = subjectId;
-                        newSubjectInGroup.SubjectGroupId = subjectGroupId;
-                        newSubjectInGroup.IsSpecialized = true;
+                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
+                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
 
-                        foreach (Term term in subjectGroupDb.SchoolYear.Terms)
-                        {
-                            newSubjectInGroup.TermId = term.Id;
-                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
-                        }
+                        if (!checkSubject.IsRequired)
+                            return new BaseResponseModel
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT,
+                                Result = subjectId
+                            };
                     }
+
+                    //var subjectInGroupAdded = newSubjectInGroupAdded.FirstOrDefault(s => subjectGroupAddModel.SpecializedSubjectIds.Contains(s.SubjectId));
+                    transaction.Commit();
+                    //var subjectInGroupAdded = newSubjectInGroupAdded
+                    //    .Where(c => subjectGroupAddModel.SpecializedSubjectIds.Contains(c.SubjectId)).ToList();
+
+                    var updateSpecialSubject = await _unitOfWork.SubjectInGroupRepo.GetAsync(
+                        filter: t => t.SubjectGroupId == subjectGroupId && subjectGroupUpdateModel.SpecializedSubjectIds.Contains(t.SubjectId));
+
+                    foreach (var subjectInGroup in updateSpecialSubject)
+                    {
+                        subjectInGroup.IsSpecialized = true;
+                        _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
+                    }
+                    await _unitOfWork.SaveChangesAsync();
 
                     _unitOfWork.SubjectGroupRepo.Update(subjectGroupDb);
                     await _unitOfWork.SaveChangesAsync();
-                    transaction.Commit();
+
                     return new BaseResponseModel()
                     {
                         Status = StatusCodes.Status200OK,
                         Message = ConstantResponse.UPDATE_SUBJECT_GROUP_SUCCESS,
                     };
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     transaction.Rollback();
                     throw;
                 }
             }
         }
+
 
         #endregion
 

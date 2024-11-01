@@ -78,7 +78,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
             {
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.First().Adaptability < 1000 && step > 50 )
+                if (timetablePopulation.First().Adaptability < 1000 && step > 50)
                     break;
 
                 // lai tạo
@@ -670,9 +670,9 @@ namespace SchedulifySystem.Service.Services.Implements
                    .Shuffle()
                    .ToList();
 
-                if (morningStartAts.Count < morningPeriods.Count) 
+                if (morningStartAts.Count < morningPeriods.Count)
                     throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
-                if (afternoonStartAts.Count < afternoonPeriods.Count) 
+                if (afternoonStartAts.Count < afternoonPeriods.Count)
                     throw new DefaultException("Số lượng tiết trống buổi chiều trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!");                                                                       // dải ngẫu nhiên assignment vào các tiết 
                 for (var j = 0; j < morningPeriods.Count; j++)
                 {
@@ -710,7 +710,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 else
                     consecs.RemoveRange(randConsecIndex, 2);
                 startAts.Remove(periods[j].StartAt);
-                startAts.Remove(periods[j+1].StartAt);
+                startAts.Remove(periods[j + 1].StartAt);
             }
         }
 
@@ -736,7 +736,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
-                + CheckH112(src) * 10000;
+                + CheckH112(src, parameters) * 10000;
 
             if (!isMinimized)
             {
@@ -792,7 +792,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region CheckHC02
-        
+
         /*
          * HC02: Ràng buộc đụng độ giáo viên
          * Các phân công khác nhau ứng với các lớp học khác nhau của cùng một giáo viên,
@@ -1213,102 +1213,52 @@ namespace SchedulifySystem.Service.Services.Implements
         #region CheckH11
         // Ràng buuôcj về số tiết trống của 1 lớp trong buổi
         // Các tiết trống nên được xếp vào cuối buổi
-        private static int CheckH11(TimetableIndividual src)
+        
+        private static int CheckH112(TimetableIndividual src, GenerateTimetableModel parameters)
         {
-            // Biến đếm số lỗi
             var count = 0;
 
-            // Lặp qua tất cả các lớp
             foreach (var classObj in src.Classes)
             {
-                // Lấy ra các tiết học của lớp đó
-                var classTimetableUnits = src.TimetableUnits
-                    .Where(u => u.ClassId == classObj.Id)
-                    .OrderBy(u => u.StartAt)
-                    .ToList();
-
-                // Nhóm các tiết theo buổi sáng và chiều
-                var sessionGroups = classTimetableUnits.GroupBy(u => u.Session);
-
-                // Duyệt qua từng buổi (sáng hoặc chiều)
-                foreach (var sessionGroup in sessionGroups)
-                {
-                    var periodsInSession = sessionGroup.OrderBy(u => u.StartAt).ToList();
-                    var foundNonEmpty = false;
-
-                    // Duyệt qua tất cả các tiết trong buổi
-                    for (var i = 0; i < periodsInSession.Count; i++)
-                    {
-                        var period = periodsInSession[i];
-                        var classIndex = src.Classes.IndexOf(classObj);
-                        var timetableFlag = src.TimetableFlag[classIndex, period.StartAt];
-
-                        // Nếu phát hiện có tiết học (không phải Unfilled hoặc None)
-                        if (timetableFlag != ETimetableFlag.Unfilled && timetableFlag != ETimetableFlag.None)
-                        {
-                            foundNonEmpty = true;
-                        }
-
-                        // Nếu có tiết Unfilled nhưng đã tìm thấy tiết học trước đó, báo lỗi
-                        if (timetableFlag == ETimetableFlag.Unfilled && foundNonEmpty)
-                        {
-                            var (day, periodNumber) = GetDayAndPeriod(period.StartAt);
-
-                            var errorMessage =
-                                $"Lớp {period.ClassName}: " +
-                                $"Có tiết trống chưa được xếp (Unfilled) không được xếp vào cuối buổi " +
-                                $"vào thứ {day}, tiết {periodNumber}.";
-
-                            var error = new ConstraintErrorModel()
-                            {
-                                Code = "H11",
-                                ClassName = period.ClassName,
-                                Description = errorMessage
-                            };
-
-                            // Thêm lỗi vào danh sách lỗi của tiết Unfilled
-                            period.ConstraintErrors.Add(error);
-                            count++;
-                        }
-                    }
-                }
-            }
-
-            return count;
-        }
-
-        private static int CheckH112(TimetableIndividual src)
-        {
-            // Biến đếm số lỗi
-            var count = 0;
-
-            // Lặp qua tất cả các lớp
-            foreach (var classObj in src.Classes)
-            {
-                // Xác định buổi chính khóa của lớp (sáng hoặc chiều)
                 var mainSession = (MainSession)classObj.MainSession;
 
-                // Lấy ra tất cả các tiết học của lớp đó, sắp xếp theo thứ tự thời gian
                 var classTimetableUnits = src.TimetableUnits
                     .Where(u => u.ClassId == classObj.Id && u.Session == mainSession)
                     .OrderBy(u => u.StartAt)
                     .ToList();
 
-                // Lấy danh sách `StartAt` làm `providedLessons`
                 var providedLessons = classTimetableUnits.Select(u => u.StartAt).ToList();
-                var  flag = src.TimetableFlag
-                // Duyệt qua các tiết để tìm các tiết lủng
+
+
+                var validGaps = new[] { 1, 6, 7, 8, 16, 17, 18 };
+
+                // duyệt qua các tiết để tìm các tiết lủng
                 for (int i = 0; i < providedLessons.Count - 1; i++)
                 {
                     int currentLesson = providedLessons[i];
                     int nextLesson = providedLessons[i + 1];
+                    int gap = nextLesson - currentLesson;
 
-                    // Nếu khoảng cách giữa các tiết không liền kề, thêm lỗi vào tiết bị lủng
-                    if (nextLesson - currentLesson > 1 && nextLesson - currentLesson != 6)
+                    // nếu khoảng cách giữa các tiết không thuộc khoảng cách hợp lệ
+                    if (!validGaps.Contains(gap))
                     {
                         for (int missing = currentLesson + 1; missing < nextLesson; missing++)
                         {
-                            // Xác định ngày và tiết số từ `missing`
+                            //chỉ tiết cuối cùng mới được phép trống)
+                            if (missing % 10 == (mainSession == MainSession.Morning ? 5 : 10))
+                            {
+                                continue; // tiết cuối cùng trống là hợp lệ
+                            }
+
+                            // kiểm tra xem missing có phải là tiết None ?
+                            var isFreeTimeNone = parameters.FreeTimetablePeriods
+                                .Any(freePeriod => freePeriod.ClassId == classObj.Id && freePeriod.StartAt == missing);
+
+                            if (isFreeTimeNone)
+                            {
+                                continue; 
+                            }
+
                             var (day, periodNumber) = GetDayAndPeriod(missing);
 
                             var errorMessage =
@@ -1323,7 +1273,6 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Description = errorMessage
                             };
 
-                            // Thêm lỗi vào danh sách lỗi của tiết Unfilled và danh sách lỗi chung
                             src.ConstraintErrors.Add(error);
                             count++;
                         }
@@ -1332,6 +1281,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             return count;
         }
+
 
         #endregion
 
