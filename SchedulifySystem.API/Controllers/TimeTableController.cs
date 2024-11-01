@@ -28,5 +28,11 @@ namespace SchedulifySystem.API.Controllers
             var result = await _timetableService.Generate(parameters);
             return Ok(result);
         }
+
+        [HttpGet("{id}")]
+        public  Task<IActionResult> GetTimetable(int id)
+        {
+            return  ValidateAndExecute(() => _timetableService.Get(id));
+        }
     }
 }

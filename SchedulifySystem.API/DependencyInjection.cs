@@ -207,9 +207,10 @@ namespace SchedulifySystem.API
             services.AddTransient<ISubjectInGroupRepository, SubjectInGroupRepository>();
             services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
 
-            //config Timetable service
+            //config Timetable service and repo
+            services.AddTransient<ISchoolScheduleRepository, SchoolScheduleRepository>();
             services.AddTransient<ITimetableService, TimeTableService>();
-            //services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+            
 
 
             #endregion

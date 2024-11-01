@@ -17,6 +17,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public bool IsFullDay { get; set; } = false;
         public int PeriodCount { get; set; }
         public EGrade Grade { get; set; }
+        public string? SubjectGroupCode { get; set; }
 
         [JsonIgnore]
         public int? HomeroomTeacherId { get; set; }
@@ -25,6 +26,6 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         [JsonIgnore]
         public int? SchoolYearId { get; set; }
         [JsonIgnore]
-        public int? SubjectGroupId { get; set; } = null;
+        public int? SGroupId { get; set; } = null;
     }
 }
