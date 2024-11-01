@@ -78,7 +78,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
             {
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.First().Adaptability < 1000 && step > 2000 )
+                if (timetablePopulation.First().Adaptability < 1000 && step > 50 )
                     break;
 
                 // lai tạo
@@ -736,7 +736,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
-                + CheckH11(src) * 10000;
+                + CheckH112(src) * 10000;
 
             if (!isMinimized)
             {
@@ -1276,6 +1276,63 @@ namespace SchedulifySystem.Service.Services.Implements
 
             return count;
         }
+
+        private static int CheckH112(TimetableIndividual src)
+        {
+            // Biến đếm số lỗi
+            var count = 0;
+
+            // Lặp qua tất cả các lớp
+            foreach (var classObj in src.Classes)
+            {
+                // Xác định buổi chính khóa của lớp (sáng hoặc chiều)
+                var mainSession = (MainSession)classObj.MainSession;
+
+                // Lấy ra tất cả các tiết học của lớp đó, sắp xếp theo thứ tự thời gian
+                var classTimetableUnits = src.TimetableUnits
+                    .Where(u => u.ClassId == classObj.Id && u.Session == mainSession)
+                    .OrderBy(u => u.StartAt)
+                    .ToList();
+
+                // Lấy danh sách `StartAt` làm `providedLessons`
+                var providedLessons = classTimetableUnits.Select(u => u.StartAt).ToList();
+                var  flag = src.TimetableFlag
+                // Duyệt qua các tiết để tìm các tiết lủng
+                for (int i = 0; i < providedLessons.Count - 1; i++)
+                {
+                    int currentLesson = providedLessons[i];
+                    int nextLesson = providedLessons[i + 1];
+
+                    // Nếu khoảng cách giữa các tiết không liền kề, thêm lỗi vào tiết bị lủng
+                    if (nextLesson - currentLesson > 1 && nextLesson - currentLesson != 6)
+                    {
+                        for (int missing = currentLesson + 1; missing < nextLesson; missing++)
+                        {
+                            // Xác định ngày và tiết số từ `missing`
+                            var (day, periodNumber) = GetDayAndPeriod(missing);
+
+                            var errorMessage =
+                                $"Lớp {classObj.Name}: " +
+                                $"Có tiết trống chưa được xếp (Unfilled) giữa buổi " +
+                                $"vào thứ {day}, tiết {periodNumber}.";
+
+                            var error = new ConstraintErrorModel()
+                            {
+                                Code = "H11",
+                                ClassName = classObj.Name,
+                                Description = errorMessage
+                            };
+
+                            // Thêm lỗi vào danh sách lỗi của tiết Unfilled và danh sách lỗi chung
+                            src.ConstraintErrors.Add(error);
+                            count++;
+                        }
+                    }
+                }
+            }
+            return count;
+        }
+
         #endregion
 
         #region 
