@@ -180,18 +180,18 @@ namespace SchedulifySystem.Service.Services.Implements
             //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
 
             // save to database 
-            var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
-            timetableDb.SchoolId = parameters.SchoolId;
-            timetableDb.SchoolYearId = parameters.SchoolYearId;
-            timetableDb.Name = parameters.TimetableName;
-            timetableDb.TermId = parameters.TermId;
-            timetableDb.WeeklyRange = 6;
-            timetableDb.CreateDate = DateTime.UtcNow;
-            timetableDb.ExpiredDate = DateTime.UtcNow;
-            timetableDb.ApplyDate = DateTime.UtcNow;
-            timetableDb.FitnessPoint = timetableFirst.Adaptability;
-            _unitOfWork.SchoolScheduleRepo.AddAsync(timetableDb);
-            await _unitOfWork.SaveChangesAsync();
+            //var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
+            //timetableDb.SchoolId = parameters.SchoolId;
+            //timetableDb.SchoolYearId = parameters.SchoolYearId;
+            //timetableDb.Name = parameters.TimetableName;
+            //timetableDb.TermId = parameters.TermId;
+            //timetableDb.WeeklyRange = 6;
+            //timetableDb.CreateDate = DateTime.UtcNow;
+            //timetableDb.ExpiredDate = DateTime.UtcNow;
+            //timetableDb.ApplyDate = DateTime.UtcNow;
+            //timetableDb.FitnessPoint = timetableFirst.Adaptability;
+            //_unitOfWork.SchoolScheduleRepo.AddAsync(timetableDb);
+            //await _unitOfWork.SaveChangesAsync();
 
             // export csv
             timetableFirst.ToCsv();
@@ -1230,7 +1230,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region CheckHC11
         // Ràng buuôcj về số tiết trống của 1 lớp trong buổi
         // Các tiết trống nên được xếp vào cuối buổi
-        
+
         private static int CheckHC11(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             var count = 0;
@@ -1248,26 +1248,44 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 var startSlot = mainSession == MainSession.Morning ? 1 : 6;
 
-                for(var i = 0; i < 6; i++)
+                for (var i = 0; i < 6; i++)
                 {
                     var startAts = providedLessons.Where(p => p >= startSlot && p < startSlot + 5);
-                    if (startAts.Count() == 5) continue;
+                    if (startAts.Count() == 5)
+                    {
+                        startSlot += 10;
+                        continue;
+                    };
 
                     // nếu lủng 
-                    var slotInDate = new List<int>();
-                    for (int j = startSlot; j < startSlot + 5; j += 10)
-                    {
-                        slotInDate.Add(j);
-                    }
-                    // lấy ra tiết lủng 
-                    var freeSlot = slotInDate.Where(s => !startAts.Contains(s));
+                    //var slotInDate = new List<int>();
+                    //for (int j = startSlot; j < startSlot + 5; j += 10)
+                    //{
+                    //    slotInDate.Add(j);
+                    //}
+                    //// lấy ra tiết lủng 
+                    //var freeSlot = slotInDate.Where(s => !startAts.Contains(s));
 
-                    var lastSlots = slotInDate.TakeLast(freeSlot.Count()).ToList();
+                    //var lastSlots = slotInDate.TakeLast(freeSlot.Count()).ToList();
+
+                    var slotInDate = Enumerable.Range(startSlot, 5).ToList();
+                    var freeSlots = slotInDate.Where(s => !startAts.Contains(s)).ToList();
+
+                    var isFreeTimeNone = parameters.FreeTimetablePeriods
+                        .Any(freePeriod => freePeriod.ClassId == classObj.Id &&freeSlots.Contains(freePeriod.StartAt));
+
+                    if (isFreeTimeNone)
+                    {
+                        continue;
+                    }
+
+                    // Kiểm tra nếu các tiết trống không nằm ở cuối buổi hoặc không hợp lệ
+                    var lastSlots = slotInDate.TakeLast(freeSlots.Count).ToList();
 
                     // nếu tiết lủng k nằm ở cuối 
-                    if(!freeSlot.All(lastSlots.Contains))
+                    if (!freeSlots.All(lastSlots.Contains))
                     {
-                        foreach(var slot in freeSlot)
+                        foreach (var slot in freeSlots)
                         {
                             var (day, periodNumber) = GetDayAndPeriod(slot);
 
@@ -1954,10 +1972,10 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
         public async Task<BaseResponseModel> Get(int id)
         {
-          var timetable = await _unitOfWork.SchoolScheduleRepo.GetByIdAsync(id, 
-              include: query => query.Include(ss => ss.Term).Include(ss => ss.SchoolYear)
-              .Include(ss => ss.ClassSchedules).ThenInclude(cs => cs.ClassPeriods)) 
-                ?? throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+            var timetable = await _unitOfWork.SchoolScheduleRepo.GetByIdAsync(id,
+                include: query => query.Include(ss => ss.Term).Include(ss => ss.SchoolYear)
+                .Include(ss => ss.ClassSchedules).ThenInclude(cs => cs.ClassPeriods))
+                  ?? throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
 
             return new BaseResponseModel()
             {
