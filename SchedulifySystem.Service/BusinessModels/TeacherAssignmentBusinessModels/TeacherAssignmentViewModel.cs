@@ -10,7 +10,6 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
 {
     public class TeacherAssignmentViewModel : BaseEntity
     {
-        public int TeachableSubjectId { get; set; }
         public int PeriodCount { get; set; }
         public int StudentClassId { get; set; }
         public AssignmentType AssignmentType { get; set; } = AssignmentType.Permanent;
