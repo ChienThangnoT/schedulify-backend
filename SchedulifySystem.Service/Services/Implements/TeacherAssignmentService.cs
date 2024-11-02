@@ -60,28 +60,13 @@ namespace SchedulifySystem.Service.Services.Implements
                     ?? throw new NotExistsException(ConstantResponse.TERM_NOT_FOUND);
             }
 
-            var teacherNotAssigntView = new List<TeacherAssignmentViewModel>();
-            var teacherAssigntView = new List<TeacherAssignmentViewModel>();
 
-            var teacherNotAssignt = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
-                filter: t => t.StudentClassId == classId && t.TeacherId == null && t.IsDeleted == false && (termId == null || t.TermId == termId)
-                , includeProperties: "Subject");
-            if (teacherNotAssignt == null || !teacherNotAssignt.Any())
-            {
-                teacherNotAssigntView = null;
-            }
-            teacherNotAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(teacherNotAssignt);
-
-
-            var teacherAssignt = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+            var assignments = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
                 filter: t => t.StudentClassId == classId && t.IsDeleted == false && (termId == null || t.TermId == termId)
-                ,includeProperties: "Teacher,Subject");
-            if (teacherAssignt == null || !teacherAssignt.Any())
-            {
-                teacherAssigntView = null;
-            }
-            teacherAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(teacherAssignt);
-
+                ,include: query => query.Include(ta => ta.Subject).Include(ta => ta.Teacher));
+           
+            var teacherNotAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(assignments.Where(a => a.TeacherId == null));
+            var teacherAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(assignments.Where(a => a.TeacherId != null));
 
             return new BaseResponseModel()
             {

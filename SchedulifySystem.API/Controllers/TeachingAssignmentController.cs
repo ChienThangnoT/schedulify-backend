@@ -25,7 +25,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "SchoolManager")]
+        //[Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> GetAssignment(int studentClassId, int? termId)
         {
             return ValidateAndExecute(() => _teacherAssignmentService.GetAssignment(studentClassId, termId));
