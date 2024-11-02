@@ -15,11 +15,11 @@ namespace SchedulifySystem.Service.Mapper
         {
             CreateMap<TeacherAssignment, TeacherAssignmentViewModel>()
                 .ForMember(dest => dest.TeacherFirstName, otp => otp
-                    .MapFrom(t => t.Teacher != null ? t.Teacher.FirstName: string.Empty ))
+                    .MapFrom(t => t.Teacher != null ? t.Teacher.FirstName:null ))
                 .ForMember(dest => dest.TeacherLastName, otp => otp
-                    .MapFrom(t => t.Teacher != null ? t.Teacher.LastName : string.Empty))
+                    .MapFrom(t => t.Teacher != null ? t.Teacher.LastName : null))
                 .ForMember(dest => dest.TeacherAbbreviation, otp => otp
-                    .MapFrom(t => t.Teacher != null ? t.Teacher.Abbreviation: string.Empty))
+                    .MapFrom(t => t.Teacher != null ? t.Teacher.Abbreviation: null))
                 .ForMember(dest => dest.SubjectName, otp => otp
                     .MapFrom(t => t.Subject != null ? t.Subject.SubjectName : string.Empty)).ReverseMap();
 

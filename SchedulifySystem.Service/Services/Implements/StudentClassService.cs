@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SchedulifySystem.Repository;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Repository.Repositories.Interfaces;
@@ -229,7 +230,40 @@ namespace SchedulifySystem.Service.Services.Implements
         #region UpdateStudentClass
         public async Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassModel updateStudentClassModel)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id) ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, 
+                include: query => query.Include(c => c.TeacherAssignments)) 
+                ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
+
+            if(updateStudentClassModel.SubjectGroupId == null)
+            {
+                _unitOfWork.TeacherAssignmentRepo.RemoveRange(existedClass.TeacherAssignments);
+            }
+            else if(existedClass.SubjectGroupId != updateStudentClassModel.SubjectGroupId)
+            {
+                var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)updateStudentClassModel.SubjectGroupId,
+                               include: query => query.Include(sg => sg.SubjectInGroups))
+                               ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+
+                // delete old assignment
+                var oldAssignment = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(filter: ta => ta.StudentClassId == id);
+                _unitOfWork.TeacherAssignmentRepo.RemoveRange(oldAssignment);
+
+                // add new assignment 
+                var newAssignment = new List<TeacherAssignment>();
+                subjectGroup.SubjectInGroups.ToList().ForEach(sig =>
+                {
+                    newAssignment.Add(new TeacherAssignment()
+                    {
+                        AssignmentType = (int)AssignmentType.Permanent,
+                        PeriodCount = sig.MainSlotPerWeek + sig.SubSlotPerWeek,
+                        StudentClassId = id,
+                        CreateDate = DateTime.UtcNow,
+                        SubjectId = sig.SubjectId,
+                        TermId = (int)sig.TermId
+                    });
+                });
+                await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignment);
+            }
 
             _mapper.Map(updateStudentClassModel, existedClass);
             _unitOfWork.StudentClassesRepo.Update(existedClass);

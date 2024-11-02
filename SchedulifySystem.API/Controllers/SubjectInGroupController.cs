@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
@@ -17,6 +18,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPatch]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateTimeSlot(List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel)
         {
             return ValidateAndExecute(() => _subjectInGroupService.UpdateSubjectInGroup(subjectInGroupUpdateModel));

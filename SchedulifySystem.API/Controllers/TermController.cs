@@ -25,14 +25,14 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost("{schoolId}")]
-       // [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> CreateTermBySchoolId(int schoolId, TermAdjustModel termAddModel)
         {
             return ValidateAndExecute(() => _termService.AddTermBySchoolId(schoolId, termAddModel));
         }
 
         [HttpPatch("{id}")]
-       // [Authorize]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateTermBySchoolId(int id, TermAdjustModel termAddModel)
         {
             return ValidateAndExecute(() => _termService.UpdateTermBySchoolId(id, termAddModel));
