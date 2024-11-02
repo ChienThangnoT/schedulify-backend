@@ -19,7 +19,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "SchoolManager")]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
         public Task<IActionResult> GetBuildings(int schoolId, bool includeRoom = false, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _buildingService.GetBuildings(schoolId, includeRoom, pageIndex, pageSize));

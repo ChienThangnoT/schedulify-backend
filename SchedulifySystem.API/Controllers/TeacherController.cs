@@ -18,7 +18,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
         public Task<IActionResult> GetTeachers(int schoolId, bool includeDeleted = false, int pageSize = 20, int pageIndex = 1)
         {
             return ValidateAndExecute(() => _teacherService.GetTeachers(schoolId, includeDeleted, pageIndex, pageSize));
@@ -41,7 +41,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
         public Task<IActionResult> GetTeacherById(int id)
         {
             return ValidateAndExecute(() => _teacherService.GetTeacherById(id));

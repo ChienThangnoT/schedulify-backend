@@ -19,35 +19,35 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin, SchoolManager")]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
         public Task<IActionResult> GetSubjectGroups(int schoolId, int? subjectGroupId, EGrade? grade,int? schoolYearId, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade,schoolYearId, includeDeleted, pageIndex, pageSize));
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin, SchoolManager")]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
         public Task<IActionResult> GetSubjectGroupDetail(int id)
         {
             return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroupDetail(id));
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin, SchoolManager")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> AddSubjectGroup(int schoolId, SubjectGroupAddModel subjectGroupAddModel)
         {
             return ValidateAndExecute(() => _subjectGroupService.CreateSubjectGroup(schoolId, subjectGroupAddModel));
         }
 
-        [HttpPatch("helo/{id}")]
-        //[Authorize(Roles = "Admin, SchoolManager")]
+        [HttpPatch("{id}")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateSubjectGroup(int id, SubjectGroupUpdateModel model)
         {
             return ValidateAndExecute(() => _subjectGroupService.UpdateSubjectGroup(id, model));
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, SchoolManager")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> DeleteSubjectGroup(int id)
         {
             return ValidateAndExecute(() => _subjectGroupService.DeleteSubjectGroup(id));
