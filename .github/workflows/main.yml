@@ -19,10 +19,10 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Restore dependencies
-      run: dotnet restore SchedulifySystem.sln
+      run: dotnet restore Back-end/SchedulifySystem.API
 
     - name: Build
-      run: dotnet build SchedulifySystem.sln --no-restore
+      run: dotnet build Back-end/SchedulifySystem.API --no-restore
 
     - name: Test
-      run: dotnet test SchedulifySystem.sln --no-build --verbosity normal
+      run: dotnet test Back-end/SchedulifySystem.API --no-build --verbosity normal
