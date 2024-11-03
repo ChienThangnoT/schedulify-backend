@@ -45,8 +45,7 @@ jobs:
         uses: docker/setup-buildx-action@v1
 
       - name: Build and deploy with Docker Compose
-        working-directory: SchoolScheduler-SEP490/Back-end  # Đường dẫn đến root project
-        run: docker compose up --build -d
+        run: docker compose -f docker-compose.yml up --build -d
         
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
