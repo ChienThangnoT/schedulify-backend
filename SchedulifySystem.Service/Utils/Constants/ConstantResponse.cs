@@ -159,7 +159,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string TERM_NOT_EXIST = "The term does not exist.";
 
         //Student class and student class in group
-        public const string STUDENT_CLASS_NOT_EXIST = "Student class not exist.";
+        public const string STUDENT_CLASS_NOT_EXIST = "The student class not exist.";
 
         //Term
         public const string TERM_NOT_FOUND = "Term not exist.";
