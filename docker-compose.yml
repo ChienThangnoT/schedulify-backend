@@ -1,7 +1,8 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
   schedulifysystem.api:
+    image: schedulify
     build:
       context: .  
       dockerfile: SchedulifySystem.API/Dockerfile
