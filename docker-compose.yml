@@ -16,8 +16,11 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=vsat
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
+
   db:
     image: postgres:13
     environment:
