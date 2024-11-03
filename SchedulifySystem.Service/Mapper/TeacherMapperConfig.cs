@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
+using SchedulifySystem.Service.BusinessModels.TeachableSubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Enums;
 using System;
@@ -35,6 +36,11 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<UpdateTeacherModel, Teacher>()
                 .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
+            CreateMap<TeachableSubject, TeachableSubjectDetailsViewModel>()
+                .ForMember(dest => dest.SubjectName, opt => opt.MapFrom(src => src.Subject.SubjectName))
+                .ForMember(dest => dest.SubjectAbreviation, opt => opt.MapFrom(src => src.Subject.Abbreviation))
+                .ForMember(dest => dest.TeacherAbreviation, opt => opt.MapFrom(src => src.Teacher.Abbreviation))
+                .ForMember(dest => dest.TeacherName, opt => opt.MapFrom(src => $"{src.Teacher.FirstName} {src.Teacher.LastName}"));
         }
     }
 }
