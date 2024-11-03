@@ -3,7 +3,7 @@
 services:
   schedulifysystem.api:
     build:
-      context: .
+      context: SchedulifySystem.API
     ports:
       - "9002:8080"
       - "9091:8081"
