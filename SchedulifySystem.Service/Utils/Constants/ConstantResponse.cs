@@ -169,7 +169,7 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Timetable
         public const string TIMETABLE_NOT_FOUND = "The timetable does not exist.";
-        public const string GET_TIMETABLE_SUCCESS = "Get timetable success.";
+        public const string GET_TIMETABLE_SUCCESS = "Get the timetable success.";
 
     }
 }
