@@ -39,7 +39,10 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("app-cors");
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
