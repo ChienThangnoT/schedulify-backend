@@ -5,7 +5,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/timetables")]
+    [Route("api/schools/{schoolId}/timetables")]
     [ApiController]
     public class TimeTableController : BaseController
     {
@@ -16,23 +16,25 @@ namespace SchedulifySystem.API.Controllers
             _timetableService = timetableService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> GetT(GenerateTimetableModel parameters) {
-            var result = await _timetableService.GetData(parameters);
-            return Ok(result);
-        }
 
         [HttpPost("generate")]
-        public async Task<IActionResult> Generate(GenerateTimetableModel parameters)
+        public async Task<IActionResult> Generate(int schoolId, GenerateTimetableModel parameters)
         {
+            parameters.SchoolId = schoolId;
             var result = await _timetableService.Generate(parameters);
             return Ok(result);
         }
 
         [HttpGet("{id}")]
-        public  Task<IActionResult> GetTimetable(int id)
+        public Task<IActionResult> GetTimetable(int id)
         {
-            return  ValidateAndExecute(() => _timetableService.Get(id));
+            return ValidateAndExecute(() => _timetableService.Get(id));
+        }
+
+        [HttpGet]
+        public Task<IActionResult> GetAllSchedules(int schoolId, int pageIndex = 1, int pageSize = 20)
+        {
+            return ValidateAndExecute(() => _timetableService.GetAll(schoolId, pageIndex, pageSize));
         }
     }
 }

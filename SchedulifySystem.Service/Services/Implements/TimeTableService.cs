@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SchedulifySystem.Repository;
+using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
@@ -179,25 +180,25 @@ namespace SchedulifySystem.Service.Services.Implements
             //Console.Clear();
             //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
 
-            // save to database 
-            //var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
-            //timetableDb.SchoolId = parameters.SchoolId;
-            //timetableDb.SchoolYearId = parameters.SchoolYearId;
-            //timetableDb.Name = parameters.TimetableName;
-            //timetableDb.TermId = parameters.TermId;
-            //timetableDb.WeeklyRange = 6;
-            //timetableDb.CreateDate = DateTime.UtcNow;
-            //timetableDb.ExpiredDate = DateTime.UtcNow;
-            //timetableDb.ApplyDate = DateTime.UtcNow;
-            //timetableDb.FitnessPoint = timetableFirst.Adaptability;
-            //_unitOfWork.SchoolScheduleRepo.AddAsync(timetableDb);
-            //await _unitOfWork.SaveChangesAsync();
+            //save to database
+           var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
+            timetableDb.SchoolId = parameters.SchoolId;
+            timetableDb.SchoolYearId = parameters.SchoolYearId;
+            timetableDb.Name = parameters.TimetableName;
+            timetableDb.TermId = parameters.TermId;
+            timetableDb.WeeklyRange = 6;
+            timetableDb.CreateDate = DateTime.UtcNow;
+            timetableDb.ExpiredDate = DateTime.UtcNow;
+            timetableDb.ApplyDate = DateTime.UtcNow;
+            timetableDb.FitnessPoint = timetableFirst.Adaptability;
+            _unitOfWork.SchoolScheduleRepo.AddAsync(timetableDb);
+            await _unitOfWork.SaveChangesAsync();
 
             // export csv
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = timetableFirst };
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Tạo thời khóa biểu thành công!" };
         }
         #endregion
 
@@ -1257,17 +1258,6 @@ namespace SchedulifySystem.Service.Services.Implements
                         continue;
                     };
 
-                    // nếu lủng 
-                    //var slotInDate = new List<int>();
-                    //for (int j = startSlot; j < startSlot + 5; j += 10)
-                    //{
-                    //    slotInDate.Add(j);
-                    //}
-                    //// lấy ra tiết lủng 
-                    //var freeSlot = slotInDate.Where(s => !startAts.Contains(s));
-
-                    //var lastSlots = slotInDate.TakeLast(freeSlot.Count()).ToList();
-
                     var slotInDate = Enumerable.Range(startSlot, 5).ToList();
                     var freeSlots = slotInDate.Where(s => !startAts.Contains(s)).ToList();
 
@@ -1309,54 +1299,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     startSlot += 10;
                 }
 
-                //var validGaps = new[] { 1, 6, 7, 8, 16, 17, 18 };
-
-                //// duyệt qua các tiết để tìm các tiết lủng
-                //for (int i = 0; i < providedLessons.Count - 1; i++)
-                //{
-                //    int currentLesson = providedLessons[i];
-                //    int nextLesson = providedLessons[i + 1];
-                //    int gap = nextLesson - currentLesson;
-
-                //    // nếu khoảng cách giữa các tiết không thuộc khoảng cách hợp lệ
-                //    if (!validGaps.Contains(gap))
-                //    {
-                //        for (int missing = currentLesson + 1; missing < nextLesson; missing++)
-                //        {
-                //            //chỉ tiết cuối cùng mới được phép trống)
-                //            if (missing % 10 == (mainSession == MainSession.Morning ? 5 : 10))
-                //            {
-                //                continue; // tiết cuối cùng trống là hợp lệ
-                //            }
-
-                //            // kiểm tra xem missing có phải là tiết None ?
-                //            var isFreeTimeNone = parameters.FreeTimetablePeriods
-                //                .Any(freePeriod => freePeriod.ClassId == classObj.Id && freePeriod.StartAt == missing);
-
-                //            if (isFreeTimeNone)
-                //            {
-                //                continue; 
-                //            }
-
-                //            var (day, periodNumber) = GetDayAndPeriod(missing);
-
-                //            var errorMessage =
-                //                $"Lớp {classObj.Name}: " +
-                //                $"Có tiết trống chưa được xếp (Unfilled) giữa buổi " +
-                //                $"vào thứ {day}, tiết {periodNumber}.";
-
-                //            var error = new ConstraintErrorModel()
-                //            {
-                //                Code = "H11",
-                //                ClassName = classObj.Name,
-                //                Description = errorMessage
-                //            };
-
-                //            src.ConstraintErrors.Add(error);
-                //            count++;
-                //        }
-                //    }
-                //}
+               
             }
             return count;
         }
@@ -1981,7 +1924,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 Status = StatusCodes.Status200OK,
                 Message = ConstantResponse.GET_TIMETABLE_SUCCESS,
-                Result = _mapper.Map<SchoolScheduleViewModel>(timetable)
+                Result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetable)
             };
         }
 
@@ -1998,6 +1941,24 @@ namespace SchedulifySystem.Service.Services.Implements
         public Task<BaseResponseModel> Update(TimetableIndividual timetable)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<BaseResponseModel> GetAll(int schoolId, int pageIndex = 1, int pageSize = 20)
+        {
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+
+            var timetables = await _unitOfWork.SchoolScheduleRepo.ToPaginationIncludeAsync(pageIndex, pageSize, 
+                filter: t => t.SchoolId == schoolId && !t.IsDeleted,
+                include: query => query.Include(t => t.Term).Include(t => t.SchoolYear));
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_TIMETABLE_SUCCESS,
+                Result = _mapper.Map<Pagination<SchoolScheduleViewModel>>(timetables)
+            };
+            
         }
     }
 }

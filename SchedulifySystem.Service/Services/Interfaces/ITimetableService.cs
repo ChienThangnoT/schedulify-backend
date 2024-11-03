@@ -17,6 +17,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
     {
         public Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel);
         public Task<BaseResponseModel> Get(int id);
+        public Task<BaseResponseModel> GetAll(int schoolId, int pageIndex, int pageSize);
         public Task<BaseResponseModel> Check(Guid timetableId);
         public Task<BaseResponseModel> Update(TimetableIndividual timetable);
         public Task<BaseResponseModel> Delete(int id);
