@@ -13,7 +13,10 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 {
     public class GenerateTimetableModel
     {
+        [JsonIgnore]
         public int SchoolId { get; set; }
+        public DateTime ApplyDate { get; set; }
+        public DateTime ExpiredDate { get; set; }
         public int SchoolYearId { get; set; }
         public string? TimetableName { get; set; }
 

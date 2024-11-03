@@ -1,14 +1,12 @@
-﻿using SchedulifySystem.Repository.EntityModels;
-using SchedulifySystem.Service.BusinessModels.ClassScheduleBusinessModels;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Service.BusinessModels.SchoolBusinessModels
+namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 {
-    public class SchoolScheduleViewModel : BaseEntity
+    public class SchoolScheduleViewModel
     {
         public int SchoolYearId { get; set; }
         public string? StartYear { get; set; }
@@ -21,7 +19,5 @@ namespace SchedulifySystem.Service.BusinessModels.SchoolBusinessModels
         public int WeeklyRange { get; set; }
         public string? Name { get; set; }
         public int FitnessPoint { get; set; }
-
-        public ICollection<ClassScheduleViewModel> ClassSchedules { get; set; }
     }
 }
