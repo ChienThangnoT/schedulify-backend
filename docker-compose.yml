@@ -3,8 +3,8 @@
 services:
   schedulifysystem.api:
     build:
-      context: SchedulifySystem.API
-      dockerfile: Dockerfile
+      context: .  
+      dockerfile: SchedulifySystem.API/Dockerfile
     ports:
       - "9002:8080"
       - "9091:8081"
