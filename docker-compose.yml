@@ -2,6 +2,7 @@
 
 services:
   schedulifysystem.api:
+    image: schedulify
     build:
       context: .  
       dockerfile: SchedulifySystem.API/Dockerfile
