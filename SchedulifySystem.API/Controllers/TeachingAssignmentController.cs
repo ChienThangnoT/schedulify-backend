@@ -17,11 +17,11 @@ namespace SchedulifySystem.API.Controllers
             _teacherAssignmentService = teacherAssignmentService;
         }
 
-        [HttpPost]
+        [HttpPatch]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AddTeacherAssignment(AddTeacherAssignmentModel model)
+        public Task<IActionResult> AddTeacherAssignment(List<AssignTeacherAssignmentModel> models)
         {
-            return ValidateAndExecute(() => _teacherAssignmentService.AddAssignment(model));
+            return ValidateAndExecute(() => _teacherAssignmentService.AssignTeacherForAsignments(models));
         }
 
         [HttpGet]
