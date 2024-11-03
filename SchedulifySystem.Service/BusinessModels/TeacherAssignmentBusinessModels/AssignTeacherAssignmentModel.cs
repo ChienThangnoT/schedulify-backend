@@ -8,16 +8,12 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels
 {
-    public class AddTeacherAssignmentModel
+    public class AssignTeacherAssignmentModel
     {
+        public int Id { get; set; }
         public int TeacherId { get; set; }
-        public int SubjectId { get; set; }
-        public int PeriodCount { get; set; }
-        public int TermId { get; set; }
-        public int StudentClassId { get; set; }
 
-        [JsonIgnore]
-        public AssignmentType AssignmentType { get; set; } = AssignmentType.Permanent;
+
 
     }
 }

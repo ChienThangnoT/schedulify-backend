@@ -197,7 +197,7 @@ namespace SchedulifySystem.API
 
             //config TeachableSubject service and repo
             services.AddTransient<ITeachableSubjectRepository, TeachableSubjectRepository>();
-            //services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
+            services.AddTransient<ITeachableSubjectService, TeachableSubjectService>();
 
             //config Term service and repo
             services.AddTransient<ITermRepository, TermRepository>();

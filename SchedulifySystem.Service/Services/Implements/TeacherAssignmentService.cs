@@ -27,25 +27,25 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
-        public async Task<BaseResponseModel> AddAssignment(AddTeacherAssignmentModel model)
+        public async Task<BaseResponseModel> AssignTeacherForAsignments(List<AssignTeacherAssignmentModel> models)
         {
-            var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(model.TeacherId) ?? throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
-            var subject = await _unitOfWork.SubjectRepo.GetByIdAsync(model.SubjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-            var teachableSubject = (await _unitOfWork.TeachableSubjectRepo.GetAsync(filter: ts => ts.TeacherId == model.TeacherId && ts.SubjectId == model.SubjectId)).FirstOrDefault();
-
-            if (teachableSubject == null)
+            foreach (var model in models)
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, 
-                    Message = $"Giáo viên {teacher?.Abbreviation} không thể dạy được môn {subject.SubjectName}." };
+                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(model.TeacherId) ?? throw new NotExistsException($"Giáo viên id {model.TeacherId} không tồn tại!");
+                var assignment = await _unitOfWork.TeacherAssignmentRepo.GetByIdAsync(model.Id, include: query => query.Include(ta => ta.Subject)) ?? throw new NotExistsException($"Phân công id {model.Id} không tồn tại!");
+                var teachableSubject = (await _unitOfWork.TeachableSubjectRepo.GetAsync(filter: ts => ts.TeacherId == model.TeacherId && ts.SubjectId == assignment.SubjectId)).FirstOrDefault();
+                if (teachableSubject == null)
+                {
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = $"Giáo viên {teacher.FirstName} {teacher.LastName} không thể dạy được môn {assignment.Subject.SubjectName}."
+                    };
+                }
+                assignment.TeacherId = model.TeacherId;
+                _unitOfWork.TeacherAssignmentRepo.Update(assignment);
             }
-
-            var studentClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(model.StudentClassId)
-                ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
-
-            var term = await _unitOfWork.TermRepo.GetByIdAsync(model.TermId) ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
-
-            var newAssign = _mapper.Map<TeacherAssignment>(model);
-            await _unitOfWork.TeacherAssignmentRepo.AddAsync(newAssign);
+           
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_TEACHER_ASSIGNMENT_SUCCESS };
         }
