@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
     
 env:
-   WORKING_DIRECTORY: SchedulifySystem.API
+   WORKING_DIRECTORY: SchedulifySystem.sln
    
 jobs:
   build:
@@ -23,6 +23,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.WORKING_DIRECTORY }}
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build ${{ env.WORKING_DIRECTORY }} --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test ${{ env.WORKING_DIRECTORY }} --no-build --verbosity normal
