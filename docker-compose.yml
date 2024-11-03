@@ -1,0 +1,31 @@
+﻿version: '3.8'
+
+services:
+  schedulifysystem.api:
+    build:
+      context: .
+    ports:
+      - "9002:8080"
+      - "9091:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080
+      - ASPNETCORE_HTTPS_PORT=8081
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=vsat
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      - db
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: schedulifyDB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

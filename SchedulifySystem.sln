@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35222.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulifySystem.API", "SchedulifySystem.API\SchedulifySystem.API.csproj", "{7737181D-3CB8-491F-99F1-9668C7B5DC2B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchedulifySystem.API", "SchedulifySystem.API\SchedulifySystem.API.csproj", "{7737181D-3CB8-491F-99F1-9668C7B5DC2B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulifySystem.Repository", "SchedulifySystem.Repository\SchedulifySystem.Repository.csproj", "{97938E43-86BE-443E-A0AC-470B5BB5AC78}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchedulifySystem.Repository", "SchedulifySystem.Repository\SchedulifySystem.Repository.csproj", "{97938E43-86BE-443E-A0AC-470B5BB5AC78}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulifySystem.Service", "SchedulifySystem.Service\SchedulifySystem.Service.csproj", "{374E92ED-B6C4-4FC3-AC69-3B961F5F3DCA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchedulifySystem.Service", "SchedulifySystem.Service\SchedulifySystem.Service.csproj", "{374E92ED-B6C4-4FC3-AC69-3B961F5F3DCA}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{630610E6-16F5-4A34-9A58-AAE9A11EDA49}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{374E92ED-B6C4-4FC3-AC69-3B961F5F3DCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{374E92ED-B6C4-4FC3-AC69-3B961F5F3DCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{374E92ED-B6C4-4FC3-AC69-3B961F5F3DCA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{630610E6-16F5-4A34-9A58-AAE9A11EDA49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{630610E6-16F5-4A34-9A58-AAE9A11EDA49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{630610E6-16F5-4A34-9A58-AAE9A11EDA49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{630610E6-16F5-4A34-9A58-AAE9A11EDA49}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
