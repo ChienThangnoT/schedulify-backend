@@ -5,7 +5,10 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
+    
+env:
+   WORKING_DIRECTORY: SchedulifySystem.API
+   
 jobs:
   build:
 
@@ -18,7 +21,7 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ${{ env.WORKING_DIRECTORY }}
     - name: Build
       run: dotnet build --no-restore
     - name: Test
