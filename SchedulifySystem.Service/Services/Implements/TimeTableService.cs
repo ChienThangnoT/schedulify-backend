@@ -1279,7 +1279,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         continue;
                     }
 
-                    // Kiểm tra nếu các tiết trống không nằm ở cuối buổi hoặc không hợp lệ
+                    // kiểm tra nếu các tiết trống không nằm ở cuối buổi hoặc không hợp lệ
                     var lastSlots = slotInDate.TakeLast(freeSlots.Count).ToList();
 
                     // nếu tiết lủng k nằm ở cuối 
