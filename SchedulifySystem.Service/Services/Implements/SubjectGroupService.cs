@@ -48,8 +48,9 @@ namespace SchedulifySystem.Service.Services.Implements
                         ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
                     var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
-                        filter: t => t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower()
-                        || t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower());
+                        filter: t => t.SchoolId == schoolId && t.Grade == (int) subjectGroupAddModel.Grade 
+                        && (t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower()
+                        || t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower()));
 
                     if (checkExistSubjectGroup.Any())
                     {
@@ -72,7 +73,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     var subjectGroupAdd = _mapper.Map<SubjectGroup>(subjectGroupAddModel);
                     subjectGroupAdd.SchoolId = schoolId;
-
                     await _unitOfWork.SubjectGroupRepo.AddAsync(subjectGroupAdd);
                     //save to have group id
                     await _unitOfWork.SaveChangesAsync();
