@@ -260,6 +260,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             var classesDbList = classesDb.ToList();
+            var classIds = classesDbList.Select(c => c.Id).ToList();
 
             var subjectInClassesDb = classesDb
                 .Where(c => c.SubjectGroup != null) // Lọc những lớp có SubjectGroup
@@ -281,7 +282,7 @@ namespace SchedulifySystem.Service.Services.Implements
             subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
 
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: t => classesDb.Select(c => c.Id).Contains(t.StudentClassId) && t.IsDeleted == false
+                filter: t => classIds.Contains(t.StudentClassId) && t.IsDeleted == false
                      && t.TermId == parameters.TermId,
                 include: query => query.Include(a => a.Teacher));
             //await assignmentTask;
@@ -290,18 +291,22 @@ namespace SchedulifySystem.Service.Services.Implements
             var assignmentsDbList = assignmentsDb.ToList();
 
             //get teacher từ assigntmment db
-            var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
+            //var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
 
-            var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
-                filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
+            //var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
+            //    filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
 
-            var teachersDb = await teacherTask.ConfigureAwait(false);
-            var teachersDbList = teachersDb.ToList();
+            //var teachersDb = await teacherTask.ConfigureAwait(false);
+            //var teachersDbList = teachersDb.ToList();
 
-            for (var i = 0; i < teachersDbList.Count; i++)
-                teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
+            //for (var i = 0; i < teachersDbList.Count; i++)
+            //    teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
 
 
+            teachers.AddRange(assignmentsDbList
+            .Select(a => new TeacherScheduleModel(a.Teacher))
+            .GroupBy(t => t.Id) // Group by Id to ensure distinct values
+            .Select(g => g.First())); // Select the first item from each group
 
             // tạo danh sách các assignment
             /*Duyệt qua danh sách các phân công (assignmentsDb), tìm lớp học, môn học, và giáo viên tương ứng cho từng phân công.
@@ -387,20 +392,25 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // update fixed period in para
             List<ClassPeriodScheduleModel> fixedPeriods = new List<ClassPeriodScheduleModel>();
+
             for (int i = 0; i < parameters.FixedPeriodsPara.Count(); i++)
             {
                 var fixedPeriod = parameters.FixedPeriodsPara[i];
-                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && a.StudentClass.Id == fixedPeriod.ClassId).FirstOrDefault();
+                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && (fixedPeriod.ClassId == null || fixedPeriod.ClassId == 0 || a.StudentClass.Id == fixedPeriod.ClassId)).ToList();
                 if (founded == null)
                 {
                     throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
                 }
-                var period = new ClassPeriodScheduleModel(founded);
-                period.StartAt = fixedPeriod.StartAt;
-                period.Priority = EPriority.Fixed;
-                period.Session = IsMorningSlot(fixedPeriod.StartAt) ? MainSession.Morning : MainSession.Afternoon;
-                fixedPeriods.Add(period);
+                foreach(var f in founded)
+                {
+                    var period = new ClassPeriodScheduleModel(f);
+                    period.StartAt = fixedPeriod.StartAt;
+                    period.Priority = EPriority.Fixed;
+                    period.Session = IsMorningSlot(fixedPeriod.StartAt) ? MainSession.Morning : MainSession.Afternoon;
+                    fixedPeriods.Add(period);
+                }
             }
+
             parameters.FixedPeriods = fixedPeriods;
 
             // lấy ra ds các phòng học có môn thực hành
