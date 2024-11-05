@@ -303,7 +303,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //    teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
 
 
-            teachers.AddRange(assignmentsDbList.Select(a => new TeacherScheduleModel(a.Teacher)));
+            teachers.AddRange(assignmentsDbList.Select(a => new TeacherScheduleModel(a.Teacher)).Distinct());
 
 
             // tạo danh sách các assignment
