@@ -303,8 +303,10 @@ namespace SchedulifySystem.Service.Services.Implements
             //    teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
 
 
-            teachers.AddRange(assignmentsDbList.Select(a => new TeacherScheduleModel(a.Teacher)).Distinct());
-
+            teachers.AddRange(assignmentsDbList
+            .Select(a => new TeacherScheduleModel(a.Teacher))
+            .GroupBy(t => t.Id) // Group by Id to ensure distinct values
+            .Select(g => g.First())); // Select the first item from each group
 
             // tạo danh sách các assignment
             /*Duyệt qua danh sách các phân công (assignmentsDb), tìm lớp học, môn học, và giáo viên tương ứng cho từng phân công.
@@ -394,12 +396,12 @@ namespace SchedulifySystem.Service.Services.Implements
             for (int i = 0; i < parameters.FixedPeriodsPara.Count(); i++)
             {
                 var fixedPeriod = parameters.FixedPeriodsPara[i];
-                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && (fixedPeriod.ClassId == null || a.StudentClass.Id == fixedPeriod.ClassId)).FirstOrDefault();
+                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && (fixedPeriod.ClassId == 0 || a.StudentClass.Id == fixedPeriod.ClassId)).FirstOrDefault();
                 if (founded == null)
                 {
                     throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
                 }
-                if(fixedPeriod.ClassId == null)
+                if (fixedPeriod.ClassId == 0)
                 {
                     classIds.ForEach(id =>
                     {
@@ -419,7 +421,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     period.Session = IsMorningSlot(fixedPeriod.StartAt) ? MainSession.Morning : MainSession.Afternoon;
                     fixedPeriods.Add(period);
                 }
-                
+
             }
 
             parameters.FixedPeriods = fixedPeriods;
