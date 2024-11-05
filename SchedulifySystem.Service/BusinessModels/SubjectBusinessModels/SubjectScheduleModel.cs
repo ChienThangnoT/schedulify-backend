@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 {
-    public class SubjectScheduleModel : BaseEntity
+    public record SubjectScheduleModel 
     {
         public int SubjectId { get; set; }
         public string? Abbreviation { get; set; }
@@ -20,6 +20,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int? SlotSpecialized { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
+        public int SubjectGroupId { get; set; }
      
 
         public SubjectScheduleModel() { }
