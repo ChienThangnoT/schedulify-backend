@@ -20,9 +20,9 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int SchoolYearId { get; set; }
         public string? TimetableName { get; set; }
 
-        public List<FixedPeriodScheduleModel> FixedPeriodsPara { get; set; }
-        public List<NoAssignPeriodScheduleModel> NoAssignPeriodsPara { get; set; }
-        public List<FreeTimetablePeriodScheduleModel> FreeTimetablePeriodsPara { get; set; }
+        public List<FixedPeriodScheduleModel>? FixedPeriodsPara { get; set; }
+        public List<NoAssignPeriodScheduleModel>? NoAssignPeriodsPara { get; set; }
+        public List<FreeTimetablePeriodScheduleModel>? FreeTimetablePeriodsPara { get; set; }
 
         [JsonIgnore]
         public List<ClassPeriodScheduleModel> FixedPeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết cố định 

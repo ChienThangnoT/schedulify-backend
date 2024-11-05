@@ -20,7 +20,23 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int? SlotSpecialized { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
-        public ESubjectGroupType SubjectGroupType { get; set; }
+     
+
+        public SubjectScheduleModel() { }
+
+        public SubjectScheduleModel(SubjectInGroup sig)
+        {
+           SubjectId = sig.SubjectId;
+            Abbreviation = sig.Subject.Abbreviation;
+            SubjectName = sig.Subject.SubjectName;
+            MainSlotPerWeek = sig.MainSlotPerWeek;
+            SubSlotPerWeek = sig.SubSlotPerWeek;
+            TotalSlotInYear = sig.Subject.TotalSlotInYear;
+            SlotSpecialized = sig.Subject.SlotSpecialized;
+            IsSpecialized = sig.IsSpecialized;
+            IsDoublePeriod = sig.IsDoublePeriod;
+            IsDoublePeriod = sig.IsDoublePeriod;
+        }
 
     }
 }
