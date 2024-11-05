@@ -8,7 +8,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
 {
-    // Custom response for invalid model
     options.InvalidModelStateResponseFactory = context =>
     {
         var errors = context.ModelState
@@ -41,11 +40,10 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Schedulify Web API");
-    //c.InjectStylesheet("/swagger-ui/SwaggerDark.css");
-    c.RoutePrefix = "swagger";  // Serve Swagger at /swagger/index.html
+    c.RoutePrefix = "swagger";
 });
 
-// Optional: Enable HTTPS only in Development environment
+// Use HTTPS Redirection only in Development
 if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
