@@ -7,12 +7,11 @@ services:
       context: .  
       dockerfile: SchedulifySystem.API/Dockerfile
     ports:
-      - "9002:8080"
+      - "8080:8080"
      # - "9091:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_HTTPS_PORT=
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
@@ -22,6 +21,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
+    restart: always
 
   db:
     image: postgres:13
@@ -33,6 +33,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    restart: always
 
 volumes:
   postgres_data:
