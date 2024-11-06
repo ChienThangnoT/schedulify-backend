@@ -6,7 +6,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/buildings")]
+    [Route("api/schools/{schoolId}/buildings")]
     [ApiController]
     public class BuildingController : BaseController
     {
@@ -32,18 +32,18 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _buildingService.AddBuildings(schoolId, buildings));
         }
 
-        [HttpPut("{buildingId}")]
+        [HttpPut("{id}")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> UpdateBuilding(int buildingId, UpdateBuildingModel building)
+        public Task<IActionResult> UpdateBuilding(int id, UpdateBuildingModel building)
         {
-            return ValidateAndExecute(() => _buildingService.UpdateBuildings(buildingId, building));
+            return ValidateAndExecute(() => _buildingService.UpdateBuildings(id, building));
         }
 
-        [HttpDelete("{buildingId}")]
+        [HttpDelete("{id}")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> DeleteBuilding(int buildingId)
+        public Task<IActionResult> DeleteBuilding(int id)
         {
-            return ValidateAndExecute(() => _buildingService.DeleteBuildings(buildingId));
+            return ValidateAndExecute(() => _buildingService.DeleteBuildings(id));
         }
 
     }

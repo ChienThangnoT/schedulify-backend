@@ -6,7 +6,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/subject-in-groups")]
+    [Route("api/schools/{schoolId}/academic-years/{yearId}/subject-groups/{subjectGroupId}/subject-in-groups")]
     [ApiController]
     public class SubjectInGroupController : BaseController
     {

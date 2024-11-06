@@ -6,7 +6,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/terms")]
+    [Route("api/academic-years/{yearId}/terms")]
     [ApiController]
     public class TermController : BaseController
     {
@@ -17,14 +17,14 @@ namespace SchedulifySystem.API.Controllers
             _termService = termService;
         }
 
-        [HttpGet("{schoolId}")]
+        [HttpGet]
         [Authorize]
         public Task<IActionResult> GetTermBySchoolId(int schoolId)
         {
             return ValidateAndExecute(() => _termService.GetTermBySchoolId(schoolId));
         }
 
-        [HttpPost("{schoolId}")]
+        [HttpPost]
         [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> CreateTermBySchoolId(int schoolId, TermAdjustModel termAddModel)
         {

@@ -4,7 +4,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/school-years")]
+    [Route("api/academic-years")]
     [ApiController]
     public class SchoolYearController : BaseController
     {
