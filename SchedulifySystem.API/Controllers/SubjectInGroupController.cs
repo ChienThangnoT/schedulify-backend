@@ -19,9 +19,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPatch]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> UpdateTimeSlot(List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel)
+        public Task<IActionResult> UpdateTimeSlot(int schoolId, int yearId,int subjectGroupId,int termId,  List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel)
         {
-            return ValidateAndExecute(() => _subjectInGroupService.UpdateSubjectInGroup(subjectInGroupUpdateModel));
+            return ValidateAndExecute(() => _subjectInGroupService.UpdateSubjectInGroup(schoolId, yearId, subjectGroupId, termId, subjectInGroupUpdateModel));
         }
     }
 }
