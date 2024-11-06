@@ -26,12 +26,13 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
-        public async Task<BaseResponseModel> UpdateSubjectInGroup(List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel)
+        public async Task<BaseResponseModel> UpdateSubjectInGroup(int schoolId, int yearId, int subjectGroupId, int termId, List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel)
         {
             var subjectInGroupIds = subjectInGroupUpdateModel.Select(x => x.SubjectInGroupId).ToList();
-
+           
             var subjectInGroups = await _unitOfWork.SubjectInGroupRepo.GetAsync(
-                filter: t => subjectInGroupIds.Contains(t.Id) && t.IsDeleted == false);
+                filter: t => subjectInGroupIds.Contains(t.Id) && t.IsDeleted == false 
+                && t.TermId == termId && schoolId == t.SubjectGroup.SchoolId && t.SubjectGroupId == subjectGroupId);
 
             if (subjectInGroups == null || !subjectInGroups.Any())
                 throw new NotExistsException(ConstantResponse.SUBJECT_IN_GROUP_NOT_FOUND);

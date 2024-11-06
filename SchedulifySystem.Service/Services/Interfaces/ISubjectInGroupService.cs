@@ -10,6 +10,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ISubjectInGroupService
     {
-        Task<BaseResponseModel> UpdateSubjectInGroup(List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel);
+        Task<BaseResponseModel> UpdateSubjectInGroup(int schoolId, int yearId, int subjectGroupId, int termId, List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel);
     }
 }
