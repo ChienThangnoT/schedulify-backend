@@ -40,15 +40,18 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, include: query => query.Include(q => q.Terms))
+                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
                         ?? throw new NotExistsException($"School not found with id {schoolId}");
                     var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(
-                        filter: sy => sy.Id == subjectGroupAddModel.SchoolYearId,
+                        filter: sy => sy.Id == subjectGroupAddModel.SchoolYearId && sy.IsDeleted == false,
                         include: query => query.Include(sy => sy.Terms))).Items.FirstOrDefault()
                         ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
+                    var termInYear = await _unitOfWork.TermRepo.GetAsync(filter: t => t.SchoolYearId == schoolYear.Id && t.IsDeleted == false)
+                        ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+                    List<Term> termList = termInYear.ToList();
                     var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
-                        filter: t => t.SchoolId == schoolId && t.Grade == (int) subjectGroupAddModel.Grade 
+                        filter: t => t.SchoolId == schoolId && t.Grade == (int)subjectGroupAddModel.Grade
                         && (t.GroupName.ToLower() == subjectGroupAddModel.GroupName.ToLower()
                         || t.GroupCode.ToLower() == subjectGroupAddModel.GroupCode.ToLower()));
 
@@ -91,18 +94,22 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT,
                                 Result = subjectId
                             };
+                        int slotPerTerm1 = (int)Math.Floor((double)checkSubject.TotalSlotInYear / 2);
+                        int slotPerTerm2 = (int)Math.Ceiling((double)checkSubject.TotalSlotInYear / 2);
 
                         var newSubjectInGroup = new SubjectInGroup
                         {
                             SubjectId = subjectId,
                             SubjectGroupId = subjectGroupAdd.Id,
+                            MainSlotPerWeek = (checkSubject?.TotalSlotInYear / 35) ?? 0,
                             IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subjectId)
                         };
 
-                        foreach (Term term in school.Terms)
+                        for (int i = 0; i < termList.Count; i++)
                         {
                             newSubjectInGroup.CreateDate = DateTime.UtcNow;
-                            newSubjectInGroup.TermId = term.Id;
+                            newSubjectInGroup.TermId = termList[i].Id;
+                            newSubjectInGroup.SlotPerTerm = (i == 0) ? slotPerTerm1 : slotPerTerm2;
                             _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectInGroup.ShallowCopy());
                             newSubjectInGroupAdded.Add(newSubjectInGroup);
                         }
@@ -115,18 +122,23 @@ namespace SchedulifySystem.Service.Services.Implements
                     //var requiredSubjectList = new List<SubjectInGroup>();
                     foreach (var subject in requiredSubjects)
                     {
+                        int slotPerTerm1 = (int)Math.Floor((double)subject.TotalSlotInYear / 2);
+                        int slotPerTerm2 = (int)Math.Ceiling((double)subject.TotalSlotInYear / 2);
+
                         var newSubjectRequiredInGroup = new SubjectInGroup
                         {
                             SubjectId = subject.Id,
                             SubjectGroupId = subjectGroupAdd.Id,
+                            MainSlotPerWeek = (subject?.TotalSlotInYear / 35) ?? 0,
                             IsSpecialized = subjectGroupAddModel.SpecializedSubjectIds.Contains(subject.Id)
                         };
 
-                        foreach (Term term in school.Terms)
+                        for (int i = 0; i < termList.Count; i++)
                         {
                             newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
-                            newSubjectRequiredInGroup.TermId = term.Id;
-                            await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
+                            newSubjectRequiredInGroup.TermId = termList[i].Id;
+                            newSubjectRequiredInGroup.SlotPerTerm = (i == 0) ? slotPerTerm1 : slotPerTerm2;
+                            _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
                             newSubjectInGroupAdded.Add(newSubjectRequiredInGroup);
                         }
                     }
@@ -157,11 +169,13 @@ namespace SchedulifySystem.Service.Services.Implements
                     //    .Where(c => subjectGroupAddModel.SpecializedSubjectIds.Contains(c.SubjectId)).ToList();
 
                     var updateSpecialSubject = await _unitOfWork.SubjectInGroupRepo.GetAsync(
-                        filter: t => t.SubjectGroupId == subjectGroupAdd.Id && subjectGroupAddModel.SpecializedSubjectIds.Contains(t.SubjectId));
+                        filter: t => t.SubjectGroupId == subjectGroupAdd.Id && subjectGroupAddModel.SpecializedSubjectIds.Contains(t.SubjectId),
+                        includeProperties: "Subject");
 
                     foreach (var subjectInGroup in updateSpecialSubject)
                     {
                         subjectInGroup.IsSpecialized = true;
+                        subjectInGroup.MainSlotPerWeek += (subjectInGroup.Subject?.SlotSpecialized / 35) ?? 0;
                         _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
                     }
                     await _unitOfWork.SaveChangesAsync();
@@ -234,11 +248,12 @@ namespace SchedulifySystem.Service.Services.Implements
                     Id = item.Id,
                     SubjectName = item.Subject?.SubjectName,
                     Abbreviation = item.Subject?.Abbreviation,
+                    SubjectInGroupType = (ESubjectInGroupType)item.SubjectInGroupType,
                     IsRequired = item.Subject?.IsRequired ?? false,
                     Description = item.Subject?.Description,
                     MainSlotPerWeek = item.MainSlotPerWeek,
                     SubSlotPerWeek = item.SubSlotPerWeek,
-                    TootalSlotPerWeek = item.MainSlotPerWeek + item.SubSlotPerWeek,
+                    TotalSlotPerWeek = item.MainSlotPerWeek + item.SubSlotPerWeek,
                     IsSpecialized = item.IsSpecialized,
                     IsDoublePeriod = item.IsDoublePeriod,
                     SlotPerTerm = item.SlotPerTerm,
@@ -287,11 +302,11 @@ namespace SchedulifySystem.Service.Services.Implements
         #region get subject groups
         public async Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, EGrade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
         {
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (subjectGroupId != null)
             {
-                var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId)
+                var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)subjectGroupId, filter: t => t.IsDeleted == false)
                     ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
             }
             if (schoolYearId != null)
@@ -306,6 +321,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 && (grade == null || t.Grade == (int)grade)
                 && (schoolYearId == null || t.SchoolYearId == schoolYearId)
                 && t.IsDeleted == includeDeleted,
+                includeProperties: "School",
                 orderBy: q => q.OrderBy(s => s.GroupCode),
                 pageIndex: pageIndex,
                 pageSize: pageSize
@@ -342,6 +358,8 @@ namespace SchedulifySystem.Service.Services.Implements
                                .Include(sg => sg.School)
                                .Include(sg => sg.SchoolYear)
                                .ThenInclude(sy => sy.Terms));
+                    var termInYear = await _unitOfWork.TermRepo.GetAsync(filter: t => t.SchoolYearId == subjectGroupUpdateModel.SchoolYearId && t.IsDeleted == false)
+                        ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
 
                     if (subjectGroup == null || !subjectGroup.Any())
                     {
@@ -446,7 +464,7 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Result = subjectId
                             };
 
-                        foreach (var term in subjectGroupDb.School.Terms)
+                        foreach (var term in termInYear)
                         {
                             var newSubjectInGroup = new SubjectInGroup
                             {
@@ -535,8 +553,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
         }
-
-
         #endregion
 
         #region DeleteSubjectGroup
