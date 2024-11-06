@@ -10,8 +10,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ITermService
     {
-        Task<BaseResponseModel> GetTermBySchoolId(int schoolId);
-        Task<BaseResponseModel> AddTermBySchoolId(int schoolId, TermAdjustModel termAddModel);
-        Task<BaseResponseModel> UpdateTermBySchoolId(int termId, TermAdjustModel termAddModel);
+        Task<BaseResponseModel> GetTerms(int? termId, int schoolYearId,int pageIndex, int pageSize);
+        Task<BaseResponseModel> AddTerm(TermAdjustModel termAddModel);
+        Task<BaseResponseModel> UpdateTermById(int termId, TermAdjustModel termAddModel);
     }
 }

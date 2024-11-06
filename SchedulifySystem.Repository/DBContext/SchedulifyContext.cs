@@ -323,6 +323,10 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<Subject>()
             .Property(s => s.Description)
             .HasMaxLength(150);
+        modelBuilder.Entity<Subject>()
+            .HasOne(sc => sc.SchoolYear)
+            .WithMany(t => t.Subjects)
+            .HasForeignKey(sc => sc.SchoolYearId);
 
         // SubjectConfig Entity
         modelBuilder.Entity<SubjectConfig>()
@@ -478,10 +482,6 @@ public partial class SchedulifyContext : DbContext
             .HasOne(t => t.SchoolYear)
             .WithMany(sy => sy.Terms)
             .HasForeignKey(t => t.SchoolYearId);
-        modelBuilder.Entity<Term>()
-            .HasOne(t => t.School)
-            .WithMany(s => s.Terms)
-            .HasForeignKey(t => t.SchoolId);
 
 
         // TimeSlot Entity

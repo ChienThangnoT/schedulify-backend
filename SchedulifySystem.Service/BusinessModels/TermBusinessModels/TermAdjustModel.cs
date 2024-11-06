@@ -9,8 +9,8 @@ namespace SchedulifySystem.Service.BusinessModels.TermBusinessModels
     public class TermAdjustModel
     {
         public string? Name { get; set; }
-        public DateTime? StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
+        public int StartWeek { get; set; }
+        public int EndWeek { get; set; }
         public int? SchoolYearId { get; set; }
         public bool? IsDeleted { get; set; }
     }

@@ -11,14 +11,14 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
     public class SubjectViewModel
     {
         public int Id { get; set; }
+        public int SchoolYearId { get; set; }
+        public string? SchoolYearCode { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
-        [JsonIgnore]
         public int? TotalSlotInYear { get; set; }
-        [JsonIgnore]
-        public int SlotSpecialized { get; set; } = 35;
+        public int SlotSpecialized { get; set; }
         public DateTime CreateDate { get; set; }
         public DateTime UpdateDate { get; set; }
         public bool IsDeleted { get; set; }
@@ -30,11 +30,12 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int Id { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
+        public ESubjectInGroupType? SubjectInGroupType { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
         public int MainSlotPerWeek { get; set; }
         public int SubSlotPerWeek { get; set; }
-        public int TootalSlotPerWeek { get; set; }
+        public int TotalSlotPerWeek { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
         public int SlotPerTerm { get; set; }

@@ -11,7 +11,6 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
     {
         public string? Name { get; set; }
         public int? HomeroomTeacherId { get; set; }
-        public int? SchoolId { get; set; }
         public int? SchoolYearId { get; set; }
         public MainSession? MainSession { get; set; }
         public bool IsFullDay { get; set; }
