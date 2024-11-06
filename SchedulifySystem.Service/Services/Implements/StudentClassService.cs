@@ -365,6 +365,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         var founded = await _unitOfWork.StudentClassesRepo.GetByIdAsync(classId)
                                         ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
 
+                        var classPeriodCount = 0;
 
                         if (founded.SubjectGroupId == null || founded.SubjectGroupId != model.SubjectGroupId)
                         {
@@ -388,11 +389,15 @@ namespace SchedulifySystem.Service.Services.Implements
                                     SubjectId = sig.SubjectId,
                                     TermId = (int)sig.TermId
                                 });
+                                classPeriodCount += sig.MainSlotPerWeek + sig.SubSlotPerWeek;
                             });
                             await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignment);
                             _unitOfWork.StudentClassesRepo.Update(founded);
 
                         }
+
+                        founded.PeriodCount = classPeriodCount;
+                        _unitOfWork.StudentClassesRepo.Update(founded);
                     }
 
                     await _unitOfWork.SaveChangesAsync();
