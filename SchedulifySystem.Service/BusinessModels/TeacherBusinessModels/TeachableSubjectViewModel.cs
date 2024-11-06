@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,8 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public int SubjectId { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
+        public int AppropriateLevel { get; set; }
+        public EGrade Grade { get; set; }
 
     }
 }

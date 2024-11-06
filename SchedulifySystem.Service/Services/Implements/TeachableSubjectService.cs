@@ -34,7 +34,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 ?? throw  new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
 
             var TeachableSubjects = await _unitOfWork.TeachableSubjectRepo.GetV2Async(
-                filter: ts => ts.SubjectId == id && ts.Subject.SchoolId == schoolId,
+                filter: ts => ts.SubjectId == id && ts.Teacher.SchoolId == schoolId,
                 include: query => query.Include(ts => ts.Teacher).Include(ts => ts.Subject)) ;
 
             return new BaseResponseModel()

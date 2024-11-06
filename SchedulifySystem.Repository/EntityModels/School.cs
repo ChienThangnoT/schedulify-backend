@@ -20,11 +20,9 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<Term> Terms { get; set; } = new List<Term>();
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         public ICollection<Department> Departments { get; set; } = new List<Department>();
-        public ICollection<Curriculum> Curriculums { get; set; } = new List<Curriculum>();
         public ICollection<TimeSlot> TimeSlots { get; set; } = new List<TimeSlot>();
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();
         public ICollection<Account> Accounts { get; set; } = new List<Account>();
         public ICollection<Holiday> Holidays { get; set; } = new List<Holiday>();
-        public ICollection<Subject> Subject { get; set; } = new List<Subject>();
     }
 }

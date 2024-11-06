@@ -26,7 +26,6 @@ public partial class SchedulifyContext : DbContext
     public DbSet<ClassPeriod> ClassPeriods { get; set; }
     public DbSet<ClassSchedule> ClassSchedules { get; set; }
     public DbSet<ConfigAttribute> ConfigAttributes { get; set; }
-    public DbSet<Curriculum> Curriculums { get; set; }
     public DbSet<Department> Departments { get; set; }
     public DbSet<Room> Rooms { get; set; }
     public DbSet<Holiday> Holidays { get; set; }
@@ -222,24 +221,6 @@ public partial class SchedulifyContext : DbContext
             .WithMany(sy => sy.ConfigAttributes)
             .HasForeignKey(c => c.ConfigGroupId);
 
-        // Curriculum Entity
-        modelBuilder.Entity<Curriculum>()
-            .HasKey(c => c.Id);
-        modelBuilder.Entity<Curriculum>()
-            .Property(c => c.Name)
-            .HasMaxLength(100);
-        modelBuilder.Entity<Curriculum>()
-            .HasOne(c => c.SchoolYear)
-            .WithMany(sy => sy.Curriculums)
-            .HasForeignKey(c => c.SchoolYearId);
-        modelBuilder.Entity<Curriculum>()
-            .HasOne(c => c.School)
-            .WithMany(sy => sy.Curriculums)
-            .HasForeignKey(c => c.SchoolId);
-        modelBuilder.Entity<Curriculum>()
-           .HasOne(c => c.SubjectGroup)
-           .WithMany(sg => sg.Curriculums)
-           .HasForeignKey(c => c.SubjectGroupId);
 
         // Department Entity
         modelBuilder.Entity<Department>()
@@ -342,10 +323,6 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<Subject>()
             .Property(s => s.Description)
             .HasMaxLength(150);
-        modelBuilder.Entity<Subject>()
-            .HasOne(s => s.School)
-            .WithMany(s => s.Subject)
-            .HasForeignKey(s => s.SchoolId);
 
         // SubjectConfig Entity
         modelBuilder.Entity<SubjectConfig>()
@@ -355,12 +332,6 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sc => sc.Subject)
             .WithMany(s => s.SubjectConfigs)
             .HasForeignKey(sc => sc.SubjectId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<SubjectConfig>()
-            .HasOne(sc => sc.Curriculum)
-            .WithMany(c => c.SubjectConfigs)
-            .HasForeignKey(sc => sc.CurriculumId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<SubjectConfig>()

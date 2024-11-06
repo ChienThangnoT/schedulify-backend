@@ -79,7 +79,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // check subject abreviation
 
-            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == schoolId));
+            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted ));
             var subjectAbreviations = subjects.Select(s => s.Abbreviation.ToLower());
             foreach (var model in models)
             {
@@ -230,7 +230,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // Check subject
-            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == building.SchoolId));
+            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted));
             var subjectIds = subjects.Select(s => s.Id).ToList();
             var newRoomSubjects = new List<RoomSubject>();
 

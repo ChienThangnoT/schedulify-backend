@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SchedulifySystem.Repository.DBContext;
@@ -11,9 +12,11 @@ using SchedulifySystem.Repository.DBContext;
 namespace SchedulifySystem.Repository.Migrations
 {
     [DbContext(typeof(SchedulifyContext))]
-    partial class SchedulifyContextModelSnapshot : ModelSnapshot
+    [Migration("20241106025538_RemoveCurriculumTable")]
+    partial class RemoveCurriculumTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -946,6 +949,9 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Property<bool>("IsRequired")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("SchoolId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("SlotSpecialized")
                         .HasColumnType("integer");
 
@@ -963,6 +969,8 @@ namespace SchedulifySystem.Repository.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SchoolId");
 
                     b.ToTable("Subjects");
                 });
@@ -1758,6 +1766,13 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Navigation("Teacher");
                 });
 
+            modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.Subject", b =>
+                {
+                    b.HasOne("SchedulifySystem.Repository.EntityModels.School", null)
+                        .WithMany("Subject")
+                        .HasForeignKey("SchoolId");
+                });
+
             modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.SubjectConfig", b =>
                 {
                     b.HasOne("SchedulifySystem.Repository.EntityModels.ConfigAttribute", "ConfigAttribute")
@@ -2056,6 +2071,8 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Navigation("SchoolSchedules");
 
                     b.Navigation("StudentClasses");
+
+                    b.Navigation("Subject");
 
                     b.Navigation("SubjectGroups");
 
