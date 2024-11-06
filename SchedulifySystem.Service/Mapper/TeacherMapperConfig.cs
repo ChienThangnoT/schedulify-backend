@@ -23,8 +23,9 @@ namespace SchedulifySystem.Service.Mapper
                 {
                     SubjectId = (int)ts.SubjectId,
                     SubjectName = ts.Subject.SubjectName,
-                    Abbreviation = ts.Subject.Abbreviation
-
+                    Abbreviation = ts.Subject.Abbreviation,
+                    AppropriateLevel = ts.AppropriateLevel,
+                    Grade = (EGrade)ts.Grade,
                 })));
 
             CreateMap<CreateTeacherModel, Teacher>()

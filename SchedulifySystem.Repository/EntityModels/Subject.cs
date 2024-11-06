@@ -13,11 +13,9 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Abbreviation { get; set; }
         public bool IsRequired { get; set; }
         public string? Description { get; set; }
-        public int? SchoolId { get; set; }
         public int? TotalSlotInYear { get; set; }
         public int? SlotSpecialized {  get; set; }
         public int? SubjectGroupType { get; set; }
-        public School? School { get; set; }  
 
         public ICollection<SubjectInGroup> SubjectInGroups { get; set; } = new List<SubjectInGroup>();
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();

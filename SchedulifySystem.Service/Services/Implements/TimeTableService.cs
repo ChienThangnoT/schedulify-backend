@@ -243,7 +243,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var groupIds = classesDb.Select(c => c.SubjectGroup.Id).ToList();
             var subjectsDb = (await _unitOfWork.SubjectInGroupRepo.GetV2Async(
-                filter: t => t.IsDeleted == false && groupIds.Contains(t.SubjectGroupId),
+                filter: t => t.IsDeleted == false && groupIds.Contains(t.SubjectGroupId) && t.TermId == parameters.TermId,
                             include: query => query.Include(sig => sig.Subject))).ToList();
 
             //run parallel
@@ -536,13 +536,31 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // Danh sách các môn có tiết đôi 
-            var doubleSubjects = subjects.Where(s => s.IsDoublePeriod).ToList();
+            var subjectGroups = subjects.Where(s => s.IsDoublePeriod)
+                            .GroupBy(g => g.SubjectGroupId)
+                            .ToList();
+
+            var subjectByGroup = new Dictionary<int, List<SubjectScheduleModel>>();
+
+            // Duyệt qua từng nhóm trong subjectGroup
+            subjectGroups.ForEach(g =>
+            {
+                // Kiểm tra nếu khóa chưa tồn tại trong Dictionary, thì thêm khóa với một danh sách mới
+                if (!subjectByGroup.ContainsKey(g.Key))
+                {
+                    subjectByGroup[g.Key] = new List<SubjectScheduleModel>();
+                }
+
+                // Thêm tất cả các phần tử của nhóm vào danh sách trong Dictionary
+                subjectByGroup[g.Key].AddRange(g);
+            });
 
             for (var i = 0; i < classes.Count; i++)
             {
                 //lấy ra ds tiết học của lớp đó trong timetableUnits
                 var classTimetableUnits = timetableUnits.Where(u => u.ClassId == classes[i].Id).ToList();
                 var mainSession = classes[i].MainSession;
+                var doubleSubjects = subjectByGroup[classes[i].SubjectGroupId];
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
                     //lấy ra ds tiết học đôi  theo chính khóa 
@@ -564,7 +582,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //sắp xếp lại danh sách timetableUnits theo thứ tự tên lớp học và tạo ra một danh sách mới với thứ tự đã được sắp xếp
             timetableUnits = [.. timetableUnits.OrderBy(u => u.ClassName)];
 
-            return new TimetableRootIndividual(timetableFlags, timetableUnits, classes, teachers, doubleSubjects);
+            return new TimetableRootIndividual(timetableFlags, timetableUnits, classes, teachers, subjectByGroup);
         }
 
 
@@ -593,7 +611,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //loop qua ds các phần tử trong mảng và dùng cú pháp with {} trong c# để tạo ra 1 instance mới nhưng vẫn giữ nguyên data
                 timetableUnits.Add(src.TimetableUnits[i] with { });
             // trả về cá thể mới với tuổi = 1 và tuổi thọ ngẫu nhiên từ 1 đến 5
-            return new TimetableIndividual(timetableFlag, timetableUnits, src.Classes, src.Teachers, src.DoubleSubjects) { Age = 1, Longevity = _random.Next(1, 5) };
+            return new TimetableIndividual(timetableFlag, timetableUnits, src.Classes, src.Teachers, src.DoubleSubjectsByGroup) { Age = 1, Longevity = _random.Next(1, 5) };
         }
         #endregion
 
@@ -647,21 +665,22 @@ namespace SchedulifySystem.Service.Services.Implements
                 // rãi các tiết đôi vàoo các slot liên tiếp
                 var fClass = src.Classes[i];
                 var mainSession = fClass.MainSession;
-                for (var j = 0; j < src.DoubleSubjects.Count; j++)
+                var doubleSubjects = src.DoubleSubjectsByGroup[fClass.SubjectGroupId];
+                for (var j = 0; j < doubleSubjects.Count; j++)
                 {
-                    var mainNumPeriod = TakeNumberDoubleSlot(src.DoubleSubjects[j].MainSlotPerWeek);
-                    var subNumPeriod = TakeNumberDoubleSlot(src.DoubleSubjects[j].SubSlotPerWeek);
+                    var mainNumPeriod = TakeNumberDoubleSlot(doubleSubjects[j].MainSlotPerWeek);
+                    var subNumPeriod = TakeNumberDoubleSlot(doubleSubjects[j].SubSlotPerWeek);
 
                     var mainPeriods = src.TimetableUnits
                                 .Where(u => u.ClassId == fClass.Id &&
-                                            u.SubjectId == src.DoubleSubjects[j].SubjectId &&
+                                            u.SubjectId == doubleSubjects[j].SubjectId &&
                                             u.Priority == EPriority.Double && (int)u.Session == mainSession)
                                 .Take(mainNumPeriod)
                                 .ToList();
 
                     var subPeriods = src.TimetableUnits
                        .Where(u => u.ClassId == fClass.Id &&
-                                   u.SubjectId == src.DoubleSubjects[j].SubjectId &&
+                                   u.SubjectId == doubleSubjects[j].SubjectId &&
                                    u.Priority == EPriority.Double && (int)u.Session != mainSession)
                        .Take(subNumPeriod)
                        .ToList();
@@ -726,24 +745,27 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private void RandomConsec(List<(int, int)> consecs, List<int> startAts, int i, List<ClassPeriodScheduleModel> periods, TimetableIndividual src)
         {
-            for (var j = 0; j < periods.Count; j++)
+            for (var j = 0; j < periods.Count && consecs.Count>1; j++)
             {
                 if (j % 2 != 0) continue;
 
                 var randConsecIndex = consecs.IndexOf(consecs.Shuffle().First());// index của các cặp sau khi shuffle
-                periods[j].StartAt = consecs[randConsecIndex].Item1;
-                periods[j + 1].StartAt = consecs[randConsecIndex].Item2;
-                src.TimetableFlag[i, periods[j].StartAt] = ETimetableFlag.Filled;// update slot đó đã được filled
-                src.TimetableFlag[i, periods[j + 1].StartAt] = ETimetableFlag.Filled;//update slot thứ 2 trong tiết đôi đã được filled
+                if (randConsecIndex >= 0 && randConsecIndex < consecs.Count)
+                {
+                    periods[j].StartAt = consecs[randConsecIndex].Item1;
+                    periods[j + 1].StartAt = consecs[randConsecIndex].Item2;
+                    src.TimetableFlag[i, periods[j].StartAt] = ETimetableFlag.Filled;// update slot đó đã được filled
+                    src.TimetableFlag[i, periods[j + 1].StartAt] = ETimetableFlag.Filled;//update slot thứ 2 trong tiết đôi đã được filled
 
-                if (randConsecIndex > 0 && randConsecIndex < consecs.Count - 1)
-                    consecs.RemoveRange(randConsecIndex - 1, 3);
-                else if (randConsecIndex == consecs.Count - 1)
-                    consecs.RemoveRange(randConsecIndex - 1, 2);
-                else
-                    consecs.RemoveRange(randConsecIndex, 2);
-                startAts.Remove(periods[j].StartAt);
-                startAts.Remove(periods[j + 1].StartAt);
+                    if (randConsecIndex > 0 && randConsecIndex < consecs.Count - 1)
+                        consecs.RemoveRange(randConsecIndex - 1, 3);
+                    else if (randConsecIndex == consecs.Count - 1)
+                        consecs.RemoveRange(randConsecIndex - 1, 2);
+                    else
+                        consecs.RemoveRange(randConsecIndex, 2);
+                    startAts.Remove(periods[j].StartAt);
+                    startAts.Remove(periods[j + 1].StartAt);
+                }
             }
         }
 
@@ -769,8 +791,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
-                + CheckHC11(src, parameters) * 10000
-                + CheckHC12(src) * 1000;
+                + CheckHC11(src, parameters) * 10000;
+                
 
 
             if (!isMinimized)
@@ -781,7 +803,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckSC03(src)
                 + CheckSC04(src)
                 + CheckSC07(src)
-                + CheckSC10(src);
+                + CheckSC10(src)
+                + CheckHC12(src);
             }
             src.GetConstraintErrors();
         }
@@ -886,7 +909,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //lấy ra ds tiết cố định
             var fixedPeriods = src.TimetableUnits.Where(u => u.Priority == EPriority.Fixed).ToList();
             // tiết cố định không khớp vs tham số
-            if (fixedPeriods.Count != parameters.FixedPeriodsPara.Count) throw new DefaultException("Lỗi: HC03 - Số lượng tiết cố định tkb không khớp với tham số!");
+            if (fixedPeriods.Count != parameters.FixedPeriods.Count) throw new DefaultException("Lỗi: HC03 - Số lượng tiết cố định tkb không khớp với tham số!");
 
             // loop qua các tiết cố định kiểm tra nó có xếp đúng vị trí hay không 
             for (var i = 0; i < fixedPeriods.Count; i++)
@@ -922,15 +945,17 @@ namespace SchedulifySystem.Service.Services.Implements
             var count = 0;
             for (var classIndex = 0; classIndex < src.Classes.Count; classIndex++)
             {
+                var sClass = src.Classes[classIndex];
                 // lấy ra các tiết học của lớp đó 
-                var classTimetableUnits = src.TimetableUnits.Where(u => u.ClassId == src.Classes[classIndex].Id).ToList();
+                var classTimetableUnits = src.TimetableUnits.Where(u => u.ClassId == sClass.Id).ToList();
 
                 // loop qua ds tiết đôi 
-                for (var subjectIndex = 0; subjectIndex < src.DoubleSubjects.Count; subjectIndex++)
+                var doubleSubjects = src.DoubleSubjectsByGroup[sClass.SubjectGroupId];
+                for (var subjectIndex = 0; subjectIndex < doubleSubjects.Count; subjectIndex++)
                 {
                     // lấy ra ds tiết tiết đôi của môn có trong class đó 
                     var doublePeriodUnits = classTimetableUnits
-                        .Where(u => u.SubjectId == src.DoubleSubjects[subjectIndex].SubjectId &&
+                        .Where(u => u.SubjectId == doubleSubjects[subjectIndex].SubjectId &&
                                     u.Priority == EPriority.Double)
                         .OrderBy(u => u.StartAt)
                         .ToList();

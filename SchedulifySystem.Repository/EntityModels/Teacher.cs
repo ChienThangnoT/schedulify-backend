@@ -21,6 +21,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int TeacherRole { get; set; }
         public int Status { get; set; }
         public string? Phone {  get; set; }
+        public int PeriodCount { get; set; }
 
         public Department? Department { get; set; }
         public School? School { get; set; }

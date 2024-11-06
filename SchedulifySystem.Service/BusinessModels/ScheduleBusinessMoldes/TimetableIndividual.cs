@@ -20,7 +20,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<ClassScheduleModel> Classes { get; init; } = [];
         public List<TeacherScheduleModel> Teachers { get; init; } = [];
         public List<ConstraintErrorModel> ConstraintErrors { get; set; } = [];
-        public List<SubjectScheduleModel> DoubleSubjects { get; set; } = [];
+        public Dictionary<int, List<SubjectScheduleModel>> DoubleSubjectsByGroup { get; set; } = [];
         public int Adaptability { get; set; }
         //tổi của một cá thể là số thế hệ mà cá thể đó đã trải qua trong quá trình tiến hóa.
         //Khi cá thể được tạo ra, tuổi của nó được khởi tạo là 1, và sau mỗi thế hệ, tuổi của nó sẽ tăng lên.
@@ -41,13 +41,13 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
        List<ClassPeriodScheduleModel> timetableUnits,
        List<ClassScheduleModel> classes,
        List<TeacherScheduleModel> teachers,
-       List<SubjectScheduleModel> doubleSubjects)
+       Dictionary<int, List<SubjectScheduleModel>> doubleSubjectsByGroup)
         {
             TimetableFlag = timetableFlag;
             TimetableUnits = timetableUnits;
             Classes = classes;
             Teachers = teachers;
-            DoubleSubjects = doubleSubjects;
+            DoubleSubjectsByGroup = doubleSubjectsByGroup;
         }
 
         public void GetConstraintErrors()

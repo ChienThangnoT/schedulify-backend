@@ -111,7 +111,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     await _unitOfWork.SaveChangesAsync();
                     //add required subject
                     var requiredSubjects = await _unitOfWork.SubjectRepo.GetAsync(
-                        filter: t => t.SchoolId == schoolId && t.IsDeleted == false && t.IsRequired == true);
+                        filter: t => t.IsDeleted == false && t.IsRequired == true);
                     //var requiredSubjectList = new List<SubjectInGroup>();
                     foreach (var subject in requiredSubjects)
                     {
@@ -338,7 +338,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetV2Async(
                     filter: t => t.Id == subjectGroupId && t.IsDeleted == false,
                     include: query => query.Include(c => c.SubjectInGroups)
-                               .ThenInclude(sg => sg.Subject).ThenInclude(sc => sc.School)
+                               .ThenInclude(sg => sg.Subject)
+                               .Include(sg => sg.School)
                                .Include(sg => sg.SchoolYear)
                                .ThenInclude(sy => sy.Terms));
 

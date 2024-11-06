@@ -32,9 +32,8 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Create Subject
         public async Task<BaseResponseModel> CreateSubject(SubjectAddModel subjectAddModel)
         {
-            var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == subjectAddModel.SubjectName.ToLower()) && (t.SchoolId == subjectAddModel.SchoolId) && (t.IsDeleted == false));
-            var existSchool = await _unitOfWork.SchoolRepo.GetByIdAsync(subjectAddModel.SchoolId) ?? throw new NotExistsException($"School is not existed with id {subjectAddModel.SchoolId}");
-
+            var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == subjectAddModel.SubjectName.ToLower()) && (t.IsDeleted == false));
+           
             if (existSubject.FirstOrDefault() != null)
             {
                 return new BaseResponseModel()
@@ -45,7 +44,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             var baseAbbreviation = subjectAddModel.Abbreviation.ToLower();
-            var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.SchoolId == subjectAddModel.SchoolId) && (t.IsDeleted == false)));
+            var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.IsDeleted == false)));
 
             string newAbbreviation = baseAbbreviation;
             int counter = 1;
@@ -72,8 +71,6 @@ namespace SchedulifySystem.Service.Services.Implements
             var subjectEntity = _mapper.Map<Subject>(subjectAddModel);
             await _unitOfWork.SubjectRepo.AddAsync(subjectEntity);
             await _unitOfWork.SaveChangesAsync();
-
-            subjectEntity.School = existSchool;
             var result = _mapper.Map<SubjectViewModel>(subjectEntity);
 
             return new BaseResponseModel()
@@ -86,13 +83,12 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region Create Subject List
-        public async Task<BaseResponseModel> CreateSubjectList(int schoolId, List<SubjectAddListModel> subjectAddModel)
+        public async Task<BaseResponseModel> CreateSubjectList(List<SubjectAddListModel> subjectAddModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException($"School not found with id {schoolId}");
                     var addedSubjects = new List<string>();
 
                     var usedAbbreviations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -121,7 +117,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     var existingSubjects = await _unitOfWork.SubjectRepo
-                        .GetAsync(filter: t => t.SchoolId == schoolId);
+                        .GetAsync(filter: t => !t.IsDeleted);
 
                     // duplicate name in database
                     var existingSubjectNames = existingSubjects
@@ -148,7 +144,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     {
                         var baseAbbreviation = createSubjectModel.Abbreviation.ToLower().Trim();
 
-                        var existingAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => t.SchoolId == schoolId && t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && t.IsDeleted == false);
+                        var existingAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && t.IsDeleted == false);
 
                         // include abbre in current transaction
                         var duplicateAbbre = existingAbbre.Concat(
@@ -194,7 +190,6 @@ namespace SchedulifySystem.Service.Services.Implements
                         usedAbbreviations.Add(createSubjectModel.Abbreviation);
 
                         var newSubject = _mapper.Map<Subject>(createSubjectModel);
-                        newSubject.SchoolId = schoolId;
                         await _unitOfWork.SubjectRepo.AddAsync(newSubject);
                         addedSubjects.Add(createSubjectModel.SubjectName);
                     }
@@ -231,8 +226,6 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<BaseResponseModel> GetSubjectById(int subjectId)
         {
             var subjects = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(subjects.SchoolId ?? -1);
-            subjects.School = school;
             var subject = _mapper.Map<SubjectViewModel>(subjects);
             return new BaseResponseModel()
             {
@@ -244,16 +237,13 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region get subject list by school id
-        public async Task<BaseResponseModel> GetSubjectBySchoolId(int schoolId, string? subjectName, bool? isRequired,bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetSubjectBySchoolId( string? subjectName, bool? isRequired,bool includeDeleted, int pageIndex, int pageSize)
         {
-            if (schoolId != 0)
-            {
-                var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
-            }
+          
             var subject = await _unitOfWork.SubjectRepo.ToPaginationIncludeAsync(
                 pageSize, pageIndex,
-                filter: t => (schoolId == 0 || t.SchoolId == schoolId) && (isRequired == null || t.IsRequired == isRequired) &&(includeDeleted ? true : t.IsDeleted == false) && (subjectName == null || t.SubjectName.ToLower().Contains(subjectName.ToLower())),
-                include: query => query.Include(t => t.School));
+                filter: t => (isRequired == null || t.IsRequired == isRequired) &&(includeDeleted ? true : t.IsDeleted == false) && (subjectName == null || t.SubjectName.ToLower().Contains(subjectName.ToLower()))
+                );
             if (subject.Items.Count == 0)
             {
                 return new BaseResponseModel()
@@ -352,9 +342,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
             _unitOfWork.SubjectRepo.Update(subject);
             await _unitOfWork.SaveChangesAsync();
-
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(subject.SchoolId ?? -1);
-            subject.School = school;
 
             var result = _mapper.Map<SubjectViewModel>(subject);
             return new BaseResponseModel()
