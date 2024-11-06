@@ -8,7 +8,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/student-classes")]
+    [Route("api/schools/{schoolId}/academic-years/{yearId}/classes")]
     [ApiController]
     public class StudentClassController : BaseController
     {
@@ -21,9 +21,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetStudentClasses(int schoolId, EGrade? grade = null, int? schoolYearId = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetStudentClasses(int schoolId, int yearId, EGrade? grade = null, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, grade, schoolYearId, includeDeleted, pageIndex, pageSize));
+            return ValidateAndExecute(() => _studentClassService.GetStudentClasses(schoolId, grade, yearId, includeDeleted, pageIndex, pageSize));
         }
 
         [HttpGet("subjects-in-group")]
@@ -44,9 +44,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPost]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> CreateStudentClasses(int schoolId, int schoolYearId, List<CreateListStudentClassModel> models)
+        public Task<IActionResult> CreateStudentClasses(int schoolId, int yearId, List<CreateListStudentClassModel> models)
         {
-            return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(schoolId, schoolYearId, models));
+            return ValidateAndExecute(() => _studentClassService.CreateStudentClasses(schoolId, yearId, models));
         }
 
         [HttpDelete("{id}")]

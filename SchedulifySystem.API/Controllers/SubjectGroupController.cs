@@ -7,7 +7,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/subject-groups")]
+    [Route("api/schools/{schoolId}/academic-years/{yearId}/subject-groups")]
     [ApiController]
     public class SubjectGroupController : BaseController
     {
@@ -20,9 +20,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetSubjectGroups(int schoolId, int? subjectGroupId, EGrade? grade,int? schoolYearId, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
+        public Task<IActionResult> GetSubjectGroups(int schoolId,int yearId, int? subjectGroupId, EGrade? grade, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade,schoolYearId, includeDeleted, pageIndex, pageSize));
+            return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade, yearId, includeDeleted, pageIndex, pageSize));
         }
 
         [HttpGet("{id}")]

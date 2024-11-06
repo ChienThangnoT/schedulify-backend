@@ -5,7 +5,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/schools/{schoolId}/timetables")]
+    [Route("api/schools/{schoolId}/academic-years/{yearId}/timetables")]
     [ApiController]
     public class TimeTableController : BaseController
     {

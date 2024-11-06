@@ -6,7 +6,7 @@ using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/teachers")]
+    [Route("api/schools/{schoolId}/teachers")]
     [ApiController]
     public class TeacherController : BaseController
     {
@@ -27,7 +27,6 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPost]
         [Authorize(Roles = "SchoolManager")]
-        [Route("{schoolId}/teachers")]
         public Task<IActionResult> CreateTeachers(int schoolId, List<CreateListTeacherModel> models)
         {
             return ValidateAndExecute(() => _teacherService.CreateTeachers(schoolId, models));
