@@ -249,7 +249,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region UpdateStudentClass
         public async Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassModel updateStudentClassModel)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id,
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false,
                 include: query => query.Include(c => c.TeacherAssignments))
                 ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
 
@@ -260,6 +260,7 @@ namespace SchedulifySystem.Service.Services.Implements
             else if (existedClass.SubjectGroupId != updateStudentClassModel.SubjectGroupId)
             {
                 var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)updateStudentClassModel.SubjectGroupId,
+                               filter: t => t.IsDeleted == false,
                                include: query => query.Include(sg => sg.SubjectInGroups))
                                ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
 
