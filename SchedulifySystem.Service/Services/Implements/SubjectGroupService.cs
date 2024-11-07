@@ -567,5 +567,83 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_SUBJECT_GROUP_SUCCESS };
         }
         #endregion
+
+        #region QuickAssignPeriod
+        public async Task<BaseResponseModel> QuickAssignPeriod(int schoolId, int schoolYearId, QuickAssignPeriodModel model)
+        {
+            // check valid total slot in year
+            var invalidTotalSlotInYear = model.SubjectAssignmentConfigs.Select(s =>
+            s.TotalSlotInYear % 35 != 0 && (s.TotalSlotInYear % 35) % 17 != 0 && (s.TotalSlotInYear % 35) % 18 != 0);
+
+            if (invalidTotalSlotInYear.Any())
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Subject total  slot in year is not correct!",
+                    Result = invalidTotalSlotInYear
+                };
+            }
+
+            // check valid subject assignment config
+            var invalidSubjects = model.SubjectAssignmentConfigs.Select(s => !s.CheckValid());
+            if (invalidSubjects.Any())
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Subject config is not correct!",
+                    Result = invalidSubjects
+                };
+            }
+
+
+            var subjectGroupDbs = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted && model.SubjectGroupApplyIds.Contains(sg.Id),
+                include: query => query.Include(sg => sg.SubjectInGroups));
+
+            // check valid subject group id
+            var invalidSubjectGroupIds = model.SubjectGroupApplyIds.Where(i => !subjectGroupDbs.Select(s => s.Id).Contains(i));
+
+            if (invalidSubjectGroupIds.Any())
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.SUBJECT_GROUP_NOT_EXISTED,
+                    Result = invalidSubjects
+                };
+            }
+
+            // insert data
+            var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.SubjectInGroups);
+            foreach (var subjectAssignment in model.SubjectAssignmentConfigs)
+            {
+                var slotPerWeekInYear = subjectAssignment.TotalSlotInYear / 35;
+                var remainder = subjectAssignment.TotalSlotInYear / 35;
+                var extraSlotHK1 = 0;
+                var extraSlotHK2 = 0;
+                if (remainder != 0)
+                {
+                    if(remainder % 18 == 0)
+                    {
+                        extraSlotHK1 = remainder / 18;
+                    }
+                    else
+                    {
+                        extraSlotHK2 = remainder / 17;
+                    }
+                }
+
+                var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.Id);
+                
+                foreach (var subjectGroup in filtered)
+                {
+                    var extraSlots = subjectGroup.IsSpecialized ? model.SlotSpecialized : 0;
+                    
+                }
+            }
+        }
+        #endregion
     }
 }

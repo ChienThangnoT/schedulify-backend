@@ -20,7 +20,7 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetSubjectGroups(int schoolId,int yearId, int? subjectGroupId, EGrade? grade, bool includeDeleted = false, int pageIndex =1, int pageSize = 20)
+        public Task<IActionResult> GetSubjectGroups(int schoolId, int yearId, int? subjectGroupId, EGrade? grade, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _subjectGroupService.GetSubjectGroups(schoolId, subjectGroupId, grade, yearId, includeDeleted, pageIndex, pageSize));
         }
@@ -51,6 +51,13 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> DeleteSubjectGroup(int id)
         {
             return ValidateAndExecute(() => _subjectGroupService.DeleteSubjectGroup(id));
+        }
+
+        [HttpPut]
+        [Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> QuickAssignPeriod(int schoolId, int yearId, QuickAssignPeriodModel model)
+        {
+            return ValidateAndExecute(() => _subjectGroupService.QuickAssignPeriod(schoolId, yearId, model));
         }
     }
 }
