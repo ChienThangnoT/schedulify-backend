@@ -6,7 +6,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/academic-years/{yearId}/terms")]
+    [Route("api/academic-years/{schoolYearId}/terms")]
     [ApiController]
     public class TermController : BaseController
     {
@@ -18,24 +18,23 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize]
-        public Task<IActionResult> GetTermBySchoolId(int schoolId)
+        public Task<IActionResult> GetTerms(int? termId, int schoolYearId, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _termService.GetTermBySchoolId(schoolId));
+            return ValidateAndExecute(() => _termService.GetTerms(termId, schoolYearId, pageIndex, pageSize));
         }
 
         [HttpPost]
-        [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> CreateTermBySchoolId(int schoolId, TermAdjustModel termAddModel)
+        [Authorize(Roles = "Admin")]
+        public Task<IActionResult> CreateTerm(TermAdjustModel termAddModel)
         {
-            return ValidateAndExecute(() => _termService.AddTermBySchoolId(schoolId, termAddModel));
+            return ValidateAndExecute(() => _termService.AddTerm(termAddModel));
         }
 
         [HttpPatch("{id}")]
-        [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> UpdateTermBySchoolId(int id, TermAdjustModel termAddModel)
+        [Authorize(Roles = "Admin")]
+        public Task<IActionResult> UpdateTermById(int id, TermAdjustModel termAddModel)
         {
-            return ValidateAndExecute(() => _termService.UpdateTermBySchoolId(id, termAddModel));
+            return ValidateAndExecute(() => _termService.UpdateTermById(id, termAddModel));
         }
     }
 }

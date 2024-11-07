@@ -48,7 +48,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> CheckValidDataAddRooms(int schoolId, List<AddRoomModel> models)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t=> t.IsDeleted == false) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var ValidList = new List<AddRoomModel>();
             var errorList = new List<AddRoomModel>();
@@ -123,7 +123,8 @@ namespace SchedulifySystem.Service.Services.Implements
             //check have building in db
             foreach (AddRoomModel model in models)
             {
-                var found = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(filter: b => b.SchoolId == schoolId && !b.IsDeleted && b.BuildingCode.Equals(model.BuildingCode.ToUpper()));
+                var found = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(
+                    filter: b => b.SchoolId == schoolId && !b.IsDeleted && b.BuildingCode.Equals(model.BuildingCode.ToUpper()));
                 if (!found.Items.Any())
                 {
                     errorList.Add(model);
@@ -171,7 +172,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> DeleteRoom(int RoomId)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, filter: t=> t.IsDeleted == false) 
+                ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
             room.IsDeleted = true;
             _unitOfWork.RoomRepo.Update(room);
             await _unitOfWork.SaveChangesAsync();
@@ -180,7 +182,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetRoomById(int roomId)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(roomId, 
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(roomId, filter: t=> t.IsDeleted == false, 
                 include: query => query.Include(r => r.RoomSubjects).ThenInclude(rs => rs.Subject)) 
                 ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
             return new BaseResponseModel
@@ -193,10 +195,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, ERoomType? roomType, int pageIndex = 1, int pageSize = 20)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active) 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (buildingId != null)
             {
-                var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
+                var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId, filter: t=> t.IsDeleted == false) 
+                    ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
             }
             var found = await _unitOfWork.RoomRepo
                 .ToPaginationIncludeAsync(
@@ -210,9 +214,9 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, include: query => query.Include(r => r.RoomSubjects))
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, filter: t => t.IsDeleted == false ,include: query => query.Include(r => r.RoomSubjects))
                 ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
-            var building = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId)
+            var building = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId, filter: t => t.IsDeleted == false)
                 ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
 
             // Check existed name or code

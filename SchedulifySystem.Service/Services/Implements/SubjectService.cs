@@ -29,66 +29,68 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
-        #region Create Subject
-        public async Task<BaseResponseModel> CreateSubject(SubjectAddModel subjectAddModel)
-        {
-            var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == subjectAddModel.SubjectName.ToLower()) && (t.IsDeleted == false));
-           
-            if (existSubject.FirstOrDefault() != null)
-            {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.SUBJECT_NAME_EXISTED
-                };
-            }
+        //#region Create Subject
+        //public async Task<BaseResponseModel> CreateSubject(SubjectAddModel subjectAddModel)
+        //{
+        //    var existSubject = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.SubjectName.ToLower() == subjectAddModel.SubjectName.ToLower()) && (t.IsDeleted == false));
 
-            var baseAbbreviation = subjectAddModel.Abbreviation.ToLower();
-            var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.IsDeleted == false)));
+        //    if (existSubject.FirstOrDefault() != null)
+        //    {
+        //        return new BaseResponseModel()
+        //        {
+        //            Status = StatusCodes.Status400BadRequest,
+        //            Message = ConstantResponse.SUBJECT_NAME_EXISTED
+        //        };
+        //    }
 
-            string newAbbreviation = baseAbbreviation;
-            int counter = 1;
+        //    var baseAbbreviation = subjectAddModel.Abbreviation.ToLower();
+        //    var duplicateAbbre = await _unitOfWork.SubjectRepo.GetAsync(filter: t => (t.Abbreviation.ToLower().StartsWith(baseAbbreviation) && (t.IsDeleted == false)));
 
-            while (duplicateAbbre.Any(t => t.Abbreviation.ToLower() == newAbbreviation))
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(baseAbbreviation, @"^(.*?)(\d+)$");
+        //    string newAbbreviation = baseAbbreviation;
+        //    int counter = 1;
 
-                if (match.Success)
-                {
-                    var textPart = match.Groups[1].Value;
-                    var numberPart = int.Parse(match.Groups[2].Value);
-                    newAbbreviation = $"{textPart}{numberPart + counter}";
-                }
-                else
-                {
-                    newAbbreviation = $"{baseAbbreviation}{counter}";
-                }
-                counter++;
-            }
+        //    while (duplicateAbbre.Any(t => t.Abbreviation.ToLower() == newAbbreviation))
+        //    {
+        //        var match = System.Text.RegularExpressions.Regex.Match(baseAbbreviation, @"^(.*?)(\d+)$");
 
-            subjectAddModel.Abbreviation = newAbbreviation.ToUpper();
+        //        if (match.Success)
+        //        {
+        //            var textPart = match.Groups[1].Value;
+        //            var numberPart = int.Parse(match.Groups[2].Value);
+        //            newAbbreviation = $"{textPart}{numberPart + counter}";
+        //        }
+        //        else
+        //        {
+        //            newAbbreviation = $"{baseAbbreviation}{counter}";
+        //        }
+        //        counter++;
+        //    }
 
-            var subjectEntity = _mapper.Map<Subject>(subjectAddModel);
-            await _unitOfWork.SubjectRepo.AddAsync(subjectEntity);
-            await _unitOfWork.SaveChangesAsync();
-            var result = _mapper.Map<SubjectViewModel>(subjectEntity);
+        //    subjectAddModel.Abbreviation = newAbbreviation.ToUpper();
 
-            return new BaseResponseModel()
-            {
-                Status = StatusCodes.Status201Created,
-                Message = ConstantResponse.ADD_SUBJECT_SUCCESS,
-                Result = result
-            };
-        }
-        #endregion
+        //    var subjectEntity = _mapper.Map<Subject>(subjectAddModel);
+        //    await _unitOfWork.SubjectRepo.AddAsync(subjectEntity);
+        //    await _unitOfWork.SaveChangesAsync();
+        //    var result = _mapper.Map<SubjectViewModel>(subjectEntity);
+
+        //    return new BaseResponseModel()
+        //    {
+        //        Status = StatusCodes.Status201Created,
+        //        Message = ConstantResponse.ADD_SUBJECT_SUCCESS,
+        //        Result = result
+        //    };
+        //}
+        //#endregion
 
         #region Create Subject List
-        public async Task<BaseResponseModel> CreateSubjectList(List<SubjectAddListModel> subjectAddModel)
+        public async Task<BaseResponseModel> CreateSubjectList(int schoolYearId, List<SubjectAddListModel> subjectAddModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
+                    var _ = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: t => t.IsDeleted == false)
+                        ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
                     var addedSubjects = new List<string>();
 
                     var usedAbbreviations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -165,7 +167,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         {
                             if (existingNumbers.Count > 0)
                             {
-                                counter = existingNumbers.Max() + 1; 
+                                counter = existingNumbers.Max() + 1;
                             }
                             else
                             {
@@ -190,11 +192,10 @@ namespace SchedulifySystem.Service.Services.Implements
                         usedAbbreviations.Add(createSubjectModel.Abbreviation);
 
                         var newSubject = _mapper.Map<Subject>(createSubjectModel);
+                        newSubject.SchoolYearId = schoolYearId;
                         await _unitOfWork.SubjectRepo.AddAsync(newSubject);
                         addedSubjects.Add(createSubjectModel.SubjectName);
                     }
-
-
 
                     await _unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -225,7 +226,8 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Get subject by id
         public async Task<BaseResponseModel> GetSubjectById(int subjectId)
         {
-            var subjects = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId) ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+            var subjects = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId, include: query => query.Include(t => t.SchoolYear) 
+                ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED));
             var subject = _mapper.Map<SubjectViewModel>(subjects);
             return new BaseResponseModel()
             {
@@ -236,13 +238,21 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region get subject list by school id
-        public async Task<BaseResponseModel> GetSubjectBySchoolId( string? subjectName, bool? isRequired,bool includeDeleted, int pageIndex, int pageSize)
+        #region get subject list with filter
+        public async Task<BaseResponseModel> GetSubjectById(int schoolYearId, int? id, string? subjectName, bool? isRequired, bool includeDeleted, int pageIndex, int pageSize)
         {
-          
+            if (id != null)
+            {
+                var _ = await _unitOfWork.SubjectRepo.GetAsync(filter: t => t.Id == id && t.SchoolYearId == schoolYearId && t.IsDeleted == false)
+                    ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+            }
             var subject = await _unitOfWork.SubjectRepo.ToPaginationIncludeAsync(
-                pageSize, pageIndex,
-                filter: t => (isRequired == null || t.IsRequired == isRequired) &&(includeDeleted ? true : t.IsDeleted == false) && (subjectName == null || t.SubjectName.ToLower().Contains(subjectName.ToLower()))
+                pageSize, 
+                pageIndex,
+                filter: t => t.SchoolYearId == schoolYearId && (id == null || t.Id == id) 
+                            && (isRequired == null || t.IsRequired == isRequired) && (includeDeleted || t.IsDeleted == false)
+                            && (subjectName == null || t.SubjectName.ToLower().Contains(subjectName.ToLower())),
+                include: query => query.Include(t => t.SchoolYear)
                 );
             if (subject.Items.Count == 0)
             {
@@ -354,12 +364,16 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
-        #region
+        #region delete subejct
         public async Task<BaseResponseModel> DeleteSubjectById(int subjectId)
         {
             var subject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId, filter: t => t.IsDeleted == false)
                 ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-
+            var subjectIsUsed = await _unitOfWork.SubjectInGroupRepo.GetAsync(filter: t => t.SubjectId == subjectId && t.IsDeleted == false);
+            if(subjectIsUsed != null)
+            {
+                throw new DefaultException(ConstantResponse.SUBJECT_ALREADY_USED);
+            }
             subject.IsDeleted = true;
             _unitOfWork.SubjectRepo.Update(subject);
             await _unitOfWork.SaveChangesAsync();

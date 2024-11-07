@@ -16,7 +16,9 @@ namespace SchedulifySystem.Repository.EntityModels
         public int? TotalSlotInYear { get; set; }
         public int? SlotSpecialized {  get; set; }
         public int? SubjectGroupType { get; set; }
+        public int SchoolYearId { get; set; }
 
+        public SchoolYear? SchoolYear { get; set; }
         public ICollection<SubjectInGroup> SubjectInGroups { get; set; } = new List<SubjectInGroup>();
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();
         public ICollection<TeachableSubject> TeachableSubjects { get; set; } = new List<TeachableSubject>();
