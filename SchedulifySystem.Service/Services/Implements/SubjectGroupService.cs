@@ -14,6 +14,7 @@ using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -360,7 +361,7 @@ namespace SchedulifySystem.Service.Services.Implements
                                .ThenInclude(sy => sy.Terms));
                     var termInYear = await _unitOfWork.TermRepo.GetAsync(filter: t => t.SchoolYearId == subjectGroupUpdateModel.SchoolYearId && t.IsDeleted == false)
                         ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
-
+                    List<Term> termList = termInYear.ToList();
                     if (subjectGroup == null || !subjectGroup.Any())
                     {
                         throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
@@ -478,9 +479,47 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     await _unitOfWork.SaveChangesAsync();
 
+                    //add required subject
+                    var requiredSubjects = await _unitOfWork.SubjectRepo.GetAsync(
+                        filter: t => t.IsDeleted == false && t.IsRequired == true);
+                    var requiredSubjectList = requiredSubjects.ToList();
+
+                    var requiredSBInDB = await _unitOfWork.SubjectInGroupRepo.GetAsync(filter: t => t.SubjectGroupId == subjectGroupId && t.IsDeleted == false);
+                    var requiredSubjectInDBList = requiredSBInDB.ToList();
+
+                    if (!requiredSubjectList.All(subject => requiredSubjectInDBList.Any(dbSubject => dbSubject.Id == subject.Id)))
+                    {
+                        //var requiredSubjectList = new List<SubjectInGroup>();
+                        foreach (var subject in requiredSubjects)
+                        {
+                            int slotPerTerm1 = (int)Math.Floor((double)subject.TotalSlotInYear / 2);
+                            int slotPerTerm2 = (int)Math.Ceiling((double)subject.TotalSlotInYear / 2);
+
+                            var newSubjectRequiredInGroup = new SubjectInGroup
+                            {
+                                SubjectId = subject.Id,
+                                SubjectGroupId = subjectGroupId,
+                                MainSlotPerWeek = (subject?.TotalSlotInYear / 35) ?? 0,
+                                IsSpecialized = subjectGroupUpdateModel.SpecializedSubjectIds.Contains(subject.Id)
+                            };
+
+                            for (int i = 0; i < termList.Count; i++)
+                            {
+                                newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
+                                newSubjectRequiredInGroup.TermId = termList[i].Id;
+                                newSubjectRequiredInGroup.SlotPerTerm = (i == 0) ? slotPerTerm1 : slotPerTerm2;
+                                await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
+                            }
+                        }
+
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+
+
                     //Specialized Subject
                     var specializedSubjectNotInElectiveSubjects = subjectGroupUpdateModel.SpecializedSubjectIds
                         .Where(s => !subjectGroupUpdateModel.ElectiveSubjectIds.Contains(s));
+
 
                     foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
                     {
