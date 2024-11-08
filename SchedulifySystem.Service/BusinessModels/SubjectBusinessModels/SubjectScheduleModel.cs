@@ -21,7 +21,9 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
         public int SubjectGroupId { get; set; }
-     
+        public int MainMinimumCouple { get; set; }
+        public int SubMinimumCouple { get; set; }
+
 
         public SubjectScheduleModel() { }
 

@@ -13,6 +13,8 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels
         public int SubSlotPerWeek { get; set; }
         public int SlotPerTerm { get; set; }
         public bool IsDoublePeriod { get; set; }
-        public int SubjectInGroupType { get; set; }
+        public int MainMinimumCouple { get; set; }
+        public int SubMinimumCouple { get; set; }
+
     }
 }
