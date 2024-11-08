@@ -15,5 +15,6 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels
         public bool IsDoublePeriod { get; set; }
         public int MainMinimumCouple { get; set; }
         public int SubMinimumCouple { get; set; }
+
     }
 }
