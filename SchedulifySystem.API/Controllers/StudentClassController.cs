@@ -33,6 +33,13 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _studentClassService.GetSubjectInGroupOfClass(schoolId, termId, studentClassId));
         }
 
+        [HttpGet("{id}/assignments-in-class")]
+        //[Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
+        public Task<IActionResult> GetTeacherAssignmentOfClass(int id, int yearId)
+        {
+            return ValidateAndExecute(() => _studentClassService.GetTeacherAssignmentOfClass(id, yearId));
+        }
+
 
         [HttpGet("{id}")]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
