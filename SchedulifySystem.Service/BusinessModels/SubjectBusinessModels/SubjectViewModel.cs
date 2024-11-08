@@ -43,5 +43,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int? TotalSlotInYear { get; set; }
         public int SlotSpecialized { get; set; } = 35;
         public ESubjectGroupType SubjectGroupType { get; set; }
+        public int MainMinimumCouple { get; set; }
+        public int SubMinimumCouple { get; set; }
     }
 }

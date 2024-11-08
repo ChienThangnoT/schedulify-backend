@@ -41,6 +41,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
+                    // check exist 
                     var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
                         ?? throw new NotExistsException($"School not found with id {schoolId}");
                     var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(
@@ -86,6 +87,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var newSubjectInGroupAdded = new List<SubjectInGroup>();
                     foreach (int subjectId in subjectGroupAddModel.ElectiveSubjectIds)
                     {
+                        // check subject existed and not belong to require subject
                         var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
                             ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
                         if (checkSubject.IsRequired)
@@ -95,6 +97,9 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT,
                                 Result = subjectId
                             };
+
+                        // cal slot per term
+
                         int slotPerTerm1 = (int)Math.Floor((double)checkSubject.TotalSlotInYear / 2);
                         int slotPerTerm2 = (int)Math.Ceiling((double)checkSubject.TotalSlotInYear / 2);
 
@@ -261,7 +266,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     TermId = item.TermId ?? 0,
                     TotalSlotInYear = item.Subject?.TotalSlotInYear,
                     SlotSpecialized = item.Subject?.SlotSpecialized ?? 35,
-                    SubjectGroupType = (ESubjectGroupType)(item.Subject?.SubjectGroupType ?? 0)
+                    SubjectGroupType = (ESubjectGroupType)(item.Subject?.SubjectGroupType ?? 0),
+                    MainMinimumCouple = item.MainMinimumCouple,
+                    SubMinimumCouple = item.SubMinimumCouple,
                 };
 
                 if (item.Subject?.IsRequired == true)

@@ -566,10 +566,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     //lấy ra ds tiết học đôi  theo chính khóa 
 
                     var mainPeriods = classTimetableUnits
-                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session == mainSession).Take(TakeNumberDoubleSlot(doubleSubjects[j].MainSlotPerWeek)).ToList();
+                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session == mainSession).Take(doubleSubjects[j].MainMinimumCouple).ToList();
 
                     var subPeriods = classTimetableUnits
-                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session != mainSession).Take(TakeNumberDoubleSlot(doubleSubjects[j].SubSlotPerWeek)).ToList();
+                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session != mainSession).Take(doubleSubjects[j].SubMinimumCouple).ToList();
 
                     mainPeriods.AddRange(subPeriods);
                     //đặt ưu tiên là tiết đôi 
@@ -668,8 +668,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 var doubleSubjects = src.DoubleSubjectsByGroup[fClass.SubjectGroupId];
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
-                    var mainNumPeriod = TakeNumberDoubleSlot(doubleSubjects[j].MainSlotPerWeek);
-                    var subNumPeriod = TakeNumberDoubleSlot(doubleSubjects[j].SubSlotPerWeek);
+                    var mainNumPeriod = doubleSubjects[j].MainMinimumCouple;
+                    var subNumPeriod = doubleSubjects[j].SubMinimumCouple;
 
                     var mainPeriods = src.TimetableUnits
                                 .Where(u => u.ClassId == fClass.Id &&
@@ -1905,11 +1905,6 @@ namespace SchedulifySystem.Service.Services.Implements
         private static void FixTimetableAfterUpdate(TimetableIndividual src, GenerateTimetableModel parameters)
         {
 
-        }
-
-        private static int TakeNumberDoubleSlot(int count)
-        {
-            return count % 2 == 0 ? count : count - 1;
         }
 
         private void ValidateTimetableParameters(GenerateTimetableModel parameters)

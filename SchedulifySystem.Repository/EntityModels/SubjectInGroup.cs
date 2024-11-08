@@ -18,6 +18,8 @@ namespace SchedulifySystem.Repository.EntityModels
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
         public int SubjectInGroupType {  get; set; }
+        public int MainMinimumCouple { get; set; }
+        public int SubMinimumCouple { get; set; }
 
         public Subject? Subject { get; set; }
         public SubjectGroup? SubjectGroup { get; set; }
