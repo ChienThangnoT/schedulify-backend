@@ -34,7 +34,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet("{id}/assignments-in-class")]
-        //[Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
         public Task<IActionResult> GetTeacherAssignmentOfClass(int id, int yearId)
         {
             return ValidateAndExecute(() => _studentClassService.GetTeacherAssignmentOfClass(id, yearId));
