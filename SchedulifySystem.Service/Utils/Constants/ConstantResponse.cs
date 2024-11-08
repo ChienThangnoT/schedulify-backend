@@ -161,6 +161,8 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Student class and student class in group
         public const string STUDENT_CLASS_NOT_EXIST = "The student class not exist.";
+        public const string STUDENT_CLASS_NOT_HAVE_ASSIGNMENT = "The student class not have assignment.";
+        public const string GET_STUDENT_CLASS_ASSIGNMENT_SUCCESS = "Get student class assignments success.";
 
         //Term
         public const string TERM_NOT_FOUND = "Term not exist.";

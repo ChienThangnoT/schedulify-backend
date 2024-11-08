@@ -436,8 +436,52 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
         }
-
         #endregion
 
+        #region
+        public async Task<BaseResponseModel> GetTeacherAssignmentOfClass(int studentClassId, int schoolYearId)
+        {
+            var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: t => t.IsDeleted == false)
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+            var studentClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(studentClassId, filter: t => t.IsDeleted == false && t.SchoolYearId == schoolYearId)
+                ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
+
+            var teacherAssignment = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(filter: t => t.StudentClassId == studentClassId && t.IsDeleted == false, 
+                orderBy: o => o.OrderBy(q => q.TermId),
+                include: query => query.Include(t => t.Subject).Include(q => q.Teacher).Include(u => u.Term)
+                );
+            if(teacherAssignment == null || !teacherAssignment.Any())
+            {
+                throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_HAVE_ASSIGNMENT);
+            }
+
+            var assignmentDictionary = teacherAssignment
+                .GroupBy(a => a.SubjectId)
+                .Select(group => new StudentClassAssignmentViewModel
+                {
+                    SubjectId = group.Key,
+                    SubjectName = group.First().Subject?.SubjectName,
+                    TotalSlotInYear = group.Sum(x => x.PeriodCount * (x.Term.EndWeek - x.Term.StartWeek + 1)),
+                    AssignmentDetails = group.Select(a => new AssignmentDetail
+                    {
+                        TermId = a.Term.Id,
+                        TermName = a.Term.Name,
+                        TeacherId = a.TeacherId ?? 0,
+                        TeacherFirstName = a.Teacher?.FirstName,
+                        TeacherLastName = a.Teacher?.LastName,
+                        TotalPeriod = a.PeriodCount,
+                        StartWeek = a.Term.StartWeek,
+                        EndWeek = a.Term.EndWeek
+                    }).ToList()
+                }).ToList();
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_STUDENT_CLASS_ASSIGNMENT_SUCCESS,
+                Result = assignmentDictionary
+            };
+        }
+        #endregion
     }
 }
