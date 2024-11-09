@@ -16,6 +16,7 @@ using SchedulifySystem.Repository.Repositories.Implements;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.Services.Implements;
 using SchedulifySystem.Service.BusinessModels.EmailModels;
+using System.Security.Claims;
 
 
 namespace SchedulifySystem.API
@@ -85,26 +86,43 @@ namespace SchedulifySystem.API
             });
 
             // Add Authentication and JwtBearer
-            services
-                .AddAuthentication(options =>
-                {
-                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddJwtBearer(options =>
-                {
-                    options.SaveToken = true;
-                    options.RequireHttpsMetadata = false;
-                    options.TokenValidationParameters = new TokenValidationParameters()
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
-                        ValidAudience = builder.Configuration["JWT:ValidAudience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-                    };
-                });
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+             .AddJwtBearer(options =>
+             {
+                 options.SaveToken = true;
+                 options.RequireHttpsMetadata = false;
+                 options.TokenValidationParameters = new TokenValidationParameters
+                 {
+                     ValidateIssuer = true,
+                     ValidateAudience = true,
+                     ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
+                     ValidAudience = builder.Configuration["JWT:ValidAudience"],
+                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"])),
+                     ValidateLifetime = true,
+                     ClockSkew = TimeSpan.Zero // Giảm thời gian lệch đồng hồ
+                 };
+
+                 options.Events = new JwtBearerEvents
+                 {
+                     OnMessageReceived = context =>
+                     {
+                         var accessToken = context.Request.Query["access_token"];
+                         var path = context.HttpContext.Request.Path;
+                         if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+                         {
+                             context.Token = accessToken;
+                         }
+                         return Task.CompletedTask;
+                     }
+                 };
+             });
+
+
             #endregion
             #region Email setting
             //add dj mail service
@@ -164,12 +182,12 @@ namespace SchedulifySystem.API
 
             //config room subject  repo
             services.AddTransient<IRoomSubjectRepository, RoomSubjectRepository>();
-            
+
 
             //config subject group service and repo
             services.AddTransient<ISubjectGroupRepository, SubjectGroupRepository>();
             services.AddTransient<ISubjectGroupService, SubjectGroupService>();
-            
+
 
             //config district service and repo
             services.AddTransient<IDistrictRepository, DistrictRepository>();
@@ -178,7 +196,7 @@ namespace SchedulifySystem.API
             //config province service and repo
             services.AddTransient<IProvinceRepository, ProvinceRepository>();
             //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
-            
+
             //config otp service and repo
             services.AddTransient<IOtpRepository, OtpRepository>();
             services.AddTransient<IOtpService, OtpService>();
@@ -210,7 +228,10 @@ namespace SchedulifySystem.API
             //config Timetable service and repo
             services.AddTransient<ISchoolScheduleRepository, SchoolScheduleRepository>();
             services.AddTransient<ITimetableService, TimeTableService>();
-            
+
+            //config Notification
+            services.AddSignalR();
+            services.AddScoped<INotificationService, NotificationService>();
 
 
             #endregion
