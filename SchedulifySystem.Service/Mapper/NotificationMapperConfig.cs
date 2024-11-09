@@ -14,6 +14,7 @@ namespace SchedulifySystem.Service.Mapper
         partial void NotificationMapperConfig()
         {
             CreateMap<NotificationModel, Notification>().ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
+            CreateMap<NotificationViewModel, Notification>().ReverseMap();
         }
     }
 }

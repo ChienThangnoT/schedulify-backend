@@ -174,5 +174,11 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string TIMETABLE_NOT_FOUND = "The timetable does not exist.";
         public const string GET_TIMETABLE_SUCCESS = "Get the timetable success.";
 
+        //Notification
+        public const string GET_NOTIFICATION_NOT_EXIST = "Do not have any notification.";
+        public const string GET_NOTIFICATION_SUCCESS = "Get notification success.";
+        public const string GET_NOT_READ_NOTIFICATION_SUCCESS = "Get unread notification success.";
+
+
     }
 }
