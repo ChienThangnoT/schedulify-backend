@@ -65,6 +65,10 @@ namespace SchedulifySystem.Service.Services.Implements
             var missingAssignment = classes.Where(cls => cls.TeacherAssignments.IsNullOrEmpty())
                 .Select(cls => cls.Name).ToList();
 
+            var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId, filter: y => !y.IsDeleted
+                , include: query => query.Include(y => y.Terms)) ?? 
+                throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+
             if (missingAssignment.Any())
             {
                 return new BaseResponseModel()
@@ -76,7 +80,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: a => classIds.Contains(a.StudentClassId) && a.TermId == 1,
+                filter: a => classIds.Contains(a.StudentClassId) ,
                 include: query => query.Include(a => a.Subject).Include(a => a.StudentClass));
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
@@ -102,13 +106,14 @@ namespace SchedulifySystem.Service.Services.Implements
                 teacher => teacher.Id,
                 teacher => teacher.TeachableSubjects.ToList()
             );
-
-            await AssignTeachers(assignmentsDb.ToList(), teachers.ToList(), teacherCapabilities);
-
+            foreach(var term in schoolYear.Terms.Where(t => !t.IsDeleted))
+            {
+                await AssignTeachers(assignmentsDb.Where(a => a.TermId == term.Id).ToList(), teachers.ToList(), teacherCapabilities);
+            }
             return new BaseResponseModel
             {
                 Status = StatusCodes.Status200OK,
-                Result = _mapper.Map<List<TeacherAssignmentViewModel>>(assignmentsDb)
+                Result = _mapper.Map<List<TeacherAssignmentTermViewModel>>(assignmentsDb)
             };
         }
 
