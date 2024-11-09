@@ -8,13 +8,25 @@ namespace SchedulifySystem.API.Controllers
 {
     [ApiController]
     [Route("api/notifications")]
-    public class NotificationController : ControllerBase
+    public class NotificationController : BaseController
     {
         private readonly INotificationService _notificationService;
 
         public NotificationController(INotificationService notificationService)
         {
             _notificationService = notificationService;
+        }
+
+        [HttpGet("{accountId}")]
+        public Task<IActionResult> GetAllNotificationsByAccountIdAsync(int accountId, bool? isRead)
+        {
+            return ValidateAndExecute(() => _notificationService.GetAllNotificationsByAccountIdAsync(accountId, isRead));
+        }
+        
+        [HttpGet("{accountId}/number-unread")]
+        public Task<IActionResult> GetNumbersOfUnReadNotification(int accountId)
+        {
+            return ValidateAndExecute(() => _notificationService.GetNumbersOfUnReadNotification(accountId));
         }
 
         [HttpPost("send-to-all")]

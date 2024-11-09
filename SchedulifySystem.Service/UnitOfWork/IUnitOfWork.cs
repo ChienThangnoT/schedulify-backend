@@ -31,6 +31,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubjectInGroupRepository SubjectInGroupRepo { get; }
         public IRoomSubjectRepository RoomSubjectRepo { get; }
         public ISchoolScheduleRepository SchoolScheduleRepo { get; }
+        public INotificationRepository NotificationRepo { get; }
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

@@ -232,6 +232,7 @@ namespace SchedulifySystem.API
             //config Notification
             services.AddSignalR();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
 
 
             #endregion
