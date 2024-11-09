@@ -149,6 +149,7 @@ namespace SchedulifySystem.Service.Services.Implements
     List<Teacher> teachers,
     Dictionary<int, List<TeachableSubject>> teacherCapabilities)
         {
+            // 1. Khởi tạo CpModel và các biến
             CpModel model = new CpModel();
 
             int numAssignments = assignments.Count;
@@ -165,29 +166,49 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
+            // 2. Thiết lập ràng buộc
+
             // Ràng buộc: Mỗi assignment chỉ được phân cho một giáo viên
+
             for (int i = 0; i < numAssignments; i++)
             {
                 List<ILiteral> possibleAssignments = new List<ILiteral>();
+
                 for (int j = 0; j < numTeachers; j++)
                 {
                     possibleAssignments.Add(assignmentMatrix[i, j]);
                 }
+
+                // Cho phép ràng buộc mềm: Một assignment có thể có 0 hoặc 1 giáo viên được phân công
                 model.Add(LinearExpr.Sum(possibleAssignments) == 1);
             }
 
             // Ràng buộc: Giáo viên chỉ có thể dạy các môn mà họ có thể dạy
+
             for (int i = 0; i < numAssignments; i++)
             {
                 var assignment = assignments[i];
+
                 for (int j = 0; j < numTeachers; j++)
                 {
                     var teacher = teachers[j];
-                    bool canTeach = teacherCapabilities[teacher.Id]
-                        .Any(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade);
 
-                    if (!canTeach)
+                    // Kiểm tra nếu giáo viên có thể dạy môn học cho lớp này
+                    if (teacherCapabilities.ContainsKey(teacher.Id))
                     {
+                        bool canTeach = teacherCapabilities[teacher.Id]
+                            .Any(ts => ts.SubjectId == assignment.SubjectId &&
+                                       ts.Grade == assignment.StudentClass?.Grade);
+
+                        // Nếu giáo viên không thể dạy môn học này, thiết lập ràng buộc
+                        if (!canTeach)
+                        {
+                            model.Add(assignmentMatrix[i, j] == 0);
+                        }
+                    }
+                    else
+                    {
+                        // Nếu không có dữ liệu cho giáo viên, gán giá trị mặc định
                         model.Add(assignmentMatrix[i, j] == 0);
                     }
                 }
@@ -207,11 +228,20 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 // Ràng buộc tổng số tiết của giáo viên không vượt quá PeriodCount của họ
-                model.Add(LinearExpr.Sum(teacherLoad) <= 50);
+                model.Add(LinearExpr.Sum(teacherLoad) <= 17);
             }
+
+            // 3. Thiết lập hàm mục tiêu để tối đa hóa số lượng giáo viên được phân công
+            LinearExpr objectiveExpr = LinearExpr.Sum(
+                from i in Enumerable.Range(0, numAssignments)
+                from j in Enumerable.Range(0, numTeachers)
+                select assignmentMatrix[i, j]);
+
+            model.Maximize(objectiveExpr);
 
             // Tạo solver và giải bài toán
             CpSolver solver = new CpSolver();
+            solver.StringParameters = "max_time_in_seconds:300 log_search_progress:true";
             CpSolverStatus status =  solver.Solve(model);
 
             if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
