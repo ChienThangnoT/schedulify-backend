@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Google.OrTools.LinearSolver;
+using Google.OrTools.Sat;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -25,7 +25,7 @@ namespace SchedulifySystem.Service.Services.Implements
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private const int MaxPeriodsPerTeacher = 17;
+        private const int MaxPeriodsPerTeacher = 50;
 
         public TeacherAssignmentService(IUnitOfWork unitOfWork, IMapper mapper)
         {
@@ -58,17 +58,14 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId)
         {
-            // ** Step:1 load and checking data **
-            // load all class in db
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
-                filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId, 
+                filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId,
                 include: query => query.Include(cls => cls.TeacherAssignments));
 
-            // checking all class has choiced a subject group
             var missingAssignment = classes.Where(cls => cls.TeacherAssignments.IsNullOrEmpty())
                 .Select(cls => cls.Name).ToList();
-            
-            if(missingAssignment.Any())
+
+            if (missingAssignment.Any())
             {
                 return new BaseResponseModel()
                 {
@@ -76,147 +73,45 @@ namespace SchedulifySystem.Service.Services.Implements
                     Message = $"Lớp {string.Join(", ", missingAssignment)} chưa áp dụng tổ hợp nào!",
                 };
             }
-            var classIds = classes.Select(selector => selector.Id).ToList();
-            // load assignment
-            var asssignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: a => classIds.Contains(a.StudentClassId) && a.TermId == 1,
-                include: query => query.Include(a => a.Subject).Include(a => a.StudentClass), 
-                orderBy: query => query.OrderBy(a => a.StudentClassId).ThenBy(a => a.SubjectId) );
 
-            //load teacher
-            var teachers = await _unitOfWork.TeacherRepo
-                .GetV2Async(filter: t => !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong && t.SchoolId == schoolId,
-                include: query => query.Include(t => t.TeachableSubjects),
-                orderBy: query => query.OrderBy(t => t.FirstName));
+            var classIds = classes.Select(selector => selector.Id).ToList();
+            var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+                filter: a => classIds.Contains(a.StudentClassId) && a.TermId == 1,
+                include: query => query.Include(a => a.Subject).Include(a => a.StudentClass));
+
+            var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
+                filter: t => !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong && t.SchoolId == schoolId,
+                include: query => query.Include(t => t.TeachableSubjects));
 
             var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => t.SubjectId).ToList();
-            var subjectsInAssignment = asssignmentsDb.Select(t => t.SubjectId).Distinct().ToList();
+            var subjectsInAssignment = assignmentsDb.Select(t => t.SubjectId).Distinct().ToList();
 
-            subjectsInAssignment.ForEach(sia =>
+            foreach (var sia in subjectsInAssignment)
             {
                 if (!teachableSubjects.Contains(sia))
                 {
-                    throw new Exception($"chưa có giáo viên nào có thể dạy môn {sia}");
-                }
-            });
-
-            List<TeacherAssignment> assignments = new List<TeacherAssignment>();
-            var solver = Solver.CreateSolver("SCIP");
-            if (solver == null) throw new Exception("Unable to create solver.");
-
-            // Tạo biến quyết định cho mỗi giáo viên, lớp học và môn học
-            var assignmentVars = new Dictionary<(int teacherId, int classId, int subjectId), Variable>();
-
-            // Tạo biến quyết định cho mỗi giáo viên, lớp học và môn học
-            foreach (var teacher in teachers)
-            {
-                foreach (var assignment in asssignmentsDb)
-                {
-                     // Kiểm tra xem giáo viên có thể dạy môn học cho lớp với Grade tương ứng không
-                        if (teacher.TeachableSubjects.Any(ts =>
-                            ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass.Grade))
-                        {
-                            var key = (teacher.Id, assignment.StudentClassId, assignment.SubjectId);
-                            assignmentVars[key] = solver.MakeBoolVar($"assign_{key}");
-                        }
-                
-                }
-            }
-
-            // Ràng buộc: Một môn học trong 1 lớp  chỉ có thể được phân công cho một giáo viên
-            foreach (var classItem in classes)
-            {
-                foreach (var assignment in asssignmentsDb.Where(a => a.StudentClassId == classItem.Id))
-                {
-                    // Lấy tất cả các biến quyết định liên quan đến môn học này trong lớp này
-                    List<Variable> assignmentVarsForSubject = assignmentVars
-                        .Where(x => x.Key.subjectId == assignment.SubjectId && x.Key.classId == classItem.Id)
-                        .Select(x => x.Value)
-                        .ToList();
-
-                    if (assignmentVarsForSubject.Count > 0)
+                    return new BaseResponseModel
                     {
-                        // Thiết lập ràng buộc: chỉ có duy nhất một giáo viên được phân công cho môn học này
-                        Variable sumVar = solver.MakeIntVar(0, 1, $"sum_{assignment.SubjectId}_{classItem.Id}");
-
-                        // Tạo tổng thủ công bằng cách sử dụng một vòng lặp
-                        foreach (var var in assignmentVarsForSubject)
-                        {
-                            solver.Add(sumVar == sumVar + var);
-                        }
-
-                        // Đảm bảo rằng tổng chỉ bằng 1
-                        solver.Add(sumVar == 1);
-                    }
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = $"Chưa có giáo viên nào có thể dạy môn {sia}"
+                    };
                 }
             }
 
-            // Ràng buộc: Số tiết dạy của mỗi giáo viên không vượt quá 17 tiết (nếu có thể)
-            foreach (var teacher in teachers)
+            var teacherCapabilities = teachers.ToDictionary(
+                teacher => teacher.Id,
+                teacher => teacher.TeachableSubjects.ToList()
+            );
+
+            await AssignTeachers(assignmentsDb.ToList(), teachers.ToList(), teacherCapabilities);
+
+            return new BaseResponseModel
             {
-                // Khởi tạo một LinearExpr với giá trị ban đầu là 0
-                LinearExpr totalTeacherPeriods = solver.MakeIntVar(0, MaxPeriodsPerTeacher * 10, $"totalPeriods_{teacher.Id}");
-
-                // Tính tổng số tiết mà giáo viên được phân công
-                foreach (var kvp in assignmentVars.Where(x => x.Key.teacherId == teacher.Id))
-                {
-                    // Lấy số tiết của môn học tương ứng
-                    var subjectPeriods = asssignmentsDb
-                        .FirstOrDefault(s => s.SubjectId == kvp.Key.subjectId)?.PeriodCount ?? 0;
-
-                    // Cộng dồn số tiết vào LinearExpr
-                    totalTeacherPeriods += kvp.Value * subjectPeriods;
-                }
-
-                // Ràng buộc tổng số tiết của giáo viên không vượt quá MaxPeriodsPerTeacher
-                solver.Add(totalTeacherPeriods <= MaxPeriodsPerTeacher);
-            }
-
-            // Hàm mục tiêu: Tối đa hóa mức độ phù hợp
-            var objective = solver.Objective();
-
-            foreach (var kvp in assignmentVars)
-            {
-                var (teacherId, classId, subjectId) = kvp.Key;
-                var teacher = teachers.FirstOrDefault(t => t.Id == teacherId);
-                if (teacher == null) continue;
-
-                var teachableSubject = teacher.TeachableSubjects
-                    .FirstOrDefault(ts => ts.SubjectId == subjectId && ts.Grade == classes.FirstOrDefault(c => c.Id == classId)?.Grade);
-
-                if (teachableSubject != null)
-                {
-                    objective.SetCoefficient(kvp.Value, teachableSubject.AppropriateLevel);
-                }
-            }
-            objective.SetMaximization();
-
-            var resultStatus = solver.Solve();
-
-            // Kiểm tra trạng thái lời giải
-            if (resultStatus != Solver.ResultStatus.OPTIMAL)
-            {
-                throw new Exception("Không thể tìm thấy giải pháp tối ưu.");
-            }
-
-            // Trả về danh sách phân công
-            foreach (var kvp in assignmentVars)
-            {
-                if (kvp.Value.SolutionValue() == 1)
-                {
-                    assignments.Add(new TeacherAssignment
-                    {
-                        TeacherId = kvp.Key.teacherId,
-                        StudentClassId = kvp.Key.classId,
-                        SubjectId = kvp.Key.subjectId,
-                        TermId = asssignmentsDb
-                            .First(s => s.SubjectId == kvp.Key.subjectId).PeriodCount
-                    });
-                }
-            }
-
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = assignments};
+                Status = StatusCodes.Status200OK,
+                Result = _mapper.Map<List<TeacherAssignmentViewModel>>(assignmentsDb)
+            };
         }
+
 
         public async Task<BaseResponseModel> GetAssignment(int classId, int? termId)
         {
@@ -248,6 +143,105 @@ namespace SchedulifySystem.Service.Services.Implements
             };
 
         }
+
+        public async Task AssignTeachers(
+    List<TeacherAssignment> assignments,
+    List<Teacher> teachers,
+    Dictionary<int, List<TeachableSubject>> teacherCapabilities)
+        {
+            CpModel model = new CpModel();
+
+            int numAssignments = assignments.Count;
+            int numTeachers = teachers.Count;
+
+            // Biến nhị phân đại diện cho việc phân công giáo viên cho từng assignment
+            BoolVar[,] assignmentMatrix = new BoolVar[numAssignments, numTeachers];
+
+            for (int i = 0; i < numAssignments; i++)
+            {
+                for (int j = 0; j < numTeachers; j++)
+                {
+                    assignmentMatrix[i, j] = model.NewBoolVar($"assign_{i}_{j}");
+                }
+            }
+
+            // Ràng buộc: Mỗi assignment chỉ được phân cho một giáo viên
+            for (int i = 0; i < numAssignments; i++)
+            {
+                List<ILiteral> possibleAssignments = new List<ILiteral>();
+                for (int j = 0; j < numTeachers; j++)
+                {
+                    possibleAssignments.Add(assignmentMatrix[i, j]);
+                }
+                model.Add(LinearExpr.Sum(possibleAssignments) == 1);
+            }
+
+            // Ràng buộc: Giáo viên chỉ có thể dạy các môn mà họ có thể dạy
+            for (int i = 0; i < numAssignments; i++)
+            {
+                var assignment = assignments[i];
+                for (int j = 0; j < numTeachers; j++)
+                {
+                    var teacher = teachers[j];
+                    bool canTeach = teacherCapabilities[teacher.Id]
+                        .Any(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade);
+
+                    if (!canTeach)
+                    {
+                        model.Add(assignmentMatrix[i, j] == 0);
+                    }
+                }
+            }
+
+            // Ràng buộc: Số tiết dạy của mỗi giáo viên không vượt quá giới hạn
+            foreach (var teacher in teachers)
+            {
+                int teacherIndex = teachers.IndexOf(teacher);
+                List<IntVar> teacherLoad = new List<IntVar>();
+
+                for (int i = 0; i < numAssignments; i++)
+                {
+                    IntVar assignedLoad = model.NewIntVar(0, assignments[i].PeriodCount, $"load_{i}_{teacherIndex}");
+                    model.Add(assignedLoad == assignments[i].PeriodCount * assignmentMatrix[i, teacherIndex]);
+                    teacherLoad.Add(assignedLoad);
+                }
+
+                // Ràng buộc tổng số tiết của giáo viên không vượt quá PeriodCount của họ
+                model.Add(LinearExpr.Sum(teacherLoad) <= 50);
+            }
+
+            // Tạo solver và giải bài toán
+            CpSolver solver = new CpSolver();
+            CpSolverStatus status =  solver.Solve(model);
+
+            if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
+            {
+                Console.WriteLine("Lời giải tối ưu đã được tìm thấy.");
+
+                for (int i = 0; i < numAssignments; i++)
+                {
+                    for (int j = 0; j < numTeachers; j++)
+                    {
+                        if (solver.Value(assignmentMatrix[i, j]) == 1)
+                        {
+                            assignments[i].TeacherId = teachers[j].Id;
+                            Console.WriteLine($"Giáo viên {teachers[j].FirstName} {teachers[j].LastName} được phân công dạy môn {assignments[i].Subject?.SubjectName} cho lớp {assignments[i].StudentClass?.Name}");
+
+                            // Cập nhật vào cơ sở dữ liệu
+                           // _unitOfWork.TeacherAssignmentRepo.Update(assignments[i]);
+                        }
+                    }
+                }
+
+               // await _unitOfWork.SaveChangesAsync();
+            }
+            else
+            {
+                Console.WriteLine("Không tìm thấy lời giải khả thi.");
+            }
+        }
+
+
 
         public Task<BaseResponseModel> UpdateAssignment(int assignmentId)
         {
