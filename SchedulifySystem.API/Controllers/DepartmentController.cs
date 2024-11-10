@@ -32,11 +32,11 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _departmentService.AddDepartment(schoolId, models));
         }
 
-        [HttpPut("{id}")]
-        [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> UpdateDepartment(int id, DepartmentUpdateModel model)
+        [HttpPatch("{id}a")]
+        //[Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> UpdateDepartment(int id, int schoolId, DepartmentUpdateModel model)
         {
-            return ValidateAndExecute(() => _departmentService.UpdateDepartment(id, model));
+            return ValidateAndExecute(() => _departmentService.UpdateDepartment(id, schoolId, model));
         }
 
         [HttpDelete("{id}")]
