@@ -603,7 +603,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 );
             if (teacherAssignment == null || !teacherAssignment.Any())
             {
-                throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_HAVE_ASSIGNMENT);
+                throw new NotExistsException(ConstantResponse.TEACHER_ASSIGNMENT_NOT_EXIST);
             }
 
             var assignmentDictionary = teacherAssignment
