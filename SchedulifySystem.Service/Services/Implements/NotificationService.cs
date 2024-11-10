@@ -48,7 +48,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 throw new NotExistsException(ConstantResponse.GET_NOTIFICATION_NOT_EXIST);
             }
-            
+
             var result = _mapper.Map<Pagination<NotificationViewModel>>(notification);
             return new BaseResponseModel()
             {
@@ -89,23 +89,23 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task SendNotificationToAll(NotificationModel notification)
         {
             var users = await _unitOfWork.RoleAssignmentRepo.GetV2Async(
-                filter: t => t.Role.Name.ToLower() != RoleEnum.Admin.ToString().ToLower() 
+                filter: t => t.Role.Name.ToLower() != RoleEnum.Admin.ToString().ToLower()
                         && t.IsDeleted == false && t.Account.Status == (int)AccountStatus.Active,
                 include: query => query.Include(t => t.Account).Include(q => q.Role));
 
-            foreach(var user in users)
+            foreach (var user in users)
             {
                 var noti = _mapper.Map<Notification>(notification);
                 noti.AccountId = user.Id;
                 await _unitOfWork.NotificationRepo.AddAsync(noti);
             }
             await _unitOfWork.SaveChangesAsync();
-            
+
             await _hubContext.Clients.All.SendAsync("ReceiveNotification", notification);
         }
         #endregion
 
-        #region
+        #region Send Notification To User
         public async Task SendNotificationToUser(int accountId, NotificationModel notification)
         {
             var noti = _mapper.Map<Notification>(notification);
