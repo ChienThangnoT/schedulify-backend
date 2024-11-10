@@ -23,7 +23,14 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherService.GetTeachers(schoolId, includeDeleted, pageIndex, pageSize));
         }
+        
 
+        [HttpGet("assignment")]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
+        public Task<IActionResult> GetTeacherAssignmentDetail(int teacherId, int schoolYearId)
+        {
+            return ValidateAndExecute(() => _teacherService.GetTeacherAssignmentDetail(teacherId, schoolYearId));
+        }
 
         [HttpPost]
         [Authorize(Roles = "SchoolManager")]
@@ -60,17 +67,13 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _teacherService.AssignTeacherDepartmentHead(schoolId, models));
         }
 
-
         [HttpPost("generate-account")]
         [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> GenerateTeacherAccount(TeacherGenerateAccount teacherGenerateAccount)
         {
             return ValidateAndExecute(() => _teacherService.GenerateTeacherAccount(teacherGenerateAccount));
         }
-        //[HttpPost("{id}/departments/{departmentId}")]
-        //public Task<IActionResult> GenerateTeacherAccount(int schoolId, int? id, int? departmentId)
-        //{
-        //    return ValidateAndExecute(() => _teacherService.GenerateTeacherAccount(schoolId, id, departmentId));
-        //}
+
+
     }
 }

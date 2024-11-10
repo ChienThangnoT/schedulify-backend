@@ -7,6 +7,7 @@ using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
 using SchedulifySystem.Service.BusinessModels.EmailModels;
 using SchedulifySystem.Service.BusinessModels.RoleAssignmentBusinessModels;
+using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
@@ -39,7 +40,7 @@ namespace SchedulifySystem.Service.Services.Implements
             _mailService = mailService;
         }
 
-        #region
+        #region Generate Teacher Account
         public async Task<BaseResponseModel> GenerateTeacherAccount(TeacherGenerateAccount teacherGenerateAccount)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(teacherGenerateAccount.SchoolId, filter: t => t.Status == (int)SchoolStatus.Active)
@@ -585,6 +586,52 @@ namespace SchedulifySystem.Service.Services.Implements
                     throw;
                 }
             }
+        }
+        #endregion
+
+        #region 
+        public async Task<BaseResponseModel> GetTeacherAssignmentDetail(int teacherId, int schoolYearId)
+        {
+            var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: t => t.IsDeleted == false)
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+            var terms = await _unitOfWork.TermRepo.GetV2Async(filter: t => t.IsDeleted == false && t.SchoolYearId == schoolYearId)
+                ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+            var termList = terms.Select(t => t.Id).ToList();
+            var teacherAssignment = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(filter: t => t.TeacherId == teacherId && termList.Contains(t.TermId) && t.IsDeleted == false,
+                orderBy: o => o.OrderBy(q => q.TermId),
+                include: query => query.Include(t => t.Subject).Include(q => q.Teacher).Include(u => u.Term).Include(p => p.StudentClass)
+                );
+            if (teacherAssignment == null || !teacherAssignment.Any())
+            {
+                throw new NotExistsException(ConstantResponse.TEACHER_ASSIGNMENT_NOT_EXIST);
+            }
+
+            var assignmentDictionary = teacherAssignment
+                .GroupBy(a => a.SubjectId)
+                .Select(group => new ViewAssignmentDetail
+                {
+                    TeacherId = group.Key,
+                    TeacherFirstName = group.First().Teacher?.FirstName,
+                    TeacherLastName = group.First().Teacher?.LastName,
+                    TotalSlotInYear = group.Sum(x => x.PeriodCount * (x.Term.EndWeek - x.Term.StartWeek + 1)),
+                    OveragePeriods = (group.Sum(x => x.PeriodCount * (x.Term.EndWeek - x.Term.StartWeek + 1))) - 17 * group.First().Term.EndWeek,
+                    AssignmentDetails = group.Select(a => new AssignmentTeacherDetail
+                    {
+                        SubjectId = a.SubjectId,
+                        SubjectName = a.Subject.SubjectName,
+                        ClassName = a.StudentClass.Name,
+                        TotalPeriod = a.PeriodCount,
+                        StartWeek = a.Term.StartWeek,
+                        EndWeek = a.Term.EndWeek
+                    }).ToList()
+                }).ToList();
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_STUDENT_CLASS_ASSIGNMENT_SUCCESS,
+                Result = assignmentDictionary
+            };
         }
         #endregion
     }
