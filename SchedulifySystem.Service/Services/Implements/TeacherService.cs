@@ -302,39 +302,39 @@ namespace SchedulifySystem.Service.Services.Implements
                 var newTeachableSubjects = new List<TeachableSubject>();
 
 
-                    if (updateTeacherRequestModel.TeachableSubjectIds == null || !updateTeacherRequestModel.TeachableSubjectIds.All(s => subjectIds.Contains(s)))
+                if (updateTeacherRequestModel.TeachableSubjectIds == null || !updateTeacherRequestModel.TeachableSubjectIds.All(s => subjectIds.Contains(s)))
+                {
+                    return new BaseResponseModel
                     {
-                        return new BaseResponseModel
-                        {
-                            Status = StatusCodes.Status400BadRequest,
-                            Message = ConstantResponse.SUBJECT_NOT_EXISTED
-                        };
-                    }
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = ConstantResponse.SUBJECT_NOT_EXISTED
+                    };
+                }
 
-                    // Xóa những TeachableSubject không còn nằm trong danh sách SubjectIds và xóa chúng khỏi db
-                    var subjectsToRemove = existedTeacher.TeachableSubjects
-                        .Where(rs => !updateTeacherRequestModel.TeachableSubjectIds.Contains((int)rs.SubjectId))
-                        .ToList();
+                // Xóa những TeachableSubject không còn nằm trong danh sách SubjectIds và xóa chúng khỏi db
+                var subjectsToRemove = existedTeacher.TeachableSubjects
+                    .Where(rs => !updateTeacherRequestModel.TeachableSubjectIds.Contains((int)rs.SubjectId))
+                    .ToList();
 
-                    foreach (var subjectToRemove in subjectsToRemove)
+                foreach (var subjectToRemove in subjectsToRemove)
+                {
+                    _unitOfWork.TeachableSubjectRepo.Remove(subjectToRemove); // Xóa trực tiếp từ repo
+                }
+
+                // Thêm các môn học mới vào TeachableSubjects nếu chưa có
+                foreach (var item in updateTeacherRequestModel.TeachableSubjectIds)
+                {
+                    if (!existedTeacher.TeachableSubjects.Any(rs => rs.SubjectId == item))
                     {
-                        _unitOfWork.TeachableSubjectRepo.Remove(subjectToRemove); // Xóa trực tiếp từ repo
+                        newTeachableSubjects.Add(new TeachableSubject() { TeacherId = existedTeacher.Id, SubjectId = item, CreateDate = DateTime.UtcNow });
                     }
+                }
 
-                    // Thêm các môn học mới vào TeachableSubjects nếu chưa có
-                    foreach (var item in updateTeacherRequestModel.TeachableSubjectIds)
-                    {
-                        if (!existedTeacher.TeachableSubjects.Any(rs => rs.SubjectId == item))
-                        {
-                            newTeachableSubjects.Add(new TeachableSubject() { TeacherId = existedTeacher.Id, SubjectId = item, CreateDate = DateTime.UtcNow });
-                        }
-                    }
-
-                    // Thêm các TeachableSubject mới vào db
-                    if (newTeachableSubjects.Any())
-                    {
-                        await _unitOfWork.TeachableSubjectRepo.AddRangeAsync(newTeachableSubjects); // Sử dụng repo để thêm các RoomSubject mới
-                    }
+                // Thêm các TeachableSubject mới vào db
+                if (newTeachableSubjects.Any())
+                {
+                    await _unitOfWork.TeachableSubjectRepo.AddRangeAsync(newTeachableSubjects); // Sử dụng repo để thêm các RoomSubject mới
+                }
 
 
                 _unitOfWork.TeacherRepo.Update(existedTeacher);
@@ -381,6 +381,107 @@ namespace SchedulifySystem.Service.Services.Implements
             catch (Exception ex)
             {
                 return new BaseResponseModel() { Status = StatusCodes.Status500InternalServerError, Message = ex.Message };
+            }
+        }
+
+        #endregion
+
+        #region AssignTeacherDepartmentHead
+        public async Task<BaseResponseModel> AssignTeacherDepartmentHead(int schoolId, List<AssignTeacherDepartmentHeadModel> models)
+        {
+           using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var teacherIds = models.Select(m => m.TeacherId).ToList();
+                    var teacherDbs = await _unitOfWork.TeacherRepo.GetV2Async(
+                        filter: t => !t.IsDeleted && t.SchoolId == schoolId && teacherIds.Contains(t.Id),
+                        include: query => query.Include(t => t.Department));
+                    var teacherDbIds = teacherDbs.Select(t => t.Id);
+
+                    if (!teacherIds.All(t => teacherDbIds.Contains(t)))
+                    {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.TEACHER_NOT_EXIST
+                        };
+                    }
+
+                    var duplicates = models
+                                    .GroupBy(m => m.TeacherId)
+                                    .Where(g => g.Count() > 1)
+                                    .Select(g => g.Key)
+                                    .ToList();
+
+                    if (duplicates.Any())
+                    {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = "Một giáo viên chỉ có thể đảm nhiệm một tổ bộ môn!"
+                        };
+                    }
+
+                    var departmentIds = models.Select(m => m.DepartmentId);
+                    var departmentDbs = await _unitOfWork.DepartmentRepo.GetV2Async(
+                        filter: d => departmentIds.Contains(d.Id) && !d.IsDeleted && d.SchoolId == schoolId);
+                    var departmentDbIds = departmentDbs.Select(d => d.Id);
+
+                    if (!departmentIds.All(d => departmentDbIds.Contains(d)))
+                    {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.DEPARTMENT_NOT_EXIST
+                        };
+                    }
+
+                    var oldTeacherDepartmentHeads = await _unitOfWork.TeacherRepo.GetV2Async(
+                        filter: t => !t.IsDeleted && t.SchoolId == schoolId && t.TeacherRole == (int)TeacherRole.TEACHER_DEPARTMENT_HEAD);
+
+                    foreach (var model in models)
+                    {
+                        var teacher = teacherDbs.First(t => t.Id == model.TeacherId);
+                        var department = departmentDbs.First(d => d.Id == model.DepartmentId);
+
+                        if (teacher.DepartmentId != department.Id)
+                        {
+                            return new BaseResponseModel()
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = $"Giáo viên {teacher.FirstName} {teacher.LastName} thuộc tổ {teacher.Department.Name} không thể đảm nhiệm tổ trưởng tổ {department.Name}"
+                            };
+                        }
+                        var oldTeacherDepartmentHeadFound = oldTeacherDepartmentHeads.Where(t => t.DepartmentId == department.Id);
+
+                        if (oldTeacherDepartmentHeadFound.Any())
+                        {
+                            foreach (var item in oldTeacherDepartmentHeadFound)
+                            {
+                                item.TeacherRole = (int)TeacherRole.TEACHER;
+                                _unitOfWork.TeacherRepo.Update(item);
+                            }
+                        }
+
+                        teacher.TeacherRole = (int) TeacherRole.TEACHER_DEPARTMENT_HEAD;
+                        _unitOfWork.TeacherRepo.Update(teacher);
+
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    transaction.Commit();
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = "Phân công tổ trưởng thành công!"
+                    };
+                }
+                catch (Exception )
+                {
+                    transaction.Rollback();
+                    throw;
+                }
             }
         }
         #endregion
