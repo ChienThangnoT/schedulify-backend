@@ -32,8 +32,8 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _departmentService.AddDepartment(schoolId, models));
         }
 
-        [HttpPatch("{id}a")]
-        //[Authorize(Roles = "SchoolManager")]
+        [HttpPatch("{id}")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateDepartment(int id, int schoolId, DepartmentUpdateModel model)
         {
             return ValidateAndExecute(() => _departmentService.UpdateDepartment(id, schoolId, model));
@@ -44,6 +44,12 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> DeleteDepartemnt(int id)
         {
             return ValidateAndExecute(() => _departmentService.DeleteDepartment(id));
+        }
+
+        [HttpPost("generate-teacher")]
+        public Task<IActionResult> GenerateTeacherAccount(GenerateTeacherInDepartmentAccountModel generateModel)
+        {
+            return ValidateAndExecute(() => _departmentService.GenerateDepartmentAccount(generateModel));
         }
 
     }

@@ -52,5 +52,16 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
         }
+
+        [HttpPost("generate-account")]
+        public Task<IActionResult> GenerateTeacherAccount(TeacherGenerateAccount teacherGenerateAccount)
+        {
+            return ValidateAndExecute(() => _teacherService.GenerateTeacherAccount(teacherGenerateAccount));
+        }
+        //[HttpPost("{id}/departments/{departmentId}")]
+        //public Task<IActionResult> GenerateTeacherAccount(int schoolId, int? id, int? departmentId)
+        //{
+        //    return ValidateAndExecute(() => _teacherService.GenerateTeacherAccount(schoolId, id, departmentId));
+        //}
     }
 }

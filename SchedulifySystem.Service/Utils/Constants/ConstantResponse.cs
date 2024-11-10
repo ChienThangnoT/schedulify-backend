@@ -131,6 +131,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string UPDATE_TEACHER_SUCCESS = "Update teacher success.";
         public const string DELETE_TEACHER_SUCCESS = "Delete teacher success.";
         public const string GET_TEACHER_SUCCESS = "Get teachers success.";
+        public const string GENERATE_TEACHER_HAS_EXISTED = "Teacher already existed with teacher account.";
+        public const string GENERATE_TEACHER_SUCCESS = "Generate teacher account success.";
 
         //Grade
         public const string GRADE_NOT_EXIST = "The grade does not exist.";
@@ -145,6 +147,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string DEPARTMENT_NAME_DUPLICATE = "Department name is dupicated.";
         public const string DEPARTMENT_CODE_DUPLICATE = "Department code is dupicated.";
         public const string DEPARTMENT_NAME_OR_CODE_EXISTED = "Department name or code does existed.";
+        public const string GENERATE_TEACHER_IN_DEPARTMENT_FAILED = "Teacher invalid to generate teacher account.";
+        public const string GENERATE_TEACHER_IN_DEPARTMENT_SUCCESS = "Generate teacher in department success.";
 
         //TeacherAssignment
         public const string TEACHER_ASSIGNMENT_NOT_EXIST = "The teaching assignment does not exist.";
