@@ -56,7 +56,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var names = models.Select(d => d.Name.ToLower()).ToList();
             var code = models.Select(d => d.DepartmentCode.ToLower()).ToList();
             var duplicateInDb = (await _unitOfWork.DepartmentRepo.GetV2Async(
-                filter: d => names.Contains(d.Name.ToLower()) || code.Contains(d.DepartmentCode.ToLower()))).ToList();
+                filter: d => d.SchoolId == schoolId && !d.IsDeleted && (names.Contains(d.Name.ToLower()) || code.Contains(d.DepartmentCode.ToLower())))).ToList();
 
             if (duplicateInDb.Count != 0)
             {
@@ -105,14 +105,14 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Update Department
         public async Task<BaseResponseModel> UpdateDepartment(int departmentId, int schoolId, DepartmentUpdateModel model)
         {
-            var existed = await _unitOfWork.DepartmentRepo.GetByIdAsync(departmentId, filter: t => t.IsDeleted == false)
+            var existed = await _unitOfWork.DepartmentRepo.GetByIdAsync(departmentId, filter: t => t.IsDeleted == false && schoolId == t.SchoolId)
                 ?? throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (model.Name != null || model.DepartmentCode != null)
             {
                 var check = (await _unitOfWork.DepartmentRepo.GetV2Async(
-                                filter: d => d.SchoolId == schoolId && (model.Name == null || d.Name.ToLower().Equals(model.Name.ToLower()))
+                                filter: d => d.SchoolId == schoolId && !d.IsDeleted && (model.Name == null || d.Name.ToLower().Equals(model.Name.ToLower()))
                                 && (model.DepartmentCode == null || d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower())))).ToList();
                 if (check.Count != 0)
                 {

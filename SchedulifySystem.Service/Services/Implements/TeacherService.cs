@@ -230,14 +230,14 @@ namespace SchedulifySystem.Service.Services.Implements
             // check subject exist 
             var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted)) ?? new List<Subject>();
             var subjectAbreviations = subjects.Select(s => s.Abbreviation.ToLower()).ToHashSet();
-            var subjectNotExist = models.SelectMany(g => g.SubjectsAbreviation)
+            var subjectNotExist = models.Select(g => g.MainSubject.SubjectAbreviation)
                 .Where(s => !subjectAbreviations.Contains(s.ToLower())).ToList();
 
             if (subjectNotExist.Any())
             {
                 foreach (var model in models)
                 {
-                    if (model.SubjectsAbreviation.All(s => subjectNotExist.Contains(s.ToLower())))
+                    if (subjectNotExist.Contains(model.MainSubject.SubjectAbreviation.ToLower()))
                     {
                         errorList.Add(model);
                     }
@@ -256,14 +256,15 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 foreach (var model in models)
                 {
-                    var teachableSubject = model.SubjectsAbreviation
-                        .Select(s => new TeachableSubject
-                        {
-                            CreateDate = DateTime.UtcNow,
-                            SubjectId = subjectLookup[s.ToLower()]
-                        }).ToList();
+                    var teachableSubject = new TeachableSubject
+                    {
+                        CreateDate = DateTime.UtcNow,
+                        SubjectId = subjectLookup[model.MainSubject.SubjectAbreviation.ToLower()],
+                        Grade = (int)model.MainSubject.Grade,
+                        AppropriateLevel = 5
+                    };
 
-                    model.TeachableSubjects = teachableSubject;
+                    model.TeachableSubjects = new List<TeachableSubject>() { teachableSubject };
                 }
             }
 
@@ -384,11 +385,19 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 // Check subject
                 var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted));
-                var subjectIds = subjects.Select(s => s.Id).ToList();
+                var subjectAbbreviationDbs = subjects.Select(s => s.Abbreviation.ToLower()).ToList();
+
+                var subjectsPara = updateTeacherRequestModel.SubTeachableSubjects;
+                subjectsPara.Add(updateTeacherRequestModel.MainTeachableSubjects);
+
+                var teachableSubjectAbbreviationPara = subjectsPara.Select(s => s.SubjectAbreviation.ToLower()).ToList();
+
                 var newTeachableSubjects = new List<TeachableSubject>();
+                var subjectObjectPara = subjects.Where(s => teachableSubjectAbbreviationPara.Contains(s.Abbreviation.ToLower()));
+                var subjectIds = subjectObjectPara.Select(s => s.Id);
 
 
-                if (updateTeacherRequestModel.TeachableSubjectIds == null || !updateTeacherRequestModel.TeachableSubjectIds.All(s => subjectIds.Contains(s)))
+                if (!teachableSubjectAbbreviationPara.All(subjectAbbreviationDbs.Contains))
                 {
                     return new BaseResponseModel
                     {
@@ -399,7 +408,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 // Xóa những TeachableSubject không còn nằm trong danh sách SubjectIds và xóa chúng khỏi db
                 var subjectsToRemove = existedTeacher.TeachableSubjects
-                    .Where(rs => !updateTeacherRequestModel.TeachableSubjectIds.Contains((int)rs.SubjectId))
+                    .Where(rs => !subjectIds.Contains(rs.Id))
                     .ToList();
 
                 foreach (var subjectToRemove in subjectsToRemove)
@@ -408,11 +417,19 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 // Thêm các môn học mới vào TeachableSubjects nếu chưa có
-                foreach (var item in updateTeacherRequestModel.TeachableSubjectIds)
+                foreach (var item in subjectObjectPara)
                 {
-                    if (!existedTeacher.TeachableSubjects.Any(rs => rs.SubjectId == item))
+                    if (!existedTeacher.TeachableSubjects.Any(rs => rs.Id == item.Id))
                     {
-                        newTeachableSubjects.Add(new TeachableSubject() { TeacherId = existedTeacher.Id, SubjectId = item, CreateDate = DateTime.UtcNow });
+                        var model = subjectsPara.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
+                        newTeachableSubjects.Add(new TeachableSubject() 
+                        { 
+                            TeacherId = existedTeacher.Id,
+                            SubjectId = item.Id,
+                            CreateDate = DateTime.UtcNow,
+                            Grade = (int)model?.Grade,
+                            AppropriateLevel = model.SubjectAbreviation == updateTeacherRequestModel.MainTeachableSubjects.SubjectAbreviation ? 5 : 1,
+                        });
                     }
                 }
 
