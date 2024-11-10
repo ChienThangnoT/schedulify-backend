@@ -71,7 +71,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     schoolManager.IsConfirmSchoolManager = true;
                     schoolManager.Status = (int)accountStatus;
-                    if(schoolManager.Status == 1)
+                    if (schoolManager.Status == 1)
                     {
                         school.Status = 1;
                         school.UpdateDate = DateTime.UtcNow;
@@ -239,7 +239,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var existUser = (await _unitOfWork.UserRepo.ToPaginationIncludeAsync(filter: a => a.Email.ToLower().Equals(signInModel.Email.ToLower()), 
+                    var existUser = (await _unitOfWork.UserRepo.ToPaginationIncludeAsync(filter: a => a.Email.ToLower().Equals(signInModel.Email.ToLower()),
                         include: query => query.Include(a => a.School))).Items.FirstOrDefault();
                     if (existUser == null)
                     {
@@ -346,7 +346,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
         #endregion
-         
+
         #region jwt service
         private async Task<List<Claim>> GetAuthClaims(Account user)
         {
@@ -354,6 +354,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim("accountId", user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim("schoolId", user.SchoolId?.ToString() ?? string.Empty),
                 new Claim("schoolName", user.School?.Name ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
@@ -409,15 +410,15 @@ namespace SchedulifySystem.Service.Services.Implements
             var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             if (existUser.Status != (int)AccountStatus.Active)
             {
-                return new BaseResponseModel() 
-                { 
-                    Status = StatusCodes.Status400BadRequest, 
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
                     Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
                 };
             }
 
-            var sendOtp = await _otpService.SendOTPResetPassword(existUser.Id ,gmail);
-            if(sendOtp != false)
+            var sendOtp = await _otpService.SendOTPResetPassword(existUser.Id, gmail);
+            if (sendOtp != false)
             {
                 return new BaseResponseModel()
                 {

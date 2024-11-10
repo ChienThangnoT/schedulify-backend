@@ -161,6 +161,8 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Student class and student class in group
         public const string STUDENT_CLASS_NOT_EXIST = "The student class not exist.";
+        public const string STUDENT_CLASS_NOT_HAVE_ASSIGNMENT = "The student class not have assignment.";
+        public const string GET_STUDENT_CLASS_ASSIGNMENT_SUCCESS = "Get student class assignments success.";
 
         //Term
         public const string TERM_NOT_FOUND = "Term not exist.";
@@ -171,6 +173,12 @@ namespace SchedulifySystem.Service.Utils.Constants
         //Timetable
         public const string TIMETABLE_NOT_FOUND = "The timetable does not exist.";
         public const string GET_TIMETABLE_SUCCESS = "Get the timetable success.";
+
+        //Notification
+        public const string GET_NOTIFICATION_NOT_EXIST = "Do not have any notification.";
+        public const string GET_NOTIFICATION_SUCCESS = "Get notification success.";
+        public const string GET_NOT_READ_NOTIFICATION_SUCCESS = "Get unread notification success.";
+
 
     }
 }

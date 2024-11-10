@@ -63,6 +63,9 @@ namespace SchedulifySystem.Service.Mapper
             //add Room Subject Mapper Config
             RoomSubjectMapperConfig();
 
+            //add notification Mapper Config
+            NotificationMapperConfig();
+
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
@@ -80,6 +83,7 @@ namespace SchedulifySystem.Service.Mapper
         partial void TermMapperConfig();
         partial void RoomSubjectMapperConfig();
         partial void SchoolYearMapperConfig();
+        partial void NotificationMapperConfig();
 
 
     }

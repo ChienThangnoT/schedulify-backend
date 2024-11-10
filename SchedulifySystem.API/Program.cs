@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.API;
 using SchedulifySystem.API.Middleware;
+using SchedulifySystem.Service.Hubs;
 using SchedulifySystem.Service.Validations;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 
@@ -32,6 +33,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddWebAPIService(builder);
 builder.Services.AddInfractstructure(builder.Configuration);
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -48,6 +50,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.UseCors("app-cors");
 app.UseMiddleware<ExceptionHandlingMiddleware>();
