@@ -52,5 +52,12 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
         }
+
+        [HttpPatch("assign-department-head")]
+        public Task<IActionResult> AssignDepartmentHead(int schoolId, List<AssignTeacherDepartmentHeadModel> models)
+        {
+            return ValidateAndExecute(() => _teacherService.AssignTeacherDepartmentHead(schoolId, models));
+        }
+
     }
 }
