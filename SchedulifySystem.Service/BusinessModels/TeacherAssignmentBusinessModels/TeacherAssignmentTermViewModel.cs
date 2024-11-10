@@ -20,5 +20,6 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
         public string? TeacherLastName { get; set; }
         public string? TeacherAbbreviation { get; set; }
         public int TermId { get; set; }
+        public string? TermName { get; set;}
     }
 }

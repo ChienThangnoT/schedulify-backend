@@ -26,6 +26,8 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<TeacherAssignment, TeacherAssignmentTermViewModel>()
                 .ForMember(dest => dest.TeacherFirstName, otp => otp
                     .MapFrom(t => t.Teacher != null ? t.Teacher.FirstName : null))
+                .ForMember(dest => dest.TermName, otp => otp
+                    .MapFrom(t => t.Term != null ? t.Term.Name : null))
                 .ForMember(dest => dest.TeacherLastName, otp => otp
                     .MapFrom(t => t.Teacher != null ? t.Teacher.LastName : null))
                 .ForMember(dest => dest.TeacherAbbreviation, otp => otp

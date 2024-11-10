@@ -81,7 +81,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
                 filter: a => classIds.Contains(a.StudentClassId) ,
-                include: query => query.Include(a => a.Subject).Include(a => a.StudentClass));
+                include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
                 filter: t => !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong && t.SchoolId == schoolId,
@@ -106,9 +106,19 @@ namespace SchedulifySystem.Service.Services.Implements
                 teacher => teacher.Id,
                 teacher => teacher.TeachableSubjects.ToList()
             );
-            foreach(var term in schoolYear.Terms.Where(t => !t.IsDeleted))
+            var terms = schoolYear.Terms.Where(t => !t.IsDeleted);
+            var assignmentFirsts = assignmentsDb.Where(a => a.TermId == terms.First().Id).ToList();
+            foreach (var term in terms)
             {
-                await AssignTeachers(assignmentsDb.Where(a => a.TermId == term.Id).ToList(), teachers.ToList(), teacherCapabilities);
+                if(term.Id == terms.First().Id)
+                    await AssignTeachers(assignmentFirsts, teachers.ToList(), teacherCapabilities);
+                else
+                    foreach(var item in assignmentFirsts)
+                    {
+                        var found = assignmentsDb.Where(a => a.TermId == term.Id).FirstOrDefault(a => a.SubjectId == item.SubjectId);
+                        found.TeacherId = item.TeacherId;
+                        found.Teacher = item.Teacher;
+                    }
             }
             return new BaseResponseModel
             {
@@ -260,6 +270,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         if (solver.Value(assignmentMatrix[i, j]) == 1)
                         {
                             assignments[i].TeacherId = teachers[j].Id;
+                            assignments[i].Teacher = teachers[j];
                             Console.WriteLine($"Giáo viên {teachers[j].FirstName} {teachers[j].LastName} được phân công dạy môn {assignments[i].Subject?.SubjectName} cho lớp {assignments[i].StudentClass?.Name}");
 
                             // Cập nhật vào cơ sở dữ liệu
