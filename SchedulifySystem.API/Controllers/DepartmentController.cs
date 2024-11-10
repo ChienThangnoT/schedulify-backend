@@ -47,6 +47,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost("generate-teacher")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> GenerateTeacherAccount(GenerateTeacherInDepartmentAccountModel generateModel)
         {
             return ValidateAndExecute(() => _departmentService.GenerateDepartmentAccount(generateModel));

@@ -8,7 +8,7 @@ namespace SchedulifySystem.Service.Enums
 {
     public enum TeacherRole
     {
-        Role1=1,
-        Role2 = 2
+        TEACHER = 1,
+        TEACHER_DEPARTMENT_HEAD = 2
     }
 }

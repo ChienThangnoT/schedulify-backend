@@ -53,7 +53,16 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
         }
 
+        [HttpPatch("assign-department-head")]
+        [Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> AssignDepartmentHead(int schoolId, List<AssignTeacherDepartmentHeadModel> models)
+        {
+            return ValidateAndExecute(() => _teacherService.AssignTeacherDepartmentHead(schoolId, models));
+        }
+
+
         [HttpPost("generate-account")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> GenerateTeacherAccount(TeacherGenerateAccount teacherGenerateAccount)
         {
             return ValidateAndExecute(() => _teacherService.GenerateTeacherAccount(teacherGenerateAccount));
