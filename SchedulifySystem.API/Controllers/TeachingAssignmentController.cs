@@ -30,6 +30,13 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherAssignmentService.GetAssignment(studentClassId, termId));
         }
+
+        [HttpPatch("auto-assign-teacher")]
+        public Task<IActionResult> AutoAssignTeachers(int schoolId, int yearId)
+        {
+            return ValidateAndExecute(() => _teacherAssignmentService.AutoAssignTeachers(schoolId, yearId));
+        }
+
         
     }
 }
