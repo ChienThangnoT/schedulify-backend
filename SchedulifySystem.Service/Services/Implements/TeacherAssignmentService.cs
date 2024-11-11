@@ -138,7 +138,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: a => classIds.Contains(a.StudentClassId),
+                filter: a => classIds.Contains(a.StudentClassId) && a.TeacherId == null,
                 include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
@@ -170,7 +170,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: a => classIds.Contains(a.StudentClassId),
+                filter: a => classIds.Contains(a.StudentClassId) && a.TeacherId == null,
                 include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
@@ -257,7 +257,6 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             // 1. Khởi tạo CpModel và các biến
             CpModel model = new CpModel();
-
             int numAssignments = assignments.Count;
             int numTeachers = teachers.Count;
 
@@ -272,55 +271,40 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            // 2. Thiết lập ràng buộc
-
-            // Ràng buộc: Mỗi assignment chỉ được phân cho một giáo viên
-
+            // 2. Ràng buộc: Mỗi nhiệm vụ chỉ được phân cho một giáo viên
             for (int i = 0; i < numAssignments; i++)
             {
-                List<ILiteral> possibleAssignments = new List<ILiteral>();
-
-                for (int j = 0; j < numTeachers; j++)
-                {
-                    possibleAssignments.Add(assignmentMatrix[i, j]);
-                }
-
-                // Cho phép ràng buộc mềm: Một assignment có thể có 0 hoặc 1 giáo viên được phân công
-                model.Add(LinearExpr.Sum(possibleAssignments) == 1);
+                model.Add(LinearExpr.Sum(from j in Enumerable.Range(0, numTeachers) select assignmentMatrix[i, j]) == 1);
             }
 
-            // Ràng buộc: Giáo viên chỉ có thể dạy các môn mà họ có thể dạy
-
+            // 3. Ràng buộc: Giáo viên chỉ có thể dạy các môn và khối lớp mà họ có thể dạy
             for (int i = 0; i < numAssignments; i++)
             {
                 var assignment = assignments[i];
-
                 for (int j = 0; j < numTeachers; j++)
                 {
                     var teacher = teachers[j];
 
-                    // Kiểm tra nếu giáo viên có thể dạy môn học cho lớp này
                     if (teacherCapabilities.ContainsKey(teacher.Id))
                     {
-                        bool canTeach = teacherCapabilities[teacher.Id]
-                            .Any(ts => ts.SubjectId == assignment.SubjectId &&
-                                       ts.Grade == assignment.StudentClass?.Grade);
+                        var teachableSubjects = teacherCapabilities[teacher.Id]
+                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
+                            .ToList();
 
-                        // Nếu giáo viên không thể dạy môn học này, thiết lập ràng buộc
-                        if (!canTeach)
+                        if (!teachableSubjects.Any())
                         {
                             model.Add(assignmentMatrix[i, j] == 0);
                         }
                     }
                     else
                     {
-                        // Nếu không có dữ liệu cho giáo viên, gán giá trị mặc định
                         model.Add(assignmentMatrix[i, j] == 0);
                     }
                 }
             }
 
-            // Ràng buộc: Số tiết dạy của mỗi giáo viên không vượt quá giới hạn
+            // 4. Ràng buộc mềm: Số tiết tối đa của mỗi giáo viên
+            List<IntVar> overloadList = new List<IntVar>();
             foreach (var teacher in teachers)
             {
                 int teacherIndex = teachers.IndexOf(teacher);
@@ -333,27 +317,50 @@ namespace SchedulifySystem.Service.Services.Implements
                     teacherLoad.Add(assignedLoad);
                 }
 
-                // Ràng buộc tổng số tiết của giáo viên không vượt quá PeriodCount của họ
-                model.Add(LinearExpr.Sum(teacherLoad) <= 17);
+                IntVar totalLoad = model.NewIntVar(0, 100, $"totalLoad_{teacherIndex}");
+                model.Add(totalLoad == LinearExpr.Sum(teacherLoad));
+
+                IntVar overload = model.NewIntVar(0, 100, $"overload_{teacherIndex}");
+                model.Add(overload >= totalLoad - 17);
+                model.Add(overload >= 0);
+                overloadList.Add(overload);
             }
 
-            // 3. Thiết lập hàm mục tiêu để tối đa hóa số lượng giáo viên được phân công
-            LinearExpr objectiveExpr = LinearExpr.Sum(
-                from i in Enumerable.Range(0, numAssignments)
-                from j in Enumerable.Range(0, numTeachers)
-                select assignmentMatrix[i, j]);
+            // 5. Thiết lập hàm mục tiêu tối ưu hóa
+            LinearExpr objectiveExpr = LinearExpr.Sum(overloadList) * 1000;
+
+            for (int i = 0; i < numAssignments; i++)
+            {
+                for (int j = 0; j < numTeachers; j++)
+                {
+                    var teacher = teachers[j];
+                    if (teacherCapabilities.ContainsKey(teacher.Id))
+                    {
+                        var teachableSubjects = teacherCapabilities[teacher.Id]
+                            .Where(ts => ts.SubjectId == assignments[i].SubjectId && ts.Grade == assignments[i].StudentClass?.Grade)
+                            .ToList();
+
+                        if (teachableSubjects.Any())
+                        {
+                            var maxAppropriateLevel = teachableSubjects.Max(ts => ts.AppropriateLevel);
+                            var isMain = teachableSubjects.Any(ts => ts.IsMain);
+
+                            objectiveExpr += assignmentMatrix[i, j] * (isMain ? 50 : 0);
+                            objectiveExpr += assignmentMatrix[i, j] * maxAppropriateLevel * 10;
+                        }
+                    }
+                }
+            }
 
             model.Maximize(objectiveExpr);
 
-            // Tạo solver và giải bài toán
+            // 6. Giải quyết bài toán
             CpSolver solver = new CpSolver();
             solver.StringParameters = "max_time_in_seconds:300 log_search_progress:true";
-            CpSolverStatus status =  solver.Solve(model);
+            CpSolverStatus status = solver.Solve(model);
 
             if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
             {
-                Console.WriteLine("Lời giải tối ưu đã được tìm thấy.");
-
                 for (int i = 0; i < numAssignments; i++)
                 {
                     for (int j = 0; j < numTeachers; j++)
@@ -362,22 +369,11 @@ namespace SchedulifySystem.Service.Services.Implements
                         {
                             assignments[i].TeacherId = teachers[j].Id;
                             assignments[i].Teacher = teachers[j];
-                            Console.WriteLine($"Giáo viên {teachers[j].FirstName} {teachers[j].LastName} được phân công dạy môn {assignments[i].Subject?.SubjectName} cho lớp {assignments[i].StudentClass?.Name}");
-
-                            // Cập nhật vào cơ sở dữ liệu
-                           // _unitOfWork.TeacherAssignmentRepo.Update(assignments[i]);
                         }
                     }
                 }
-
-               // await _unitOfWork.SaveChangesAsync();
-            }
-            else
-            {
-                Console.WriteLine("Không tìm thấy lời giải khả thi.");
             }
         }
-
 
 
         public Task<BaseResponseModel> UpdateAssignment(int assignmentId)
