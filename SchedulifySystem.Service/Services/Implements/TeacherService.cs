@@ -307,11 +307,16 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region GetTeachers
-        public async Task<BaseResponseModel> GetTeachers(int schoolId, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetTeachers(int schoolId,int? departmentId, bool includeDeleted, int pageIndex, int pageSize)
         {
             _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
-
-            var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex, filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false),
+            if (departmentId != null)
+            {
+                var department = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)departmentId) ?? 
+                    throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
+            }
+            var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex, 
+                filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false) && (departmentId == null || departmentId == t.DepartmentId),
                 include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
             var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
