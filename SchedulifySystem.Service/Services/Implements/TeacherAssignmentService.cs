@@ -56,31 +56,89 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_TEACHER_ASSIGNMENT_SUCCESS };
         }
 
-        public async Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId)
+        private async Task<Dictionary<string, List<string>>> CheckAssignmentErrors(IEnumerable<StudentClass> classes,SchoolYear schoolYear, IEnumerable<Teacher> teachers, IEnumerable<TeacherAssignment> assignmentsDb)
+        {
+            // Khởi tạo dictionary để lưu lỗi theo từng thực thể
+            var errorDictionary = new Dictionary<string, List<string>>()
+                {
+                    { "Giáo viên", new List<string>() },
+                    { "Lớp học", new List<string>() },
+                    { "Năm học", new List<string>() },
+                    { "Môn học", new List<string>() }
+                };
+
+            // Kiểm tra lớp học
+            if (!classes.Any())
+            {
+                errorDictionary["Lớp học"].Add("Không có lớp học nào tồn tại.");
+            }
+
+            var missingAssignment = classes.Where(cls => cls.TeacherAssignments.IsNullOrEmpty())
+                .Select(cls => cls.Name).ToList();
+            if (missingAssignment.Any())
+            {
+                errorDictionary["Lớp học"].Add($"Lớp {string.Join(", ", missingAssignment)} chưa áp dụng tổ hợp nào!");
+            }
+
+            // Kiểm tra năm học và kỳ học
+           
+            if (schoolYear == null)
+            {
+                errorDictionary["Năm học"].Add("Năm học không tồn tại hoặc đã bị xóa.");
+            }
+           
+
+            // Kiểm tra giáo viên
+           
+            if (!teachers.Any())
+            {
+                errorDictionary["Giáo viên"].Add("Không có giáo viên nào để phân công.");
+            }
+            else
+            {
+                // Kiểm tra teachableSubjects của từng giáo viên không rỗng
+                foreach (var teacher in teachers)
+                {
+                    if (teacher.TeachableSubjects == null || !teacher.TeachableSubjects.Any())
+                    {
+                        errorDictionary["Giáo viên"].Add($"Giáo viên {teacher.FirstName} {teacher.LastName} chưa đươc phân công môn để dạy.");
+                    }
+                }
+            }
+
+            // Kiểm tra nhiệm vụ giảng dạy
+            var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => t.SubjectId).ToList();
+            if (!assignmentsDb.Any())
+            {
+                errorDictionary["Lớp học"].Add("Không có nhiệm vụ giảng dạy nào tồn tại cho các lớp học được chọn.");
+            }
+            else
+            {
+                // Kiểm tra giáo viên có thể dạy các môn yêu cầu
+                var subjectsInAssignment = assignmentsDb.Select(t => t.SubjectId).Distinct().ToList();
+                foreach (var sia in subjectsInAssignment)
+                {
+                    if (!teachableSubjects.Contains(sia))
+                    {
+                        errorDictionary["Môn học"].Add($"Chưa có giáo viên nào được phân công dạy môn {assignmentsDb.First(a => a.SubjectId == sia).Subject.SubjectName}");
+                    }
+                }
+            }
+            return errorDictionary;
+        }
+
+        public async Task<BaseResponseModel> CheckTeacherAssignment(int schoolId, int yearId)
         {
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId,
                 include: query => query.Include(cls => cls.TeacherAssignments));
 
-            var missingAssignment = classes.Where(cls => cls.TeacherAssignments.IsNullOrEmpty())
-                .Select(cls => cls.Name).ToList();
-
             var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId, filter: y => !y.IsDeleted
-                , include: query => query.Include(y => y.Terms)) ?? 
-                throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
-
-            if (missingAssignment.Any())
-            {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = $"Lớp {string.Join(", ", missingAssignment)} chưa áp dụng tổ hợp nào!",
-                };
-            }
+                , include: query => query.Include(y => y.Terms));
 
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: a => classIds.Contains(a.StudentClassId) ,
+                filter: a => classIds.Contains(a.StudentClassId),
                 include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
@@ -88,18 +146,51 @@ namespace SchedulifySystem.Service.Services.Implements
                 include: query => query.Include(t => t.TeachableSubjects));
 
             var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => t.SubjectId).ToList();
-            var subjectsInAssignment = assignmentsDb.Select(t => t.SubjectId).Distinct().ToList();
 
-            foreach (var sia in subjectsInAssignment)
+            // Kiểm tra lỗi trước khi phân công
+            var errors = await CheckAssignmentErrors(classes, schoolYear, teachers, assignmentsDb);
+            bool hasErrors = errors.Any(kv => kv.Value.Any());
+
+            return new BaseResponseModel
             {
-                if (!teachableSubjects.Contains(sia))
+                Status = hasErrors ? StatusCodes.Status400BadRequest : StatusCodes.Status200OK,
+                Message = hasErrors ? "Phát hiện lỗi trong phân công." : "Không có lỗi nào.",
+                Result = errors 
+            };
+        }
+
+        public async Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId)
+        {
+            var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                 filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId,
+                 include: query => query.Include(cls => cls.TeacherAssignments));
+
+            var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId, filter: y => !y.IsDeleted
+                , include: query => query.Include(y => y.Terms));
+
+            var classIds = classes.Select(selector => selector.Id).ToList();
+            var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+                filter: a => classIds.Contains(a.StudentClassId),
+                include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
+
+            var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
+                filter: t => !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong && t.SchoolId == schoolId,
+                include: query => query.Include(t => t.TeachableSubjects));
+
+            var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => t.SubjectId).ToList();
+
+            // Kiểm tra lỗi trước khi phân công
+            var errors = await CheckAssignmentErrors(classes, schoolYear, teachers, assignmentsDb);
+
+            // Nếu có lỗi, trả về danh sách lỗi theo thực thể
+            if (errors.Any(kv => kv.Value.Any()))
+            {
+                return new BaseResponseModel
                 {
-                    return new BaseResponseModel
-                    {
-                        Status = StatusCodes.Status400BadRequest,
-                        Message = $"Chưa có giáo viên nào có thể dạy môn {sia}"
-                    };
-                }
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Phát hiện lỗi trong phân công.",
+                    Result = errors
+                };
             }
 
             var teacherCapabilities = teachers.ToDictionary(
@@ -293,5 +384,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             throw new NotImplementedException();
         }
+
+        
     }
 }
