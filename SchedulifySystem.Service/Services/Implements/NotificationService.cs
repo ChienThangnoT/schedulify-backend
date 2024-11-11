@@ -59,6 +59,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region Get Numbers Of UnRead Notification
         public async Task<BaseResponseModel> GetNumbersOfUnReadNotification(int accountId)
         {
             var user = await _unitOfWork.UserRepo.GetByIdAsync(accountId, filter: t => t.Status == (int)AccountStatus.Active)
@@ -74,16 +75,51 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = notiList
             };
         }
+        #endregion
 
-        public Task<BaseResponseModel> MakeAllNotificationsIsReadAsync(int accountId)
+        #region Make All Notifications Is Read
+        public async Task<BaseResponseModel> MakeAllNotificationsIsReadAsync(int accountId)
         {
-            throw new NotImplementedException();
+            var notifications = await _unitOfWork.NotificationRepo.GetAsync(filter: t => t.AccountId == accountId && t.IsRead == false && t.IsDeleted == false)
+                ?? throw new NotExistsException(ConstantResponse.GET_NOTIFICATION_NOT_EXIST);
+            foreach (var noti in notifications)
+            {
+                noti.IsRead = true;
+                noti.ReadAt = DateTime.UtcNow;
+
+                _unitOfWork.NotificationRepo.Update(noti); 
+            }
+            await _unitOfWork.SaveChangesAsync();
+
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.IS_READ_SUCCESS
+            };
         }
 
-        public Task<BaseResponseModel> MakeNotificationsIsReadAsync(int id)
+        #endregion
+
+        #region Make Notifications IsRead
+        public async Task<BaseResponseModel> MakeNotificationsIsReadAsync(int id)
         {
-            throw new NotImplementedException();
+            var notifications = (await _unitOfWork.NotificationRepo.GetAsync(filter: t => t.Id == id && t.IsRead == false && t.IsDeleted == false)).FirstOrDefault()
+                ?? throw new NotExistsException(ConstantResponse.GET_NOTIFICATION_NOT_EXIST);
+            notifications.IsRead = true;
+            notifications.ReadAt = DateTime.UtcNow;
+
+            _unitOfWork.NotificationRepo.Update(notifications);
+            await _unitOfWork.SaveChangesAsync();
+
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.IS_READ_SUCCESS
+            };
         }
+        #endregion
 
         #region Send Notification To All
         public async Task SendNotificationToAll(NotificationModel notification)

@@ -182,6 +182,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string GET_NOTIFICATION_NOT_EXIST = "Do not have any notification.";
         public const string GET_NOTIFICATION_SUCCESS = "Get notification success.";
         public const string GET_NOT_READ_NOTIFICATION_SUCCESS = "Get unread notification success.";
+        public const string IS_READ_SUCCESS = "Notification is read.";
 
 
     }
