@@ -197,12 +197,16 @@ namespace SchedulifySystem.Service.Services.Implements
                 teacher => teacher.Id,
                 teacher => teacher.TeachableSubjects.ToList()
             );
+            var homeroomTeachers = classes.ToDictionary(
+                sclass => sclass.Id,
+                sclass => sclass.HomeroomTeacherId);
+
             var terms = schoolYear.Terms.Where(t => !t.IsDeleted);
             var assignmentFirsts = assignmentsDb.Where(a => a.TermId == terms.First().Id).ToList();
             foreach (var term in terms)
             {
                 if(term.Id == terms.First().Id)
-                    await AssignTeachers(assignmentFirsts, teachers.ToList(), teacherCapabilities);
+                    await AssignTeachers(assignmentFirsts, teachers.ToList(), teacherCapabilities, homeroomTeachers);
                 else
                     foreach(var item in assignmentFirsts)
                     {
@@ -253,7 +257,8 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task AssignTeachers(
     List<TeacherAssignment> assignments,
     List<Teacher> teachers,
-    Dictionary<int, List<TeachableSubject>> teacherCapabilities)
+    Dictionary<int, List<TeachableSubject>> teacherCapabilities,
+    Dictionary<int, int> homeroomTeachers) 
         {
             // 1. Khởi tạo CpModel và các biến
             CpModel model = new CpModel();
@@ -303,7 +308,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            // 4. Ràng buộc mềm: Số tiết tối đa của mỗi giáo viên
+            // 4. Ràng buộc mềm: Số tiết tối đa của mỗi giáo viên là 17, nhưng có thể vượt quá nếu cần
             List<IntVar> overloadList = new List<IntVar>();
             foreach (var teacher in teachers)
             {
@@ -326,18 +331,24 @@ namespace SchedulifySystem.Service.Services.Implements
                 overloadList.Add(overload);
             }
 
-            // 5. Thiết lập hàm mục tiêu tối ưu hóa
-            LinearExpr objectiveExpr = LinearExpr.Sum(overloadList) * 1000;
+            // 5. Thiết lập hàm mục tiêu để ưu tiên phân công tất cả các assignments
+            LinearExpr objectiveExpr = LinearExpr.Sum(
+                from i in Enumerable.Range(0, numAssignments)
+                from j in Enumerable.Range(0, numTeachers)
+                select assignmentMatrix[i, j]
+            ) * 1000; // Trọng số lớn để đảm bảo tất cả các assignments được phân công trước
 
+            // Ưu tiên giáo viên chủ nhiệm và các giáo viên có `IsMain`
             for (int i = 0; i < numAssignments; i++)
             {
+                var assignment = assignments[i];
                 for (int j = 0; j < numTeachers; j++)
                 {
                     var teacher = teachers[j];
                     if (teacherCapabilities.ContainsKey(teacher.Id))
                     {
                         var teachableSubjects = teacherCapabilities[teacher.Id]
-                            .Where(ts => ts.SubjectId == assignments[i].SubjectId && ts.Grade == assignments[i].StudentClass?.Grade)
+                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
                             .ToList();
 
                         if (teachableSubjects.Any())
@@ -345,8 +356,17 @@ namespace SchedulifySystem.Service.Services.Implements
                             var maxAppropriateLevel = teachableSubjects.Max(ts => ts.AppropriateLevel);
                             var isMain = teachableSubjects.Any(ts => ts.IsMain);
 
-                            objectiveExpr += assignmentMatrix[i, j] * (isMain ? 50 : 0);
-                            objectiveExpr += assignmentMatrix[i, j] * maxAppropriateLevel * 10;
+                            // Ưu tiên giáo viên chủ nhiệm dạy môn chuyên môn
+                            if (homeroomTeachers.ContainsKey(assignment.StudentClassId) &&
+                                homeroomTeachers[assignment.StudentClassId] == teacher.Id &&
+                                isMain)
+                            {
+                                objectiveExpr += assignmentMatrix[i, j] * 200;
+                            }
+
+                            // Ưu tiên giáo viên có `IsMain = true` và `AppropriateLevel` cao hơn
+                            objectiveExpr += assignmentMatrix[i, j] * (isMain ? 20 : 0);
+                            objectiveExpr += assignmentMatrix[i, j] * maxAppropriateLevel;
                         }
                     }
                 }
@@ -354,11 +374,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             model.Maximize(objectiveExpr);
 
-            // 6. Giải quyết bài toán
+            // 6. Tạo solver và giải bài toán
             CpSolver solver = new CpSolver();
             solver.StringParameters = "max_time_in_seconds:300 log_search_progress:true";
             CpSolverStatus status = solver.Solve(model);
 
+            // 7. Cập nhật kết quả nếu có lời giải khả thi
             if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
             {
                 for (int i = 0; i < numAssignments; i++)
@@ -373,8 +394,11 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+            else
+            {
+                Console.WriteLine("Không tìm thấy lời giải khả thi.");
+            }
         }
-
 
         public Task<BaseResponseModel> UpdateAssignment(int assignmentId)
         {
