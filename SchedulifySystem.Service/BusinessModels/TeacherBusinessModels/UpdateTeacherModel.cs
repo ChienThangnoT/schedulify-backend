@@ -36,7 +36,6 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public TeacherStatus? Status { get; set; }
         public string? Phone { get; set; }
         public bool? IsDeleted { get; set; }
-        public List<SubjectGradeModel> SubTeachableSubjects { get; set; }
-        public SubjectGradeModel MainTeachableSubjects { get; set; }
+        public List<SubjectGradeModel> TeachableSubjects { get; set; }
     }
 }

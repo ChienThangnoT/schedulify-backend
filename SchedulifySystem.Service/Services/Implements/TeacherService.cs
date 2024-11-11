@@ -31,6 +31,8 @@ namespace SchedulifySystem.Service.Services.Implements
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly IMailService _mailService;
+        private readonly int MAX_APPROVIATE_LEVEL = 5;
+        private readonly int MIN_APPROVIATE_LEVEL = 1;
 
         public TeacherService(IMapper mapper, IUnitOfWork unitOfWork, IConfiguration configuration, IMailService mailService)
         {
@@ -256,15 +258,23 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 foreach (var model in models)
                 {
-                    var teachableSubject = new TeachableSubject
+                    var list = new List<TeachableSubject>();
+                    foreach (var grade in model.MainSubject.Grades)
                     {
-                        CreateDate = DateTime.UtcNow,
-                        SubjectId = subjectLookup[model.MainSubject.SubjectAbreviation.ToLower()],
-                        Grade = (int)model.MainSubject.Grade,
-                        AppropriateLevel = 5
-                    };
+                        var teachableSubject = new TeachableSubject
+                        {
+                            CreateDate = DateTime.UtcNow,
+                            SubjectId = subjectLookup[model.MainSubject.SubjectAbreviation.ToLower()],
+                            Grade = (int)grade,
+                            AppropriateLevel = MAX_APPROVIATE_LEVEL,
+                            IsMain = true
+                        };
+                        list.Add(teachableSubject);
 
-                    model.TeachableSubjects = new List<TeachableSubject>() { teachableSubject };
+                    }
+                    model.TeachableSubjects = list;
+
+
                 }
             }
 
@@ -307,15 +317,15 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region GetTeachers
-        public async Task<BaseResponseModel> GetTeachers(int schoolId,int? departmentId, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetTeachers(int schoolId, int? departmentId, bool includeDeleted, int pageIndex, int pageSize)
         {
             _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (departmentId != null)
             {
-                var department = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)departmentId) ?? 
+                var department = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)departmentId) ??
                     throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
             }
-            var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex, 
+            var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex,
                 filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false) && (departmentId == null || departmentId == t.DepartmentId),
                 include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
             var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
@@ -392,8 +402,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted));
                 var subjectAbbreviationDbs = subjects.Select(s => s.Abbreviation.ToLower()).ToList();
 
-                var subjectsPara = updateTeacherRequestModel.SubTeachableSubjects;
-                subjectsPara.Add(updateTeacherRequestModel.MainTeachableSubjects);
+                var subjectsPara = updateTeacherRequestModel.TeachableSubjects;
 
                 var teachableSubjectAbbreviationPara = subjectsPara.Select(s => s.SubjectAbreviation.ToLower()).ToList();
 
@@ -427,14 +436,18 @@ namespace SchedulifySystem.Service.Services.Implements
                     if (!existedTeacher.TeachableSubjects.Any(rs => rs.Id == item.Id))
                     {
                         var model = subjectsPara.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
-                        newTeachableSubjects.Add(new TeachableSubject() 
-                        { 
-                            TeacherId = existedTeacher.Id,
-                            SubjectId = item.Id,
-                            CreateDate = DateTime.UtcNow,
-                            Grade = (int)model?.Grade,
-                            AppropriateLevel = model.SubjectAbreviation == updateTeacherRequestModel.MainTeachableSubjects.SubjectAbreviation ? 5 : 1,
-                        });
+                        foreach (var grade in model.Grades)
+                        {
+                            newTeachableSubjects.Add(new TeachableSubject()
+                            {
+                                TeacherId = existedTeacher.Id,
+                                SubjectId = item.Id,
+                                CreateDate = DateTime.UtcNow,
+                                Grade = (int)grade,
+                                AppropriateLevel = model.IsMain ? MAX_APPROVIATE_LEVEL : MIN_APPROVIATE_LEVEL,
+                                IsMain = model.IsMain,
+                            });
+                        }
                     }
                 }
 
@@ -497,7 +510,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region AssignTeacherDepartmentHead
         public async Task<BaseResponseModel> AssignTeacherDepartmentHead(int schoolId, List<AssignTeacherDepartmentHeadModel> models)
         {
-           using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
@@ -572,7 +585,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             }
                         }
 
-                        teacher.TeacherRole = (int) TeacherRole.TEACHER_DEPARTMENT_HEAD;
+                        teacher.TeacherRole = (int)TeacherRole.TEACHER_DEPARTMENT_HEAD;
                         _unitOfWork.TeacherRepo.Update(teacher);
 
                     }
@@ -585,7 +598,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         Message = "Phân công tổ trưởng thành công!"
                     };
                 }
-                catch (Exception )
+                catch (Exception)
                 {
                     transaction.Rollback();
                     throw;
