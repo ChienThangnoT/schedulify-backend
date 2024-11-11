@@ -37,43 +37,50 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Add Department
         public async Task<BaseResponseModel> AddDepartment(int schoolId, List<DepartmentAddModel> models)
         {
-            var checkSchool = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
-
-            //check duplicate in list
-            var duplicateName = models.GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase).Where(d => d.Count() > 1).SelectMany(g => g).ToList();
-            var duplicateCode = models.GroupBy(d => d.DepartmentCode, StringComparer.OrdinalIgnoreCase).Where(d => d.Count() > 1).SelectMany(g => g).ToList();
-
-            if (duplicateName.Count != 0)
+            try
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.DEPARTMENT_NAME_DUPLICATE, Result = duplicateName };
-            }
+                var checkSchool = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
-            if (duplicateCode.Count != 0)
-            {
-                return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.DEPARTMENT_CODE_DUPLICATE, Result = duplicateCode };
-            }
-            //check duplicate in database 
-            var names = models.Select(d => d.Name.ToLower()).ToList();
-            var code = models.Select(d => d.DepartmentCode.ToLower()).ToList();
-            var duplicateInDb = (await _unitOfWork.DepartmentRepo.GetV2Async(
-                filter: d => d.SchoolId == schoolId && !d.IsDeleted && (names.Contains(d.Name.ToLower()) || code.Contains(d.DepartmentCode.ToLower())))).ToList();
+                //check duplicate in list
+                var duplicateName = models.GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase).Where(d => d.Count() > 1).SelectMany(g => g).ToList();
+                var duplicateCode = models.GroupBy(d => d.DepartmentCode, StringComparer.OrdinalIgnoreCase).Where(d => d.Count() > 1).SelectMany(g => g).ToList();
 
-            if (duplicateInDb.Count != 0)
-            {
-                return new BaseResponseModel()
+                if (duplicateName.Count != 0)
                 {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.DEPARTMENT_NAME_OR_CODE_EXISTED,
-                    Result = _mapper.Map<List<DepartmentAddModel>>(duplicateInDb)
-                };
-            }
+                    return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.DEPARTMENT_NAME_DUPLICATE, Result = duplicateName };
+                }
 
-            //add to db
-            models.ForEach(d => d.SchoolId = schoolId);
-            var data = _mapper.Map<List<Department>>(models);
-            _unitOfWork.DepartmentRepo.AddRangeAsync(data);
-            await _unitOfWork.SaveChangesAsync();
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_DEPARTMENT_SUCCESS };
+                if (duplicateCode.Count != 0)
+                {
+                    return new BaseResponseModel() { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.DEPARTMENT_CODE_DUPLICATE, Result = duplicateCode };
+                }
+                //check duplicate in database 
+                var names = models.Select(d => d.Name.ToLower()).ToList();
+                var code = models.Select(d => d.DepartmentCode.ToLower()).ToList();
+                var duplicateInDb = (await _unitOfWork.DepartmentRepo.GetV2Async(
+                    filter: d => d.SchoolId == schoolId && !d.IsDeleted && (names.Contains(d.Name.ToLower()) || code.Contains(d.DepartmentCode.ToLower())))).ToList();
+
+                if (duplicateInDb.Count != 0)
+                {
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = ConstantResponse.DEPARTMENT_NAME_OR_CODE_EXISTED,
+                        Result = _mapper.Map<List<DepartmentAddModel>>(duplicateInDb)
+                    };
+                }
+
+                //add to db
+                models.ForEach(d => d.SchoolId = schoolId);
+                var data = _mapper.Map<List<Department>>(models);
+                await _unitOfWork.DepartmentRepo.AddRangeAsync(data);
+                await _unitOfWork.SaveChangesAsync();
+                return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_DEPARTMENT_SUCCESS };
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
         #endregion
 
