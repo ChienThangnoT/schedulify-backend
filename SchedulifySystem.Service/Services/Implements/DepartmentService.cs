@@ -105,6 +105,23 @@ namespace SchedulifySystem.Service.Services.Implements
             var departments = await _unitOfWork.DepartmentRepo
                 .ToPaginationIncludeAsync(pageIndex, pageSize, filter: (f => f.SchoolId == schoolId && !f.IsDeleted));
             var result = _mapper.Map<Pagination<DepartmentViewModel>>(departments);
+            var departmentIds = result.Items.Select(d => d.Id);
+            var teacherDepartmentHeads = await _unitOfWork.TeacherRepo.GetV2Async(
+                filter: t => !t.IsDeleted && t.SchoolId == schoolId &&
+                t.TeacherRole == (int)TeacherRole.TEACHER_DEPARTMENT_HEAD &&
+                departmentIds.Contains(t.DepartmentId));
+
+            foreach (var item in result.Items)
+            {
+                var tdh = teacherDepartmentHeads.FirstOrDefault(t => t.DepartmentId == item.Id);
+                if(tdh != null)
+                {
+                    item.TeacherDepartmentHeadId = tdh.Id;
+                    item.TeacherDepartmentFirstName = tdh.FirstName;
+                    item.TeacherDepartmentLastName = tdh.LastName;
+                    item.TeacherDepartmentAbbreviation = tdh.Abbreviation;
+                }
+            }
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_DEPARTMENT_SUCCESS, Result = result };
         }
         #endregion
@@ -119,7 +136,7 @@ namespace SchedulifySystem.Service.Services.Implements
             if (model.Name != null || model.DepartmentCode != null)
             {
                 var check = (await _unitOfWork.DepartmentRepo.GetV2Async(
-                                filter: d => d.SchoolId == schoolId && !d.IsDeleted && (model.Name == null || d.Name.ToLower().Equals(model.Name.ToLower()))
+                                filter: d => d.SchoolId == schoolId && !d.IsDeleted && d.Id != departmentId && (model.Name == null || d.Name.ToLower().Equals(model.Name.ToLower()))
                                 && (model.DepartmentCode == null || d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower())))).ToList();
                 if (check.Count != 0)
                 {
@@ -144,6 +161,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 existed.Description = model.Description;
             }
+            existed.MeetingDay = model.MeetingDay;
 
             _unitOfWork.DepartmentRepo.Update(existed);
             await _unitOfWork.SaveChangesAsync();
