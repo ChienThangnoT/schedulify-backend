@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
+using System.ComponentModel.DataAnnotations;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -27,7 +28,7 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet("assignment")]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetTeacherAssignmentDetail(int teacherId, int schoolYearId)
+        public Task<IActionResult> GetTeacherAssignmentDetail([Required] int teacherId, [Required] int schoolYearId)
         {
             return ValidateAndExecute(() => _teacherService.GetTeacherAssignmentDetail(teacherId, schoolYearId));
         }
