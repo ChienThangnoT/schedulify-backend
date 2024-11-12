@@ -10,7 +10,7 @@ namespace SchedulifySystem.Repository.EntityModels
     public partial class StudentClass : BaseEntity
     {
         public string? Name { get; set; }
-        public int HomeroomTeacherId { get; set; }
+        public int? HomeroomTeacherId { get; set; }
         public int SchoolId { get; set; }
         public int SchoolYearId { get; set; }
         public int MainSession { get; set; }

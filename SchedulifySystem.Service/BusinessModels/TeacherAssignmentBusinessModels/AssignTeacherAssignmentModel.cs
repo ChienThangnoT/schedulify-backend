@@ -12,8 +12,5 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
     {
         public int Id { get; set; }
         public int TeacherId { get; set; }
-
-
-
     }
 }

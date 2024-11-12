@@ -201,9 +201,15 @@ namespace SchedulifySystem.Service.Services.Implements
         #region GetStudentClassById
         public async Task<BaseResponseModel> GetStudentClassById(int id)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false
-                , include: query => query.Include(sc => sc.Teacher).Include(sc => sc.SubjectGroup) ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST));
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_CLASS_SUCCESS, Result = _mapper.Map<StudentClassViewModel>(existedClass) };
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false)
+                ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
+
+            return new BaseResponseModel() 
+            { 
+                Status = StatusCodes.Status200OK, 
+                Message = ConstantResponse.GET_CLASS_SUCCESS, 
+                Result = _mapper.Map<StudentClassViewModel>(existedClass) 
+            };
         }
         #endregion
 

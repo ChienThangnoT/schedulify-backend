@@ -12,10 +12,15 @@ namespace SchedulifySystem.Service.Mapper
         partial void StudentClassMapperConfig()
         {
             CreateMap<StudentClass, StudentClassViewModel>()
-                .ForMember(dest => dest.HomeroomTeacherAbbreviation, opt => opt.MapFrom(src => src.Teacher.Abbreviation))
-                .ForMember(dest => dest.HomeroomTeacherName, opt => opt.MapFrom(src => $"{src.Teacher.FirstName} {src.Teacher.LastName}"))
-                .ForMember(dest => dest.SubjectGroupName, opt => opt.MapFrom(src => src.SubjectGroup.GroupName))
-                .ForMember(dest => dest.MainSessionText, opt => opt.MapFrom(src => src.MainSession == (int)MainSession.Morning?"Sáng":"Chiều"));
+              .ForMember(dest => dest.HomeroomTeacherAbbreviation,
+                         opt => opt.MapFrom(src => src.Teacher != null ? src.Teacher.Abbreviation : null))
+              .ForMember(dest => dest.HomeroomTeacherName,
+                         opt => opt.MapFrom(src => src.Teacher != null ? $"{src.Teacher.FirstName} {src.Teacher.LastName}" : null))
+              .ForMember(dest => dest.SubjectGroupName,
+                         opt => opt.MapFrom(src => src.SubjectGroup.GroupName))
+              .ForMember(dest => dest.MainSessionText,
+                         opt => opt.MapFrom(src => src.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều"));
+
 
 
             CreateMap<CreateStudentClassModel, StudentClass>()
