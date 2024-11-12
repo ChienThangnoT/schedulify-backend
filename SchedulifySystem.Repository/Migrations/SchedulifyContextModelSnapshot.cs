@@ -1082,10 +1082,16 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Property<bool>("IsSpecialized")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("MainMinimumCouple")
+                        .HasColumnType("integer");
+
                     b.Property<int>("MainSlotPerWeek")
                         .HasColumnType("integer");
 
                     b.Property<int>("SlotPerTerm")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SubMinimumCouple")
                         .HasColumnType("integer");
 
                     b.Property<int>("SubSlotPerWeek")
@@ -1179,6 +1185,9 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsMain")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("SubjectId")
                         .HasColumnType("integer");
 
@@ -1208,6 +1217,9 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Property<string>("Abbreviation")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("AvatarURL")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");

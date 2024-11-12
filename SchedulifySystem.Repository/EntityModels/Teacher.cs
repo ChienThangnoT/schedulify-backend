@@ -14,6 +14,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? LastName { get; set; }
         public string? Abbreviation { get; set; }
         public string? Email { get; set; }
+        public string? AvatarURL { get; set; }
         public int Gender { get; set; }
         public int DepartmentId { get; set; }
         public DateOnly DateOfBirth { get; set; }

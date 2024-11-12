@@ -14,6 +14,7 @@ using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -40,6 +41,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
+                    // check exist 
                     var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
                         ?? throw new NotExistsException($"School not found with id {schoolId}");
                     var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(
@@ -85,6 +87,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var newSubjectInGroupAdded = new List<SubjectInGroup>();
                     foreach (int subjectId in subjectGroupAddModel.ElectiveSubjectIds)
                     {
+                        // check subject existed and not belong to require subject
                         var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
                             ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
                         if (checkSubject.IsRequired)
@@ -94,6 +97,9 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT,
                                 Result = subjectId
                             };
+
+                        // cal slot per term
+
                         int slotPerTerm1 = (int)Math.Floor((double)checkSubject.TotalSlotInYear / 2);
                         int slotPerTerm2 = (int)Math.Ceiling((double)checkSubject.TotalSlotInYear / 2);
 
@@ -260,7 +266,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     TermId = item.TermId ?? 0,
                     TotalSlotInYear = item.Subject?.TotalSlotInYear,
                     SlotSpecialized = item.Subject?.SlotSpecialized ?? 35,
-                    SubjectGroupType = (ESubjectGroupType)(item.Subject?.SubjectGroupType ?? 0)
+                    SubjectGroupType = (ESubjectGroupType)(item.Subject?.SubjectGroupType ?? 0),
+                    MainMinimumCouple = item.MainMinimumCouple,
+                    SubMinimumCouple = item.SubMinimumCouple,
                 };
 
                 if (item.Subject?.IsRequired == true)
@@ -360,7 +368,7 @@ namespace SchedulifySystem.Service.Services.Implements
                                .ThenInclude(sy => sy.Terms));
                     var termInYear = await _unitOfWork.TermRepo.GetAsync(filter: t => t.SchoolYearId == subjectGroupUpdateModel.SchoolYearId && t.IsDeleted == false)
                         ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
-
+                    List<Term> termList = termInYear.ToList();
                     if (subjectGroup == null || !subjectGroup.Any())
                     {
                         throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
@@ -368,21 +376,29 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     var subjectGroupDb = subjectGroup.FirstOrDefault();
 
-                    // check duplicate groupName hoặc groupCode
-                    var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
-                        filter: t => (t.GroupName.ToLower() == subjectGroupUpdateModel.GroupName.ToLower() ||
-                                      t.GroupCode.ToLower() == subjectGroupUpdateModel.GroupCode.ToLower()) &&
-                                      t.Id != subjectGroupId
-                    );
+                    // Kiểm tra có sự thay đổi trong GroupName hoặc GroupCode không
+                    bool isGroupNameChanged = !string.Equals(subjectGroupDb.GroupName, subjectGroupUpdateModel.GroupName, StringComparison.OrdinalIgnoreCase);
+                    bool isGroupCodeChanged = !string.Equals(subjectGroupDb.GroupCode, subjectGroupUpdateModel.GroupCode, StringComparison.OrdinalIgnoreCase);
 
-                    if (checkExistSubjectGroup.Any())
+                    if (isGroupNameChanged || isGroupCodeChanged)
                     {
-                        return new BaseResponseModel()
+                        // Thực hiện truy vấn kiểm tra trùng lặp chỉ khi có sự thay đổi
+                        var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
+                            filter: t => (t.GroupName.ToLower() == subjectGroupUpdateModel.GroupName.ToLower() ||
+                                          t.GroupCode.ToLower() == subjectGroupUpdateModel.GroupCode.ToLower()) &&
+                                          t.Id != subjectGroupId
+                        );
+
+                        if (checkExistSubjectGroup.Any())
                         {
-                            Status = StatusCodes.Status400BadRequest,
-                            Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
-                        };
+                            return new BaseResponseModel()
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
+                            };
+                        }
                     }
+
 
                     // check enough number subject
                     if (subjectGroupUpdateModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT
@@ -478,9 +494,47 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     await _unitOfWork.SaveChangesAsync();
 
+                    //add required subject
+                    var requiredSubjects = await _unitOfWork.SubjectRepo.GetAsync(
+                        filter: t => t.IsDeleted == false && t.IsRequired == true);
+                    var requiredSubjectList = requiredSubjects.ToList();
+
+                    var requiredSBInDB = await _unitOfWork.SubjectInGroupRepo.GetAsync(filter: t => t.SubjectGroupId == subjectGroupId && t.IsDeleted == false);
+                    var requiredSubjectInDBList = requiredSBInDB.ToList();
+
+                    if (!requiredSubjectList.All(subject => requiredSubjectInDBList.Any(dbSubject => dbSubject.Id == subject.Id)))
+                    {
+                        //var requiredSubjectList = new List<SubjectInGroup>();
+                        foreach (var subject in requiredSubjects)
+                        {
+                            int slotPerTerm1 = (int)Math.Floor((double)subject.TotalSlotInYear / 2);
+                            int slotPerTerm2 = (int)Math.Ceiling((double)subject.TotalSlotInYear / 2);
+
+                            var newSubjectRequiredInGroup = new SubjectInGroup
+                            {
+                                SubjectId = subject.Id,
+                                SubjectGroupId = subjectGroupId,
+                                MainSlotPerWeek = (subject?.TotalSlotInYear / 35) ?? 0,
+                                IsSpecialized = subjectGroupUpdateModel.SpecializedSubjectIds.Contains(subject.Id)
+                            };
+
+                            for (int i = 0; i < termList.Count; i++)
+                            {
+                                newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
+                                newSubjectRequiredInGroup.TermId = termList[i].Id;
+                                newSubjectRequiredInGroup.SlotPerTerm = (i == 0) ? slotPerTerm1 : slotPerTerm2;
+                                await _unitOfWork.SubjectInGroupRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
+                            }
+                        }
+
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+
+
                     //Specialized Subject
                     var specializedSubjectNotInElectiveSubjects = subjectGroupUpdateModel.SpecializedSubjectIds
                         .Where(s => !subjectGroupUpdateModel.ElectiveSubjectIds.Contains(s));
+
 
                     foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
                     {

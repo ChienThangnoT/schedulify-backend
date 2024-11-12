@@ -131,6 +131,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string UPDATE_TEACHER_SUCCESS = "Update teacher success.";
         public const string DELETE_TEACHER_SUCCESS = "Delete teacher success.";
         public const string GET_TEACHER_SUCCESS = "Get teachers success.";
+        public const string GENERATE_TEACHER_HAS_EXISTED = "Teacher already existed with teacher account.";
+        public const string GENERATE_TEACHER_SUCCESS = "Generate teacher account success.";
 
         //Grade
         public const string GRADE_NOT_EXIST = "The grade does not exist.";
@@ -145,6 +147,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string DEPARTMENT_NAME_DUPLICATE = "Department name is dupicated.";
         public const string DEPARTMENT_CODE_DUPLICATE = "Department code is dupicated.";
         public const string DEPARTMENT_NAME_OR_CODE_EXISTED = "Department name or code does existed.";
+        public const string GENERATE_TEACHER_IN_DEPARTMENT_FAILED = "Teacher invalid to generate teacher account.";
+        public const string GENERATE_TEACHER_IN_DEPARTMENT_SUCCESS = "Generate teacher in department success.";
 
         //TeacherAssignment
         public const string TEACHER_ASSIGNMENT_NOT_EXIST = "The teaching assignment does not exist.";
@@ -161,6 +165,8 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Student class and student class in group
         public const string STUDENT_CLASS_NOT_EXIST = "The student class not exist.";
+        public const string STUDENT_CLASS_NOT_HAVE_ASSIGNMENT = "The student class not have assignment.";
+        public const string GET_STUDENT_CLASS_ASSIGNMENT_SUCCESS = "Get student class assignments success.";
 
         //Term
         public const string TERM_NOT_FOUND = "Term not exist.";
@@ -171,6 +177,13 @@ namespace SchedulifySystem.Service.Utils.Constants
         //Timetable
         public const string TIMETABLE_NOT_FOUND = "The timetable does not exist.";
         public const string GET_TIMETABLE_SUCCESS = "Get the timetable success.";
+
+        //Notification
+        public const string GET_NOTIFICATION_NOT_EXIST = "Do not have any notification.";
+        public const string GET_NOTIFICATION_SUCCESS = "Get notification success.";
+        public const string GET_NOT_READ_NOTIFICATION_SUCCESS = "Get unread notification success.";
+        public const string IS_READ_SUCCESS = "Notification is read.";
+
 
     }
 }

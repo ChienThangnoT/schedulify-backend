@@ -23,6 +23,18 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.SubjectName, otp => otp
                     .MapFrom(t => t.Subject != null ? t.Subject.SubjectName : string.Empty)).ReverseMap();
 
+            CreateMap<TeacherAssignment, TeacherAssignmentTermViewModel>()
+                .ForMember(dest => dest.TeacherFirstName, otp => otp
+                    .MapFrom(t => t.Teacher != null ? t.Teacher.FirstName : null))
+                .ForMember(dest => dest.TermName, otp => otp
+                    .MapFrom(t => t.Term != null ? t.Term.Name : null))
+                .ForMember(dest => dest.TeacherLastName, otp => otp
+                    .MapFrom(t => t.Teacher != null ? t.Teacher.LastName : null))
+                .ForMember(dest => dest.TeacherAbbreviation, otp => otp
+                    .MapFrom(t => t.Teacher != null ? t.Teacher.Abbreviation : null))
+                .ForMember(dest => dest.SubjectName, otp => otp
+                    .MapFrom(t => t.Subject != null ? t.Subject.SubjectName : string.Empty)).ReverseMap();
+
             CreateMap<AssignTeacherAssignmentModel, TeacherAssignment>()
                 .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
 
