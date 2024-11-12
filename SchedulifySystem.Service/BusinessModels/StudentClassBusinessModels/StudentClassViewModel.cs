@@ -11,7 +11,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
     public class StudentClassViewModel : BaseEntity
     {
         public string? Name { get; set; }
-        public int HomeroomTeacherId { get; set; }
+        public int? HomeroomTeacherId { get; set; }
         public string? HomeroomTeacherName { get; set; }
         public string? HomeroomTeacherAbbreviation { get; set; }
         public int MainSession { get; set; }
