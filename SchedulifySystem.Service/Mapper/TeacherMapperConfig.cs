@@ -26,7 +26,7 @@ namespace SchedulifySystem.Service.Mapper
                             {
                                 SubjectId = group.Key,
                                 SubjectName = group.First().Subject.SubjectName,
-                                Abbreviation = group.First().Subject.Abbreviation,
+                                Abbreviation = group.First().Subject.Abbreviation.ToUpper(),
                                 AppropriateLevel = group.First().AppropriateLevel,
                                 Grade = group.Select(ts => (EGrade)ts.Grade).Distinct().ToList(),
                                 IsMain = group.First().IsMain,

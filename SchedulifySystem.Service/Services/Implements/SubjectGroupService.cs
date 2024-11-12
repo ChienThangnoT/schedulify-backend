@@ -376,21 +376,29 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     var subjectGroupDb = subjectGroup.FirstOrDefault();
 
-                    // check duplicate groupName hoặc groupCode
-                    var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
-                        filter: t => (t.GroupName.ToLower() == subjectGroupUpdateModel.GroupName.ToLower() ||
-                                      t.GroupCode.ToLower() == subjectGroupUpdateModel.GroupCode.ToLower()) &&
-                                      t.Id != subjectGroupId
-                    );
+                    // Kiểm tra có sự thay đổi trong GroupName hoặc GroupCode không
+                    bool isGroupNameChanged = !string.Equals(subjectGroupDb.GroupName, subjectGroupUpdateModel.GroupName, StringComparison.OrdinalIgnoreCase);
+                    bool isGroupCodeChanged = !string.Equals(subjectGroupDb.GroupCode, subjectGroupUpdateModel.GroupCode, StringComparison.OrdinalIgnoreCase);
 
-                    if (checkExistSubjectGroup.Any())
+                    if (isGroupNameChanged || isGroupCodeChanged)
                     {
-                        return new BaseResponseModel()
+                        // Thực hiện truy vấn kiểm tra trùng lặp chỉ khi có sự thay đổi
+                        var checkExistSubjectGroup = await _unitOfWork.SubjectGroupRepo.GetAsync(
+                            filter: t => (t.GroupName.ToLower() == subjectGroupUpdateModel.GroupName.ToLower() ||
+                                          t.GroupCode.ToLower() == subjectGroupUpdateModel.GroupCode.ToLower()) &&
+                                          t.Id != subjectGroupId
+                        );
+
+                        if (checkExistSubjectGroup.Any())
                         {
-                            Status = StatusCodes.Status400BadRequest,
-                            Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
-                        };
+                            return new BaseResponseModel()
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.SUBJECT_GROUP_NAME_OR_CODE_EXISTED
+                            };
+                        }
                     }
+
 
                     // check enough number subject
                     if (subjectGroupUpdateModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT
