@@ -80,8 +80,15 @@ namespace SchedulifySystem.Service.Services.Implements
                 errorDictionary["Lớp học"].Add($"Lớp {string.Join(", ", missingAssignment)} chưa áp dụng tổ hợp nào!");
             }
 
+            // check exist homeroom teacher
+            var classesWithoutHomeroomTeacher = classes.Where(cls => cls.HomeroomTeacherId == null).Select(cls => cls.Name).ToList();
+            if (classesWithoutHomeroomTeacher.Any())
+            {
+                errorDictionary["Lớp học"].Add($"Lớp {string.Join(", ", classesWithoutHomeroomTeacher)} chưa có giáo viên chủ nhiệm.");
+            }
+
             // Kiểm tra năm học và kỳ học
-           
+
             if (schoolYear == null)
             {
                 errorDictionary["Năm học"].Add("Năm học không tồn tại hoặc đã bị xóa.");
@@ -199,7 +206,7 @@ namespace SchedulifySystem.Service.Services.Implements
             );
             var homeroomTeachers = classes.ToDictionary(
                 sclass => sclass.Id,
-                sclass => sclass.HomeroomTeacherId);
+                sclass => (int)sclass.HomeroomTeacherId);
 
             var terms = schoolYear.Terms.Where(t => !t.IsDeleted);
             var assignmentFirsts = assignmentsDb.Where(a => a.TermId == terms.First().Id).ToList();
