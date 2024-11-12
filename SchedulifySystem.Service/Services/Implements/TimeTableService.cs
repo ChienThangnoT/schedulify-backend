@@ -140,7 +140,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (timetableIdBacklog == best.Id)
                 {
                     backlogCount++;
-                    if (backlogCount > 500)
+                    if (backlogCount > 100)
                     {
                         timetablePopulation = CreateInitialPopulation(root, parameters);
                         backlogCountMax = backlogCount;
@@ -358,7 +358,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     // tìm phân công giáo viên cho môn học
                     var assignment = assignmentsDbList.FirstOrDefault(a =>
-                        a.SubjectId == subjectClass.SubjectId);
+                        a.SubjectId == subjectClass.SubjectId && a.StudentClassId == classesDbList[i].Id);
 
                     // kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
                     if (assignment == null)
@@ -1292,73 +1292,81 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private static int CheckHC11(TimetableIndividual src, GenerateTimetableModel parameters)
         {
-            var count = 0;
+            int count = 0;
 
+            // Duyệt qua từng lớp trong danh sách
             foreach (var classObj in src.Classes)
             {
-                var mainSession = (MainSession)classObj.MainSession;
-
+                // Lấy các tiết học của lớp, sắp xếp theo thời gian
                 var classTimetableUnits = src.TimetableUnits
-                    .Where(u => u.ClassId == classObj.Id && u.Session == mainSession)
+                    .Where(u => u.ClassId == classObj.Id)
                     .OrderBy(u => u.StartAt)
                     .ToList();
 
-                var providedLessons = classTimetableUnits.Select(u => u.StartAt).ToList();
+                // Chỉ kiểm tra buổi chính khóa (dựa trên MainSession)
+                MainSession mainSession = (MainSession)classObj.MainSession;
 
-                var startSlot = mainSession == MainSession.Morning ? 1 : 6;
-
-                for (var i = 0; i < 6; i++)
+                for (int day = 0; day < 6; day++) // Duyệt qua các ngày trong tuần (Thứ 2 - Thứ 7)
                 {
-                    var startAts = providedLessons.Where(p => p >= startSlot && p < startSlot + 5);
-                    if (startAts.Count() == 5)
+                    int startSlot, endSlot;
+
+                    // Xác định tiết bắt đầu và kết thúc dựa trên buổi chính khóa
+                    if (mainSession == MainSession.Morning)
                     {
-                        startSlot += 10;
-                        continue;
-                    };
-
-                    var slotInDate = Enumerable.Range(startSlot, 5).ToList();
-                    var freeSlots = slotInDate.Where(s => !startAts.Contains(s)).ToList();
-
-                    var isFreeTimeNone = parameters.FreeTimetablePeriods
-                        .Any(freePeriod => freePeriod.ClassId == classObj.Id && freeSlots.Contains(freePeriod.StartAt));
-
-                    if (isFreeTimeNone)
+                        startSlot = day * 10 + 1; // Tiết đầu tiên của buổi sáng
+                        endSlot = startSlot + 4;  // Tiết cuối cùng của buổi sáng (Tiết 5)
+                    }
+                    else // Nếu buổi chính khóa là buổi chiều
                     {
-                        continue;
+                        startSlot = day * 10 + 6; // Tiết đầu tiên của buổi chiều
+                        endSlot = startSlot + 4;  // Tiết cuối cùng của buổi chiều (Tiết 10)
                     }
 
-                    // kiểm tra nếu các tiết trống không nằm ở cuối buổi hoặc không hợp lệ
-                    var lastSlots = slotInDate.TakeLast(freeSlots.Count).ToList();
+                    // Lấy các tiết học trong khoảng thời gian của buổi chính khóa
+                    var lessonsInSession = classTimetableUnits
+                        .Where(u => u.StartAt >= startSlot && u.StartAt <= endSlot)
+                        .Select(u => u.StartAt)
+                        .OrderBy(u => u)
+                        .ToList();
 
-                    // nếu tiết lủng k nằm ở cuối 
-                    if (!freeSlots.All(lastSlots.Contains))
+                    // Nếu không có tiết nào trong buổi chính khóa thì bỏ qua
+                    if (!lessonsInSession.Any()) continue;
+
+                    // Tạo danh sách tất cả các tiết trong buổi chính khóa
+                    var allSlotsInSession = Enumerable.Range(startSlot, 5).ToList();
+
+                    // Tìm các tiết trống (các tiết không có trong lessonsInSession)
+                    var freeSlots = allSlotsInSession.Except(lessonsInSession).ToList();
+
+                    // Nếu có tiết trống, kiểm tra xem các tiết đó có nằm ở cuối buổi chính khóa không
+                    if (freeSlots.Any())
                     {
-                        foreach (var slot in freeSlots)
+                        // Lấy các tiết cuối cùng trong buổi chính khóa, tương ứng với số lượng tiết trống
+                        var lastSlots = allSlotsInSession.TakeLast(freeSlots.Count).ToList();
+
+                        // Nếu các tiết trống không nằm ở cuối buổi chính khóa
+                        if (!freeSlots.SequenceEqual(lastSlots))
                         {
-                            var (day, periodNumber) = GetDayAndPeriod(slot);
-
-                            var errorMessage =
-                                $"Lớp {classObj.Name}: " +
-                                $"Có tiết lủng giữa buổi " +
-                                $"vào thứ {day}, tiết {periodNumber}.";
-
-                            var error = new ConstraintErrorModel()
+                            foreach (var slot in freeSlots)
                             {
-                                Code = "HC11",
-                                ClassName = classObj.Name,
-                                Description = errorMessage
-                            };
+                                var (dayOfWeek, period) = GetDayAndPeriod(slot);
 
-                            src.ConstraintErrors.Add(error);
-                            count++;
+                                // Thêm lỗi cho từng tiết lủng giữa buổi chính khóa
+                                var errorMessage = $"Lớp {classObj.Name}: Có tiết lủng giữa buổi chính khóa vào thứ {dayOfWeek}, tiết {period}.";
+                                var error = new ConstraintErrorModel()
+                                {
+                                    Code = "HC11",
+                                    ClassName = classObj.Name,
+                                    Description = errorMessage
+                                };
+                                src.ConstraintErrors.Add(error);
+                                count++;
+                            }
                         }
                     }
-                    // check ngày tiếp 
-                    startSlot += 10;
                 }
-
-
             }
+
             return count;
         }
 
