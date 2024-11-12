@@ -53,7 +53,7 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _subjectGroupService.DeleteSubjectGroup(id));
         }
 
-        [HttpPut]
+        [HttpPatch("quick-assign-period")]
         [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> QuickAssignPeriod(int schoolId, int yearId, QuickAssignPeriodModel model)
         {

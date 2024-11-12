@@ -11,6 +11,5 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
     {
         public List <SubjectAssignmentConfig> SubjectAssignmentConfigs { get; set; }
         public List<int> SubjectGroupApplyIds { get; set; }
-        public int SlotSpecialized {  get; set; }
     }
 }

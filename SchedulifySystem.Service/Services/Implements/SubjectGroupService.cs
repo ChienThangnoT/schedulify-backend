@@ -625,22 +625,9 @@ namespace SchedulifySystem.Service.Services.Implements
         #region QuickAssignPeriod
         public async Task<BaseResponseModel> QuickAssignPeriod(int schoolId, int schoolYearId, QuickAssignPeriodModel model)
         {
-            // check valid total slot in year
-            var invalidTotalSlotInYear = model.SubjectAssignmentConfigs.Select(s =>
-            s.TotalSlotInYear % 35 != 0 && (s.TotalSlotInYear % 35) % 17 != 0 && (s.TotalSlotInYear % 35) % 18 != 0);
-
-            if (invalidTotalSlotInYear.Any())
-            {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = "Subject total  slot in year is not correct!",
-                    Result = invalidTotalSlotInYear
-                };
-            }
 
             // check valid subject assignment config
-            var invalidSubjects = model.SubjectAssignmentConfigs.Select(s => !s.CheckValid());
+            var invalidSubjects = model.SubjectAssignmentConfigs.Where(s => !s.CheckValid());
             if (invalidSubjects.Any())
             {
                 return new BaseResponseModel()
@@ -653,8 +640,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
             var subjectGroupDbs = await _unitOfWork.SubjectGroupRepo.GetV2Async(
-                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted && model.SubjectGroupApplyIds.Contains(sg.Id),
+                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted &&
+                model.SubjectGroupApplyIds.Contains(sg.Id) && sg.SchoolYearId == schoolYearId,
                 include: query => query.Include(sg => sg.SubjectInGroups));
+
+            var subjectDbs = await _unitOfWork.SubjectRepo.GetV2Async(
+                filter: s => !s.IsDeleted);
 
             // check valid subject group id
             var invalidSubjectGroupIds = model.SubjectGroupApplyIds.Where(i => !subjectGroupDbs.Select(s => s.Id).Contains(i));
@@ -673,30 +664,29 @@ namespace SchedulifySystem.Service.Services.Implements
             var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.SubjectInGroups);
             foreach (var subjectAssignment in model.SubjectAssignmentConfigs)
             {
-                var slotPerWeekInYear = subjectAssignment.TotalSlotInYear / 35;
-                var remainder = subjectAssignment.TotalSlotInYear / 35;
-                var extraSlotHK1 = 0;
-                var extraSlotHK2 = 0;
-                if (remainder != 0)
+                var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.SubjectId && 
+                sig.TermId == subjectAssignment.TermId);
+
+                foreach (var sig in filtered)
                 {
-                    if(remainder % 18 == 0)
-                    {
-                        extraSlotHK1 = remainder / 18;
-                    }
-                    else
-                    {
-                        extraSlotHK2 = remainder / 17;
-                    }
+                    var extraSlots = sig.IsSpecialized ? subjectDbs.First(s => s.Id == sig.SubjectId).SlotSpecialized / 35 : 0;
+                    sig.MainSlotPerWeek = subjectAssignment.MainSlotPerWeek + (int)extraSlots;
+                    sig.SubSlotPerWeek = subjectAssignment.SubSlotPerWeek;
+                    sig.MainMinimumCouple = subjectAssignment.MainMinimumCouple;
+                    sig.SubMinimumCouple = subjectAssignment.SubMinimumCouple;
+                    sig.SlotPerTerm = subjectAssignment.SlotPerTerm;
+                    sig.IsDoublePeriod = subjectAssignment.IsDoublePeriod;
+                    _unitOfWork.SubjectInGroupRepo.Update(sig);
                 }
 
-                var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.Id);
-                
-                foreach (var subjectGroup in filtered)
-                {
-                    var extraSlots = subjectGroup.IsSpecialized ? model.SlotSpecialized : 0;
-                    
-                }
             }
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Quick assign success!"
+            };
+
         }
         #endregion
     }
