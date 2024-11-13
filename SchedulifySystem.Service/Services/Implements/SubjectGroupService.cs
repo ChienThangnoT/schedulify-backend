@@ -664,7 +664,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.SubjectInGroups);
             foreach (var subjectAssignment in model.SubjectAssignmentConfigs)
             {
-                var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.SubjectId && 
+                var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.SubjectId &&
                 sig.TermId == subjectAssignment.TermId);
 
                 foreach (var sig in filtered)
@@ -685,6 +685,55 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 Status = StatusCodes.Status200OK,
                 Message = "Quick assign success!"
+            };
+
+        }
+
+        public async Task<BaseResponseModel> GetQuickAssignPeriodData(int schoolId, int schoolYearId)
+        {
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ??
+                throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+
+            var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: sy => !sy.IsDeleted,
+                include: query => query.Include(sy => sy.Terms)) ??
+                throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+
+            var data = new List<SubjectAssignmentConfig>();
+
+            var subjects = await _unitOfWork.SubjectRepo.GetV2Async(filter: s => !s.IsDeleted);
+
+            foreach (var subject in subjects)
+            {
+                var termRange = 17;
+                var slotPerWeek = subject.TotalSlotInYear / 35;
+                var remainder = subject.TotalSlotInYear % 35;
+                foreach (var term in schoolYear.Terms.Where(s => !s.IsDeleted).OrderBy(t => t.Id))
+                {
+                    var extraSlotInTerm = remainder > 0 ? remainder / termRange : 0;
+
+                    data.Add(new SubjectAssignmentConfig()
+                    {
+                        SubjectId = subject.Id,
+                        SubjectName = subject.SubjectName ?? "",
+                        SubjectAbbreviation = subject.Abbreviation ?? "",
+                        IsDoublePeriod = false,
+                        MainMinimumCouple = 0,
+                        SubMinimumCouple = 0,
+                        MainSlotPerWeek = (int)(slotPerWeek + extraSlotInTerm),
+                        SubSlotPerWeek = 0,
+                        SlotPerTerm = (int)(slotPerWeek + extraSlotInTerm) * termRange,
+                        TermId = term.Id,
+                        TermName = term.Name ?? ""
+                    });
+                    termRange++;
+                }
+            }
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Lấy data mẫu thành công!",
+                Result = data.OrderBy(d => d.SubjectName)
             };
 
         }

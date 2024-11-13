@@ -17,7 +17,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> UpdateSubjectGroup(int subjectGroupId, SubjectGroupUpdateModel subjectGroupUpdateModel);
         Task<BaseResponseModel> DeleteSubjectGroup(int subjectGroupId);
         Task<BaseResponseModel> QuickAssignPeriod(int schoolId, int schoolYearId, QuickAssignPeriodModel model);
-
+        Task<BaseResponseModel> GetQuickAssignPeriodData(int schoolId, int schoolYearId);
 
     }
 }

@@ -52,15 +52,47 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 
         public void GetConstraintErrors()
         {
-            if (TimetableUnits.Count == 0)
+            if (TimetableUnits == null || TimetableUnits.Count == 0)
                 return;
-            // lấy ra các vi phạm ràng buộc  
-            foreach (var u in TimetableUnits)
-                ConstraintErrors.AddRange(u.ConstraintErrors);
-            // cập nhật constraint error , những lỗi giống nhau thì gộp , và order theo age
-            ConstraintErrors = [.. ConstraintErrors
-                .DistinctBy(x => new { x.SubjectName, x.TeacherName, x.ClassName, x.Code })
-                .OrderBy(x => x.Age)];
+
+            // Khởi tạo hoặc làm trống `ConstraintErrors` nếu cần thiết
+            if (ConstraintErrors == null)
+            {
+                ConstraintErrors = new List<ConstraintErrorModel>();
+            }
+            else
+            {
+                ConstraintErrors.Clear();
+            }
+
+            foreach (var unit in TimetableUnits)
+            {
+                if (unit != null && unit.ConstraintErrors != null && unit.ConstraintErrors.Count > 0)
+                {
+                    // Tạo một bản sao của danh sách `ConstraintErrors` để tránh thay đổi trong khi lặp
+                    var errorsCopy = unit.ConstraintErrors.ToArray(); // Dùng `ToArray()` thay vì `ToList()` để tạo bản sao an toàn
+
+                    foreach (var error in errorsCopy)
+                    {
+                        if (error != null)
+                        {
+                            // Kiểm tra nếu lỗi đã tồn tại trước khi thêm vào `ConstraintErrors`
+                            if (!ConstraintErrors.Any(existingError =>
+                                existingError.SubjectName == error.SubjectName &&
+                                existingError.TeacherName == error.TeacherName &&
+                                existingError.ClassName == error.ClassName &&
+                                existingError.Code == error.Code))
+                            {
+                                ConstraintErrors.Add(error);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sắp xếp `ConstraintErrors` sau khi hoàn tất
+            ConstraintErrors = ConstraintErrors.OrderBy(e => e.Age).ToList();
         }
+
     }
 }
