@@ -81,30 +81,52 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
             {
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.First().Adaptability < 1000 && step > 50)
+                if (timetablePopulation.First().Adaptability < 1000 && step > 0)
                     break;
 
                 // lai tạo
                 /* Tournament */
-                var timetableChildren = new List<TimetableIndividual>();
+                //var timetableChildren = new List<TimetableIndividual>();
                 var tournamentList = new List<TimetableIndividual>();
 
                 //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
                 for (var i = 0; i < timetablePopulation.Count; i++)
                     tournamentList.Add(timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First());
 
+                //var timetableChildren = new List<TimetableIndividual>();
+                //var tournamentList = new List<TimetableIndividual>();
+
+                ////chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
+                //Parallel.For(0, timetablePopulation.Count, i =>
+                //{
+                //    var selectedIndividual = timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First();
+                //    lock (tournamentList)
+                //    {
+                //        tournamentList.Add(selectedIndividual);
+                //    }
+                //});
+
+
+                var crossoverTasks = new List<Task<List<TimetableIndividual>>>();
+
                 for (var k = 0; k < tournamentList.Count - 1; k += 2)
                 {
                     var parent1 = tournamentList[k];
                     var parent2 = tournamentList[k + 1];
-                    // lai
-                    var children = Crossover(root, [parent1, parent2], parameters);
-                    foreach (var child in children)
-                    {
-                        child.Id = currentId++;
-                    }
-                    timetableChildren.AddRange(children);
+
+                    // Chạy phép lai (crossover) không đồng bộ bằng Task
+                    crossoverTasks.Add(Task.Run(() => Crossover(root, [parent1, parent2], parameters)));
                 }
+
+                // Đợi tất cả các Task hoàn thành và gộp tất cả các kết quả
+                var timetableChildren = (await Task.WhenAll(crossoverTasks)).SelectMany(c => c).ToList();
+
+                // Đặt ID cho từng child
+                foreach (var child in timetableChildren)
+                {
+                    child.Id = currentId++;
+                }
+
 
                 // Chọn lọc
                 timetablePopulation.AddRange(timetableChildren);
@@ -140,7 +162,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (timetableIdBacklog == best.Id)
                 {
                     backlogCount++;
-                    if (backlogCount > 110)
+                    if (backlogCount > 100)
                     {
                         timetablePopulation = CreateInitialPopulation(root, parameters);
                         backlogCountMax = backlogCount;
@@ -715,30 +737,30 @@ namespace SchedulifySystem.Service.Services.Implements
                 // rải các tiết đơn còn lại 
                 var morningPeriods = src.TimetableUnits
                    .Where(u => u.ClassId == src.Classes[i].Id && u.StartAt == 0 && u.Session == MainSession.Morning)
-                   .Shuffle()
-                   .ToList();
+                    .Shuffle()
+                    .ToList();
                 var afternoonPeriods = src.TimetableUnits
                    .Where(u => u.ClassId == src.Classes[i].Id && u.StartAt == 0 && u.Session == MainSession.Afternoon)
-                   .Shuffle()
-                   .ToList();
+                    .Shuffle()
+                    .ToList();
 
                 if (morningStartAts.Count < morningPeriods.Count)
                     throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
                 if (afternoonStartAts.Count < afternoonPeriods.Count)
                     throw new DefaultException("Số lượng tiết trống buổi chiều trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // dải ngẫu nhiên assignment vào các tiết 
                 for (var j = 0; j < morningPeriods.Count; j++)
-                {
-                    var randIndex = new Random().Next(morningStartAts.Count);
+                    {
+                        var randIndex = new Random().Next(morningStartAts.Count);
                     morningPeriods[j].StartAt = morningStartAts[randIndex];
-                    morningStartAts.RemoveAt(randIndex);
-                }
+                        morningStartAts.RemoveAt(randIndex);
+                    }
 
                 for (var j = 0; j < afternoonPeriods.Count; j++)
                 {
-                    var randIndex = new Random().Next(afternoonStartAts.Count);
+                        var randIndex = new Random().Next(afternoonStartAts.Count);
                     afternoonPeriods[j].StartAt = afternoonStartAts[randIndex];
-                    afternoonStartAts.RemoveAt(randIndex);
-                }
+                        afternoonStartAts.RemoveAt(randIndex);
+                    }
 
             }
         }
@@ -747,35 +769,38 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             for (var j = 0; j < periods.Count && consecs.Count > 0; j += 2)
             {
-                // Chọn một cặp liên tiếp ngẫu nhiên từ danh sách `consecs`
-                if (consecs.Count == 0) break; // Nếu danh sách trống, thoát khỏi vòng lặp
+                // Kiểm tra nếu số lượng cặp còn lại ít hơn số tiết cần phân công
+                if (consecs.Count == 0)
+                {
+                    throw new DefaultException("Không đủ cặp tiết liên tiếp để phân công.");
+                }
 
                 // Lấy một chỉ số ngẫu nhiên trong phạm vi của danh sách `consecs`
                 var randConsecIndex = new Random().Next(consecs.Count);
 
-                // Đảm bảo chỉ số không nằm ngoài phạm vi
+                // Kiểm tra chỉ số hợp lệ trước khi truy cập
                 if (randConsecIndex >= 0 && randConsecIndex < consecs.Count)
                 {
-                    // Gán giá trị cho các tiết liên tiếp
+                    // Gán các tiết liên tiếp cho các phân công
                     periods[j].StartAt = consecs[randConsecIndex].Item1;
 
-                    // Kiểm tra điều kiện để tránh truy cập ngoài phạm vi của `periods`
+                    // Kiểm tra nếu còn cặp tiết tiếp theo để gán
                     if (j + 1 < periods.Count)
                     {
                         periods[j + 1].StartAt = consecs[randConsecIndex].Item2;
                     }
 
-                    // Cập nhật trạng thái của các tiết trong TimetableFlag
+                    // Cập nhật trạng thái của các tiết trong `TimetableFlag`
                     src.TimetableFlag[i, periods[j].StartAt] = ETimetableFlag.Filled;
                     if (j + 1 < periods.Count)
                     {
                         src.TimetableFlag[i, periods[j + 1].StartAt] = ETimetableFlag.Filled;
                     }
 
-                    // Loại bỏ cặp đã sử dụng khỏi `consecs`
+                    // Loại bỏ cặp tiết đã sử dụng khỏi `consecs`
                     consecs.RemoveAt(randConsecIndex);
 
-                    // Loại bỏ các startAts đã sử dụng
+                    // Loại bỏ các `startAts` đã sử dụng
                     startAts.Remove(periods[j].StartAt);
                     if (j + 1 < periods.Count)
                     {
@@ -784,6 +809,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
         }
+
+
 
 
         #endregion
@@ -804,11 +831,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 CheckHC01(src, parameters) * 10000
                 + CheckHC02(src) * 1000
                 + CheckHC03(src, parameters) * 1000
-                + CheckHC05(src) * 10000
+                + CheckHC05(src) * 5000
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
-                + CheckHC11(src, parameters) * 10000;
+                + CheckHC11(src, parameters) * 100000;
 
 
 
@@ -1331,57 +1358,62 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private static int CheckHC11(TimetableIndividual src, GenerateTimetableModel parameters)
         {
-            var count = 0;
+            int errorCount = 0;
 
             foreach (var classObj in src.Classes)
             {
                 var mainSession = (MainSession)classObj.MainSession;
 
+                // Lấy danh sách các tiết của lớp hiện tại trong buổi chính (sáng hoặc chiều)
                 var classTimetableUnits = src.TimetableUnits
                     .Where(u => u.ClassId == classObj.Id && u.Session == mainSession)
                     .OrderBy(u => u.StartAt)
                     .ToList();
 
                 var providedLessons = classTimetableUnits.Select(u => u.StartAt).ToList();
-
                 var startSlot = mainSession == MainSession.Morning ? 1 : 6;
 
+                // Duyệt qua từng buổi (sáng hoặc chiều)
                 for (var i = 0; i < 6; i++)
                 {
-                    var startAts = providedLessons.Where(p => p >= startSlot && p < startSlot + 5);
-                    if (startAts.Count() == 5)
+                    // Lấy các tiết đã được phân bổ trong khoảng từ startSlot đến startSlot + 4
+                    var startAts = providedLessons.Where(p => p >= startSlot && p < startSlot + 5).ToList();
+
+                    // Nếu đã đủ 5 tiết liên tục, chuyển sang ngày tiếp theo
+                    if (startAts.Count == 5)
                     {
                         startSlot += 10;
                         continue;
-                    };
+                    }
 
                     var slotInDate = Enumerable.Range(startSlot, 5).ToList();
                     var freeSlots = slotInDate.Where(s => !startAts.Contains(s)).ToList();
 
+                    // Kiểm tra các tiết trống có nằm trong khoảng thời gian rảnh hay không
                     var isFreeTimeNone = parameters.FreeTimetablePeriods
                         .Any(freePeriod => freePeriod.ClassId == classObj.Id && freeSlots.Contains(freePeriod.StartAt));
 
                     if (isFreeTimeNone)
                     {
+                        startSlot += 10;
                         continue;
                     }
 
-                    // kiểm tra nếu các tiết trống không nằm ở cuối buổi hoặc không hợp lệ
+                    // Kiểm tra nếu các tiết trống không nằm ở cuối buổi hoặc không hợp lệ
                     var lastSlots = slotInDate.TakeLast(freeSlots.Count).ToList();
 
-                    // nếu tiết lủng k nằm ở cuối 
                     if (!freeSlots.All(lastSlots.Contains))
                     {
+                        // Nếu có tiết lủng không nằm ở cuối buổi, thêm lỗi và tăng điểm lỗi
                         foreach (var slot in freeSlots)
                         {
                             var (day, periodNumber) = GetDayAndPeriod(slot);
 
                             var errorMessage =
-                                $"Lớp {classObj.Name}: " +
-                                $"Có tiết lủng giữa buổi " +
-                                $"vào thứ {day}, tiết {periodNumber}.";
+                                $"Lớp {classObj.Name}: Có tiết lủng giữa buổi vào thứ {day}, tiết {periodNumber}.";
 
-                            var error = new ConstraintErrorModel()
+                            // Tạo và thêm lỗi vào danh sách
+                            var error = new ConstraintErrorModel
                             {
                                 Code = "HC11",
                                 ClassName = classObj.Name,
@@ -1389,17 +1421,19 @@ namespace SchedulifySystem.Service.Services.Implements
                             };
 
                             src.ConstraintErrors.Add(error);
-                            count++;
+                            errorCount++;
                         }
                     }
-                    // check ngày tiếp 
+
+                    // Chuyển sang buổi tiếp theo
                     startSlot += 10;
                 }
-
-
             }
-            return count;
+
+            // Trả về số lượng lỗi phát hiện được
+            return errorCount;
         }
+
 
 
         #endregion
@@ -1765,7 +1799,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 //EChromosomeType.ClassChromosome: Đây là loại nhiễm sắc thể đại diện cho dữ liệu cần lai tạo.
                 //Ở đây, nó có thể đại diện cho cấu trúc của thời khóa biểu (thời gian học của các lớp, giáo viên, v.v.).
                 case ECrossoverMethod.SinglePoint:
-                    SinglePointCrossover(parents, children, EChromosomeType.ClassChromosome);
+                    //SinglePointCrossover(parents, children, EChromosomeType.ClassChromosome);
+                    TwoPointCrossover(parents, children);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -1786,6 +1821,41 @@ namespace SchedulifySystem.Service.Services.Implements
             return [children[0], children[1]];
         }
         #endregion
+
+        private List<TimetableIndividual> TwoPointCrossover(
+    List<TimetableIndividual> parents,
+    List<TimetableIndividual> children)
+        {
+            int length = parents[0].TimetableUnits.Count;
+
+            // Chọn hai điểm cắt ngẫu nhiên
+            int point1 = _random.Next(0, length / 2);
+            int point2 = _random.Next(length / 2, length);
+
+            for (var i = 0; i < length; i++)
+            {
+                if (i >= point1 && i <= point2)
+                {
+                    // Trao đổi dữ liệu giữa cha mẹ
+                    children[0].TimetableUnits[i].StartAt = parents[1].TimetableUnits[i].StartAt;
+                    children[0].TimetableUnits[i].Priority = parents[1].TimetableUnits[i].Priority;
+
+                    children[1].TimetableUnits[i].StartAt = parents[0].TimetableUnits[i].StartAt;
+                    children[1].TimetableUnits[i].Priority = parents[0].TimetableUnits[i].Priority;
+                }
+                else
+                {
+                    children[0].TimetableUnits[i].StartAt = parents[0].TimetableUnits[i].StartAt;
+                    children[0].TimetableUnits[i].Priority = parents[0].TimetableUnits[i].Priority;
+
+                    children[1].TimetableUnits[i].StartAt = parents[1].TimetableUnits[i].StartAt;
+                    children[1].TimetableUnits[i].Priority = parents[1].TimetableUnits[i].Priority;
+                }
+            }
+
+            return children;
+        }
+
 
         #region SinglePointCrossover
         /*
