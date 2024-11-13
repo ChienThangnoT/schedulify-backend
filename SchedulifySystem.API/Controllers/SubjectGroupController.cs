@@ -59,5 +59,12 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _subjectGroupService.QuickAssignPeriod(schoolId, yearId, model));
         }
+
+        [HttpGet("quick-assign-period-data")]
+        public Task<IActionResult> GetQuickAssignPeriodData(int schoolId, int yearId)
+        {
+            return ValidateAndExecute(() => _subjectGroupService.GetQuickAssignPeriodData(schoolId, yearId));
+
+        }
     }
 }
