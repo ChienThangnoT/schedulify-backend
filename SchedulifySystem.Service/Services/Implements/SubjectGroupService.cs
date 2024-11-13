@@ -621,5 +621,73 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_SUBJECT_GROUP_SUCCESS };
         }
         #endregion
+
+        #region QuickAssignPeriod
+        public async Task<BaseResponseModel> QuickAssignPeriod(int schoolId, int schoolYearId, QuickAssignPeriodModel model)
+        {
+
+            // check valid subject assignment config
+            var invalidSubjects = model.SubjectAssignmentConfigs.Where(s => !s.CheckValid());
+            if (invalidSubjects.Any())
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Subject config is not correct!",
+                    Result = invalidSubjects
+                };
+            }
+
+
+            var subjectGroupDbs = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted &&
+                model.SubjectGroupApplyIds.Contains(sg.Id) && sg.SchoolYearId == schoolYearId,
+                include: query => query.Include(sg => sg.SubjectInGroups));
+
+            var subjectDbs = await _unitOfWork.SubjectRepo.GetV2Async(
+                filter: s => !s.IsDeleted);
+
+            // check valid subject group id
+            var invalidSubjectGroupIds = model.SubjectGroupApplyIds.Where(i => !subjectGroupDbs.Select(s => s.Id).Contains(i));
+
+            if (invalidSubjectGroupIds.Any())
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.SUBJECT_GROUP_NOT_EXISTED,
+                    Result = invalidSubjects
+                };
+            }
+
+            // insert data
+            var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.SubjectInGroups);
+            foreach (var subjectAssignment in model.SubjectAssignmentConfigs)
+            {
+                var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.SubjectId && 
+                sig.TermId == subjectAssignment.TermId);
+
+                foreach (var sig in filtered)
+                {
+                    var extraSlots = sig.IsSpecialized ? subjectDbs.First(s => s.Id == sig.SubjectId).SlotSpecialized / 35 : 0;
+                    sig.MainSlotPerWeek = subjectAssignment.MainSlotPerWeek + (int)extraSlots;
+                    sig.SubSlotPerWeek = subjectAssignment.SubSlotPerWeek;
+                    sig.MainMinimumCouple = subjectAssignment.MainMinimumCouple;
+                    sig.SubMinimumCouple = subjectAssignment.SubMinimumCouple;
+                    sig.SlotPerTerm = subjectAssignment.SlotPerTerm;
+                    sig.IsDoublePeriod = subjectAssignment.IsDoublePeriod;
+                    _unitOfWork.SubjectInGroupRepo.Update(sig);
+                }
+
+            }
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Quick assign success!"
+            };
+
+        }
+        #endregion
     }
 }

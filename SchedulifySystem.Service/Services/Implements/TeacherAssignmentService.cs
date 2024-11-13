@@ -127,7 +127,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     if (!teachableSubjects.Contains(sia))
                     {
-                        errorDictionary["Môn học"].Add($"Chưa có giáo viên nào được phân công dạy môn {assignmentsDb.First(a => a.SubjectId == sia).Subject.SubjectName}");
+                        errorDictionary["Giáo viên"].Add($"Môn học {assignmentsDb.First(a => a.SubjectId == sia).Subject.SubjectName} chưa có giáo viên nào đảm nhiệm.");
                     }
                 }
             }
