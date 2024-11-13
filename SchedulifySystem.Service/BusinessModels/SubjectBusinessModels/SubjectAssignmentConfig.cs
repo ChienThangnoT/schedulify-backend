@@ -10,6 +10,8 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
     public class SubjectAssignmentConfig
     {
         public int SubjectId { get; set; }
+        public string SubjectName { get; set; } = string.Empty;
+        public string SubjectAbbreviation { get; set; } = string.Empty;
         public int MainSlotPerWeek { get; set; }
         public int SubSlotPerWeek { get; set; }
         public int SlotPerTerm { get; set; }
@@ -17,11 +19,12 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int MainMinimumCouple { get; set; }
         public int SubMinimumCouple { get; set; }
         public int TermId { get; set; }
+        public string TermName { get; set; } = string.Empty;
 
         public bool CheckValid()
         {
-            return  (IsDoublePeriod && MainMinimumCouple > 0 && MainSlotPerWeek > 0 && MainSlotPerWeek / 2 >= MainMinimumCouple) ||
-                    (IsDoublePeriod && SubMinimumCouple > 0 && SubSlotPerWeek > 0 && SubSlotPerWeek / 2 >= SubMinimumCouple) || 
+            return (IsDoublePeriod && MainMinimumCouple > 0 && MainSlotPerWeek > 0 && MainSlotPerWeek / 2 >= MainMinimumCouple) ||
+                    (IsDoublePeriod && SubMinimumCouple > 0 && SubSlotPerWeek > 0 && SubSlotPerWeek / 2 >= SubMinimumCouple) ||
                     (!IsDoublePeriod && (MainSlotPerWeek > 0 || SubSlotPerWeek > 0) && MainMinimumCouple == 0 && SubMinimumCouple == 0);
         }
     }
