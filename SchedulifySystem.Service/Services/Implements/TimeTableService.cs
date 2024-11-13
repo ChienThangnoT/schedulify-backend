@@ -140,7 +140,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (timetableIdBacklog == best.Id)
                 {
                     backlogCount++;
-                    if (backlogCount > 500)
+                    if (backlogCount > 110)
                     {
                         timetablePopulation = CreateInitialPopulation(root, parameters);
                         backlogCountMax = backlogCount;
@@ -358,7 +358,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     // tìm phân công giáo viên cho môn học
                     var assignment = assignmentsDbList.FirstOrDefault(a =>
-                        a.SubjectId == subjectClass.SubjectId);
+                        a.SubjectId == subjectClass.SubjectId && a.StudentClassId == classesDbList[i].Id);
 
                     // kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
                     if (assignment == null)
@@ -367,11 +367,11 @@ namespace SchedulifySystem.Service.Services.Implements
                         throw new DefaultException($"Lớp {classesDbList[i].Name} chưa được phân công môn {subjectName}.");
                     }
 
-                    // kiểm tra số tiết học có khớp với yêu cầu không
-                    if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
-                    {
-                        throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
-                    }
+                    //// kiểm tra số tiết học có khớp với yêu cầu không
+                    //if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
+                    //{
+                    //    throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                    //}
 
                     // kiểm tra xem giáo viên có được phân công không
                     if (assignment.TeacherId == null || assignment.TeacherId == 0)
@@ -401,7 +401,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
                 }
-                foreach(var f in founded)
+                foreach (var f in founded)
                 {
                     var period = new ClassPeriodScheduleModel(f);
                     period.StartAt = fixedPeriod.StartAt;
@@ -560,7 +560,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //lấy ra ds tiết học của lớp đó trong timetableUnits
                 var classTimetableUnits = timetableUnits.Where(u => u.ClassId == classes[i].Id).ToList();
                 var mainSession = classes[i].MainSession;
-                var doubleSubjects = subjectByGroup[classes[i].SubjectGroupId];
+                var doubleSubjects = subjectByGroup.ContainsKey(classes[i].SubjectGroupId) ? subjectByGroup[classes[i].SubjectGroupId] : [];
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
                     //lấy ra ds tiết học đôi  theo chính khóa 
@@ -665,7 +665,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 // rãi các tiết đôi vàoo các slot liên tiếp
                 var fClass = src.Classes[i];
                 var mainSession = fClass.MainSession;
-                var doubleSubjects = src.DoubleSubjectsByGroup[fClass.SubjectGroupId];
+                var doubleSubjects = src.DoubleSubjectsByGroup.ContainsKey(fClass.SubjectGroupId) ? src.DoubleSubjectsByGroup[fClass.SubjectGroupId] : [];
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
                     var mainNumPeriod = doubleSubjects[j].MainMinimumCouple;
@@ -725,7 +725,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (morningStartAts.Count < morningPeriods.Count)
                     throw new DefaultException("Số lượng tiết trống buổi sáng trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // số lượng tiết khả dụng không đủ chỗ để xếp tiết học 
                 if (afternoonStartAts.Count < afternoonPeriods.Count)
-                    throw new DefaultException("Số lượng tiết trống buổi chiều trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!");                                                                       // dải ngẫu nhiên assignment vào các tiết 
+                    throw new DefaultException("Số lượng tiết trống buổi chiều trong tuần không đủ xếp tiết học! tối đa 30 tiết / buổi / tuần (bao gồm cả tiết không xếp và tiết xếp sẵn)!"); // dải ngẫu nhiên assignment vào các tiết 
                 for (var j = 0; j < morningPeriods.Count; j++)
                 {
                     var randIndex = new Random().Next(morningStartAts.Count);
@@ -745,29 +745,46 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private void RandomConsec(List<(int, int)> consecs, List<int> startAts, int i, List<ClassPeriodScheduleModel> periods, TimetableIndividual src)
         {
-            for (var j = 0; j < periods.Count && consecs.Count>1; j++)
+            for (var j = 0; j < periods.Count && consecs.Count > 0; j += 2)
             {
-                if (j % 2 != 0) continue;
+                // Chọn một cặp liên tiếp ngẫu nhiên từ danh sách `consecs`
+                if (consecs.Count == 0) break; // Nếu danh sách trống, thoát khỏi vòng lặp
 
-                var randConsecIndex = consecs.IndexOf(consecs.Shuffle().First());// index của các cặp sau khi shuffle
+                // Lấy một chỉ số ngẫu nhiên trong phạm vi của danh sách `consecs`
+                var randConsecIndex = new Random().Next(consecs.Count);
+
+                // Đảm bảo chỉ số không nằm ngoài phạm vi
                 if (randConsecIndex >= 0 && randConsecIndex < consecs.Count)
                 {
+                    // Gán giá trị cho các tiết liên tiếp
                     periods[j].StartAt = consecs[randConsecIndex].Item1;
-                    periods[j + 1].StartAt = consecs[randConsecIndex].Item2;
-                    src.TimetableFlag[i, periods[j].StartAt] = ETimetableFlag.Filled;// update slot đó đã được filled
-                    src.TimetableFlag[i, periods[j + 1].StartAt] = ETimetableFlag.Filled;//update slot thứ 2 trong tiết đôi đã được filled
 
-                    if (randConsecIndex > 0 && randConsecIndex < consecs.Count - 1)
-                        consecs.RemoveRange(randConsecIndex - 1, 3);
-                    else if (randConsecIndex == consecs.Count - 1)
-                        consecs.RemoveRange(randConsecIndex - 1, 2);
-                    else
-                        consecs.RemoveRange(randConsecIndex, 2);
+                    // Kiểm tra điều kiện để tránh truy cập ngoài phạm vi của `periods`
+                    if (j + 1 < periods.Count)
+                    {
+                        periods[j + 1].StartAt = consecs[randConsecIndex].Item2;
+                    }
+
+                    // Cập nhật trạng thái của các tiết trong TimetableFlag
+                    src.TimetableFlag[i, periods[j].StartAt] = ETimetableFlag.Filled;
+                    if (j + 1 < periods.Count)
+                    {
+                        src.TimetableFlag[i, periods[j + 1].StartAt] = ETimetableFlag.Filled;
+                    }
+
+                    // Loại bỏ cặp đã sử dụng khỏi `consecs`
+                    consecs.RemoveAt(randConsecIndex);
+
+                    // Loại bỏ các startAts đã sử dụng
                     startAts.Remove(periods[j].StartAt);
-                    startAts.Remove(periods[j + 1].StartAt);
+                    if (j + 1 < periods.Count)
+                    {
+                        startAts.Remove(periods[j + 1].StartAt);
+                    }
                 }
             }
         }
+
 
         #endregion
 
@@ -792,7 +809,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
                 + CheckHC11(src, parameters) * 10000;
-                
+
 
 
             if (!isMinimized)
@@ -875,7 +892,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             .Where(u => u.StartAt == timetableUnits[j].StartAt)
                             .OrderBy(u => u.SubjectName)
                             .ToList();
-                        var (day, period) = GetDayAndPeriod(timetableUnits[j].StartAt);
+                        var (day, period) = GetDayAndPeriodString(timetableUnits[j].StartAt);
                         errorMessage =
                             $"Giáo viên {timetableUnits[j].TeacherAbbreviation}: " +
                             $"dạy môn {string.Join(", ", units.Select(u => u.SubjectName))} " +
@@ -949,6 +966,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 // lấy ra các tiết học của lớp đó 
                 var classTimetableUnits = src.TimetableUnits.Where(u => u.ClassId == sClass.Id).ToList();
 
+                // Kiểm tra xem có nhóm tiết đôi không trước khi duyệt qua từng môn học
+                if (!src.DoubleSubjectsByGroup.ContainsKey(sClass.SubjectGroupId))
+                {
+                    continue; // Nếu không có nhóm tiết đôi nào cho lớp này, tiếp tục sang lớp khác
+                }
+
                 // loop qua ds tiết đôi 
                 var doubleSubjects = src.DoubleSubjectsByGroup[sClass.SubjectGroupId];
                 for (var subjectIndex = 0; subjectIndex < doubleSubjects.Count; subjectIndex++)
@@ -959,28 +982,44 @@ namespace SchedulifySystem.Service.Services.Implements
                                     u.Priority == EPriority.Double)
                         .OrderBy(u => u.StartAt)
                         .ToList();
-                    // nếu k nằm kề nhau
-                    if (doublePeriodUnits[0].StartAt != doublePeriodUnits[1].StartAt - 1)
+
+                    // Nếu không có đủ các tiết đôi trong danh sách để kiểm tra (tối thiểu phải có 2 tiết để kiểm tra tính liền kề)
+                    if (doublePeriodUnits.Count < 2)
                     {
-                        var errorMessage =
-                            $"Lớp {doublePeriodUnits[0].ClassName}: " +
-                            $"Môn {doublePeriodUnits[0].SubjectName} " +
-                            $"chưa được phân công tiết đôi";
-                        var error = new ConstraintErrorModel()
+                        continue;
+                    }
+
+                    // Kiểm tra các cặp tiết đôi liên tiếp
+                    for (int i = 0; i < doublePeriodUnits.Count - 1; i++)
+                    {
+                        // nếu các tiết đôi không nằm kề nhau
+                        if (doublePeriodUnits[i + 1].StartAt != doublePeriodUnits[i].StartAt + 1)
                         {
-                            Code = "HC05",
-                            ClassName = doublePeriodUnits[0].ClassName,
-                            SubjectName = doublePeriodUnits[0].SubjectName,
-                            Description = errorMessage
-                        };
-                        doublePeriodUnits[0].ConstraintErrors.Add(error);
-                        doublePeriodUnits[1].ConstraintErrors.Add(error);
-                        count += 2;
+                            var errorMessage =
+                                $"Lớp {doublePeriodUnits[i].ClassName}: " +
+                                $"Môn {doublePeriodUnits[i].SubjectName} " +
+                                $"chưa được phân công tiết đôi liền kề nhau vào các tiết {doublePeriodUnits[i].StartAt} và {doublePeriodUnits[i + 1].StartAt}";
+
+                            var error = new ConstraintErrorModel()
+                            {
+                                Code = "HC05",
+                                ClassName = doublePeriodUnits[i].ClassName,
+                                SubjectName = doublePeriodUnits[i].SubjectName,
+                                Description = errorMessage
+                            };
+
+                            // Thêm lỗi vào cả hai tiết không liền kề
+                            doublePeriodUnits[i].ConstraintErrors.Add(error);
+                            doublePeriodUnits[i + 1].ConstraintErrors.Add(error);
+
+                            count += 2;
+                        }
                     }
                 }
             }
             return count;
         }
+
         #endregion
 
         #region CheckHC07
@@ -1979,7 +2018,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
 
             var day = startAt / 10;
-            var period = (startAt - 1) % 10 + 1;
+            var period = (startAt) % 10;
             return (DAY_OF_WEEKS[day], SLOTS[period]);
         }
 
