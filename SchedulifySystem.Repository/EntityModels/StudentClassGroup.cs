@@ -20,6 +20,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public SchoolYear? SchoolYear { get; set; }
         public Curriculum? Curriculum { get; set; }
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
-        public ICollection<CurriculumDetail> SubjectInGroups { get; set; } = new List<CurriculumDetail>();
+        public ICollection<CurriculumDetail> CurriculumDetails { get; set; } = new List<CurriculumDetail>();
     }
 }

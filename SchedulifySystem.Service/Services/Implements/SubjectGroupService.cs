@@ -612,11 +612,11 @@ namespace SchedulifySystem.Service.Services.Implements
         #region DeleteSubjectGroup
         public async Task<BaseResponseModel> DeleteSubjectGroup(int subjectGroupId)
         {
-            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectGroupId, include: query => query.Include(sg => sg.SubjectInGroups)) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectGroupId, include: query => query.Include(sg => sg.CurriculumDetails)) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
             subjectGroup.IsDeleted = true;
 
             _unitOfWork.SubjectGroupRepo.Update(subjectGroup);
-            _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroup.SubjectInGroups);
+            _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroup.CurriculumDetails);
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_SUBJECT_GROUP_SUCCESS };
         }
@@ -642,7 +642,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var subjectGroupDbs = await _unitOfWork.SubjectGroupRepo.GetV2Async(
                 filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted &&
                 model.SubjectGroupApplyIds.Contains(sg.Id) && sg.SchoolYearId == schoolYearId,
-                include: query => query.Include(sg => sg.SubjectInGroups));
+                include: query => query.Include(sg => sg.CurriculumDetails));
 
             var subjectDbs = await _unitOfWork.SubjectRepo.GetV2Async(
                 filter: s => !s.IsDeleted);
@@ -661,7 +661,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // insert data
-            var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.SubjectInGroups);
+            var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.CurriculumDetails);
             foreach (var subjectAssignment in model.SubjectAssignmentConfigs)
             {
                 var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.SubjectId &&
