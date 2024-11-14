@@ -17,7 +17,7 @@ namespace SchedulifySystem.Service.Mapper
               .ForMember(dest => dest.HomeroomTeacherName,
                          opt => opt.MapFrom(src => src.Teacher != null ? $"{src.Teacher.FirstName} {src.Teacher.LastName}" : null))
               .ForMember(dest => dest.SubjectGroupName,
-                         opt => opt.MapFrom(src => src.SubjectGroup.GroupName))
+                         opt => opt.MapFrom(src => src.StudentClassGroup.GroupName))
               .ForMember(dest => dest.MainSessionText,
                          opt => opt.MapFrom(src => src.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều"));
 

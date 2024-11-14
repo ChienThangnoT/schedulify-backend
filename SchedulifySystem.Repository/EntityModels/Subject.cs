@@ -19,7 +19,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int SchoolYearId { get; set; }
 
         public SchoolYear? SchoolYear { get; set; }
-        public ICollection<SubjectInGroup> SubjectInGroups { get; set; } = new List<SubjectInGroup>();
+        public ICollection<CurriculumDetail> SubjectInGroups { get; set; } = new List<CurriculumDetail>();
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();
         public ICollection<TeachableSubject> TeachableSubjects { get; set; } = new List<TeachableSubject>();
         public ICollection<SubjectConfig> SubjectConfigs { get; set; } = new List<SubjectConfig>();

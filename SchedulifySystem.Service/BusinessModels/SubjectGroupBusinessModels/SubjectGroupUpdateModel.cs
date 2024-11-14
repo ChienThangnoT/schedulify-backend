@@ -11,7 +11,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
     public class SubjectGroupUpdateModel
     {
         public string? GroupName { get; set; }
-        public string? GroupCode { get; set; }
+        public string? StudentClassGroupCode { get; set; }
         public string? GroupDescription { get; set; }
         public EGrade Grade { get; set; }
         public bool IsDeleted { get; set; }

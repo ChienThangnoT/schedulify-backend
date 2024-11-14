@@ -87,24 +87,24 @@ namespace SchedulifySystem.Service.Services.Implements
                 // lai tạo
                 /* Tournament */
                 //var timetableChildren = new List<TimetableIndividual>();
-                var tournamentList = new List<TimetableIndividual>();
-
-                //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
-                for (var i = 0; i < timetablePopulation.Count; i++)
-                    tournamentList.Add(timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First());
-
-                //var timetableChildren = new List<TimetableIndividual>();
                 //var tournamentList = new List<TimetableIndividual>();
 
                 ////chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
-                //Parallel.For(0, timetablePopulation.Count, i =>
-                //{
-                //    var selectedIndividual = timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First();
-                //    lock (tournamentList)
-                //    {
-                //        tournamentList.Add(selectedIndividual);
-                //    }
-                //});
+                //for (var i = 0; i < timetablePopulation.Count; i++)
+                //    tournamentList.Add(timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First());
+
+                //var timetableChildren = new List<TimetableIndividual>();
+                var tournamentList = new List<TimetableIndividual>();
+
+                //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
+                Parallel.For(0, timetablePopulation.Count, i =>
+                {
+                    var selectedIndividual = timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First();
+                    lock (tournamentList)
+                    {
+                        tournamentList.Add(selectedIndividual);
+                    }
+                });
 
 
                 var crossoverTasks = new List<Task<List<TimetableIndividual>>>();
@@ -260,13 +260,15 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: t => t.SchoolId == parameters.SchoolId &&
                              t.SchoolYearId == parameters.SchoolYearId &&
                              t.IsDeleted == false,
-                include: query => query.Include(c => c.SubjectGroup)
+                include: query => query.Include(c => c.StudentClassGroup)
                            .ThenInclude(sg => sg.SubjectInGroups).ThenInclude(sig => sig.Subject));
 
-            var groupIds = classesDb.Select(c => c.SubjectGroup.Id).ToList();
-            var subjectsDb = (await _unitOfWork.SubjectInGroupRepo.GetV2Async(
-                filter: t => t.IsDeleted == false && groupIds.Contains(t.SubjectGroupId) && t.TermId == parameters.TermId,
-                            include: query => query.Include(sig => sig.Subject))).ToList();
+            var groupIds = classesDb.Select(c => c.StudentClassGroup.Id).ToList();
+
+            // fix here ------------------------------------------------------------------------------------------------------------------
+            //var subjectsDb = (await _unitOfWork.SubjectInGroupRepo.GetV2Async(
+            //    filter: t => t.IsDeleted == false && groupIds.Contains(t.SubjectGroupId) && t.TermId == parameters.TermId,
+            //                include: query => query.Include(sig => sig.Subject))).ToList();
 
             //run parallel
             //await Task.WhenAll(classTask, subjectTask).ConfigureAwait(false);
@@ -285,8 +287,8 @@ namespace SchedulifySystem.Service.Services.Implements
             var classIds = classesDbList.Select(c => c.Id).ToList();
 
             var subjectInClassesDb = classesDb
-                .Where(c => c.SubjectGroup != null) // Lọc những lớp có SubjectGroup
-                .SelectMany(c => c.SubjectGroup.SubjectInGroups) // Lấy danh sách SubjectInGroup từ SubjectGroup
+                .Where(c => c.StudentClassGroup != null) // Lọc những lớp có SubjectGroup
+                .SelectMany(c => c.StudentClassGroup.SubjectInGroups) // Lấy danh sách SubjectInGroup từ SubjectGroup
                 .ToList();
 
             // add vào classes
@@ -301,7 +303,8 @@ namespace SchedulifySystem.Service.Services.Implements
             */
             timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
 
-            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
+            // fix here ------------------------------------------------------------------------------------------------------------------
+            //subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
 
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
                 filter: t => classIds.Contains(t.StudentClassId) && t.IsDeleted == false
@@ -372,7 +375,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var periodCount = 0; // Tổng số tiết học trong lớp
                 var classPeriodCount = classesDbList[i].PeriodCount; // tổng số tiết yêu cầu của lớp học trong 1 tuần
 
-                var subjectInGroups = classesDbList[i].SubjectGroup.SubjectInGroups.ToList();
+                var subjectInGroups = classesDbList[i].StudentClassGroup.SubjectInGroups.ToList();
                 // duyệt qua từng môn học trong lớp
                 for (var j = 0; j < subjectInGroups.Count; j++)
                 {

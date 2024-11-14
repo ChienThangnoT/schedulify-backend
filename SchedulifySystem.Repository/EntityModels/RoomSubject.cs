@@ -13,5 +13,7 @@ namespace SchedulifySystem.Repository.EntityModels
 
         public Room? Room { get; set; }
         public Subject? Subject { get; set; }
+        public ICollection<StudentClassRoomSubject> StudentClassRoomSubjects { get; set; } = new List<StudentClassRoomSubject>();
+
     }
 }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.Repositories.Implements
 {
-    public class SubjectInGroupRepository : GenericRepository<SubjectInGroup>, ISubjectInGroupRepository
+    public class SubjectInGroupRepository : GenericRepository<CurriculumDetail>, ISubjectInGroupRepository
     {
         public SubjectInGroupRepository(SchedulifyContext context) : base(context)
         {

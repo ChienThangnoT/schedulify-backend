@@ -28,26 +28,29 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> UpdateSubjectInGroup(int schoolId, int yearId, int subjectGroupId, int termId, List<SubjectInGroupUpdateModel> subjectInGroupUpdateModel)
         {
-            var subjectInGroupIds = subjectInGroupUpdateModel.Select(x => x.SubjectInGroupId).ToList();
-           
-            var subjectInGroups = await _unitOfWork.SubjectInGroupRepo.GetAsync(
-                filter: t => subjectInGroupIds.Contains(t.Id) && t.IsDeleted == false 
-                && t.TermId == termId && schoolId == t.SubjectGroup.SchoolId && t.SubjectGroupId == subjectGroupId);
 
-            if (subjectInGroups == null || !subjectInGroups.Any())
-                throw new NotExistsException(ConstantResponse.SUBJECT_IN_GROUP_NOT_FOUND);
+            // fix here ------------------------------------------------------------------------------------------------------------------
 
-            foreach (var subject in subjectInGroupUpdateModel)
-            {
-                var subjectInGroup = subjectInGroups.FirstOrDefault(s => s.Id == subject.SubjectInGroupId);
-                if (subjectInGroup != null)
-                {
-                    _mapper.Map(subject, subjectInGroup);
-                    _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
-                }
-            }
+            //var subjectInGroupIds = subjectInGroupUpdateModel.Select(x => x.SubjectInGroupId).ToList();
 
-            await _unitOfWork.SaveChangesAsync();
+            //var subjectInGroups = await _unitOfWork.SubjectInGroupRepo.GetAsync(
+            //    filter: t => subjectInGroupIds.Contains(t.Id) && t.IsDeleted == false 
+            //    && t.TermId == termId && schoolId == t.SubjectGroup.SchoolId && t.SubjectGroupId == subjectGroupId);
+
+            //if (subjectInGroups == null || !subjectInGroups.Any())
+            //    throw new NotExistsException(ConstantResponse.SUBJECT_IN_GROUP_NOT_FOUND);
+
+            //foreach (var subject in subjectInGroupUpdateModel)
+            //{
+            //    var subjectInGroup = subjectInGroups.FirstOrDefault(s => s.Id == subject.SubjectInGroupId);
+            //    if (subjectInGroup != null)
+            //    {
+            //        _mapper.Map(subject, subjectInGroup);
+            //        _unitOfWork.SubjectInGroupRepo.Update(subjectInGroup);
+            //    }
+            //}
+
+            //await _unitOfWork.SaveChangesAsync();
 
             return new BaseResponseModel()
             {

@@ -14,14 +14,14 @@ namespace SchedulifySystem.Service.Mapper
     {
         partial void SubjectInGroupMapperrConfigs()
         {
-            CreateMap<SubjectInGroup, SubjectInGroupViewModel>();
-            CreateMap<SubjectInGroup, SubjectInGroupUpdateModel>()
+            CreateMap<CurriculumDetail, SubjectInGroupViewModel>();
+            CreateMap<CurriculumDetail, SubjectInGroupUpdateModel>()
                 .ForMember(dest => dest.SubjectInGroupId, otp => otp.MapFrom(s => s.Id)).ReverseMap();
             //CreateMap<SubjectInGroup, SubjectInGroupViewDetailModel>()
             //   .ForMember(dest => dest.SubjectName,
             //    opt => opt.MapFrom(src => src.Subject != null ? src.Subject.SubjectName : string.Empty))
             //   .ReverseMap();
-            CreateMap<SubjectInGroup, SubjectScheduleModel>()
+            CreateMap<CurriculumDetail, SubjectScheduleModel>()
                 .IncludeMembers(sig => sig.Subject).ReverseMap();
 
         }

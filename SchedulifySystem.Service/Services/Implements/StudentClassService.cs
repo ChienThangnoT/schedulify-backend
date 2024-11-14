@@ -163,11 +163,11 @@ namespace SchedulifySystem.Service.Services.Implements
             var classesWithGroup = models.Where(s => s.SubjectGroupCode != null);
             var groupCodes = classesWithGroup.Select(s => s.SubjectGroupCode.ToLower()).Distinct().ToList();
             var subjectgroups = await _unitOfWork.SubjectGroupRepo.GetV2Async(
-                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted && groupCodes.Contains(sg.GroupCode.ToLower()));
+                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted && groupCodes.Contains(sg.StudentClassGroupCode.ToLower()));
 
             foreach (var model in classesWithGroup)
             {
-                var sg = subjectgroups.FirstOrDefault(sg => sg.GroupCode.ToLower().Equals(model.SubjectGroupCode.ToLower()));
+                var sg = subjectgroups.FirstOrDefault(sg => sg.StudentClassGroupCode.ToLower().Equals(model.SubjectGroupCode.ToLower()));
                 if (sg != null)
                 {
                     model.SGroupId = sg.Id;
@@ -226,7 +226,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: sc => sc.SchoolId == schoolId && (includeDeleted ? true : sc.IsDeleted == false)
                                 && (grade == null ? true : sc.Grade == (int)grade)
                                 && (schoolYearId == null ? true : sc.SchoolYearId == schoolYearId),
-                include: query => query.Include(sc => sc.Teacher).Include(sc => sc.SubjectGroup));
+                include: query => query.Include(sc => sc.Teacher).Include(sc => sc.StudentClassGroup));
             if (studentClasses.Items.Count == 0)
             {
                 throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
@@ -349,7 +349,7 @@ namespace SchedulifySystem.Service.Services.Implements
                              t.SchoolYearId == schoolYearId &&
                              t.IsDeleted == false,
                 orderBy: q => q.OrderBy(s => s.Name),
-                include: query => query.Include(c => c.SubjectGroup)
+                include: query => query.Include(c => c.StudentClassGroup)
                            .ThenInclude(sg => sg.SubjectInGroups));
 
             if (classesDb == null || !classesDb.Any())
@@ -358,12 +358,12 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             var classesDbList = classesDb.ToList();
-            var listSBInGroup = new List<SubjectInGroup>();
+            var listSBInGroup = new List<CurriculumDetail>();
             for (var i = 0; i < classesDbList.Count; i++)
             {
-                for (var j = 0; j < classesDbList[i].SubjectGroup.SubjectInGroups.Count; j++)
+                for (var j = 0; j < classesDbList[i].StudentClassGroup.SubjectInGroups.Count; j++)
                 {
-                    listSBInGroup.Add(classesDbList[i].SubjectGroup.SubjectInGroups.ToList()[j]);
+                    listSBInGroup.Add(classesDbList[i].StudentClassGroup.SubjectInGroups.ToList()[j]);
                 }
             }
             var result = _mapper.Map<List<SubjectInGroupViewModel>>(listSBInGroup);
