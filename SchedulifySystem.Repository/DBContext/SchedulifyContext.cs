@@ -366,21 +366,25 @@ public partial class SchedulifyContext : DbContext
            .WithMany(sg => sg.StudentClassGroups)
            .HasForeignKey(sig => sig.SchoolYearId);
         modelBuilder.Entity<StudentClassGroup>()
-           .HasOne(sig => sig.CurriculumDetail)
+           .HasOne(sig => sig.Curriculum)
            .WithMany(sg => sg.StudentClassGroups)
-           .HasForeignKey(sig => sig.CurriculumDetailId);
+           .HasForeignKey(sig => sig.CurriculumId);
 
         // Curriculum Detail Entity
         modelBuilder.Entity<CurriculumDetail>()
             .HasKey(sig => sig.Id);
         modelBuilder.Entity<CurriculumDetail>()
             .HasOne(sig => sig.Subject)
-            .WithMany(s => s.SubjectInGroups)
+            .WithMany(s => s.CurriculumDetails)
             .HasForeignKey(sig => sig.SubjectId);
         modelBuilder.Entity<CurriculumDetail>()
             .HasOne(sig => sig.Term)
-            .WithMany(t => t.SubjectInGroups)
+            .WithMany(t => t.CurriculumDetails)
             .HasForeignKey(sig => sig.TermId);
+        modelBuilder.Entity<CurriculumDetail>()
+            .HasOne(sig => sig.Curriculum)
+            .WithMany(t => t.CurriculumDetails)
+            .HasForeignKey(sig => sig.CurriculumId);
 
         // TeachableSubject Entity
         modelBuilder.Entity<TeachableSubject>()

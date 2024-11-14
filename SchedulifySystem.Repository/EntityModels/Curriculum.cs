@@ -15,7 +15,9 @@ namespace SchedulifySystem.Repository.EntityModels
 
         public SchoolYear? SchoolYear { get; set; }
         public School? School { get; set; }
-        public ICollection<CurriculumDetail> CurriculumnDetails { get; set; } = new List<CurriculumDetail>();
+
+        public ICollection<StudentClassGroup> StudentClassGroups { get; set; } = new List<StudentClassGroup>();
+        public ICollection<CurriculumDetail> CurriculumDetails { get; set; } = new List<CurriculumDetail>();
 
     }
 }

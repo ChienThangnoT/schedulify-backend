@@ -24,7 +24,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public Subject? Subject { get; set; }
         public Term? Term { get; set; }
         public Curriculum? Curriculum { get; set; }
-        public ICollection<StudentClassGroup> StudentClassGroups { get; set; } = new List<StudentClassGroup>();
 
         public CurriculumDetail ShallowCopy()
         {

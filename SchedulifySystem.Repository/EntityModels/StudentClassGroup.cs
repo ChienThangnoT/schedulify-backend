@@ -10,7 +10,7 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public string? GroupName { get; set; }
         public int? SchoolId { get; set; }
-        public int? CurriculumDetailId { get; set; }
+        public int? CurriculumId { get; set; }
         public string? GroupDescription { get; set; }
         public string? StudentClassGroupCode { get; set; }
         public int Grade {  get; set; }
@@ -18,7 +18,7 @@ namespace SchedulifySystem.Repository.EntityModels
 
         public School? School { get; set; }
         public SchoolYear? SchoolYear { get; set; }
-        public CurriculumDetail? CurriculumDetail { get; set; }
+        public Curriculum? Curriculum { get; set; }
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         public ICollection<CurriculumDetail> SubjectInGroups { get; set; } = new List<CurriculumDetail>();
     }
