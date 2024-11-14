@@ -57,12 +57,12 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var sg = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)group.Key,
                                 filter: t => t.IsDeleted == false,
-                                include: query => query.Include(sg => sg.SubjectInGroups));
+                                include: query => query.Include(sg => sg.CurriculumDetails));
 
                 foreach (var item in group.Select(g => g))
                 {
                     var newAssignment = new List<TeacherAssignment>();
-                    sg.SubjectInGroups.ToList().ForEach(sig =>
+                    sg.CurriculumDetails.ToList().ForEach(sig =>
                     {
                         newAssignment.Add(new TeacherAssignment()
                         {
@@ -75,7 +75,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         });
                     });
 
-                    item.PeriodCount = sg.SubjectInGroups.ToList().Sum(q=> q.MainSlotPerWeek + q.SubSlotPerWeek);
+                    item.PeriodCount = sg.CurriculumDetails.ToList().Sum(q=> q.MainSlotPerWeek + q.SubSlotPerWeek);
 
                     await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignment);
                 }
@@ -270,7 +270,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync((int)updateStudentClassModel.SubjectGroupId,
                                filter: t => t.IsDeleted == false,
-                               include: query => query.Include(sg => sg.SubjectInGroups))
+                               include: query => query.Include(sg => sg.CurriculumDetails))
                                ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
 
                 // delete old assignment
@@ -279,7 +279,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 // add new assignment 
                 var newAssignment = new List<TeacherAssignment>();
-                subjectGroup.SubjectInGroups.ToList().ForEach(sig =>
+                subjectGroup.CurriculumDetails.ToList().ForEach(sig =>
                 {
                     newAssignment.Add(new TeacherAssignment()
                     {
@@ -350,7 +350,7 @@ namespace SchedulifySystem.Service.Services.Implements
                              t.IsDeleted == false,
                 orderBy: q => q.OrderBy(s => s.Name),
                 include: query => query.Include(c => c.StudentClassGroup)
-                           .ThenInclude(sg => sg.SubjectInGroups));
+                           .ThenInclude(sg => sg.CurriculumDetails));
 
             if (classesDb == null || !classesDb.Any())
             {
@@ -361,9 +361,9 @@ namespace SchedulifySystem.Service.Services.Implements
             var listSBInGroup = new List<CurriculumDetail>();
             for (var i = 0; i < classesDbList.Count; i++)
             {
-                for (var j = 0; j < classesDbList[i].StudentClassGroup.SubjectInGroups.Count; j++)
+                for (var j = 0; j < classesDbList[i].StudentClassGroup.CurriculumDetails.Count; j++)
                 {
-                    listSBInGroup.Add(classesDbList[i].StudentClassGroup.SubjectInGroups.ToList()[j]);
+                    listSBInGroup.Add(classesDbList[i].StudentClassGroup.CurriculumDetails.ToList()[j]);
                 }
             }
             var result = _mapper.Map<List<SubjectInGroupViewModel>>(listSBInGroup);
@@ -387,7 +387,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(model.SubjectGroupId,
                                 filter: t => t.IsDeleted == false,
-                                include: query => query.Include(sg => sg.SubjectInGroups))
+                                include: query => query.Include(sg => sg.CurriculumDetails))
                                 ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
 
                     foreach (var classId in model.ClassIds)
@@ -408,7 +408,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                             // add new assignment 
                             var newAssignment = new List<TeacherAssignment>();
-                            subjectGroup.SubjectInGroups.ToList().ForEach(sig =>
+                            subjectGroup.CurriculumDetails.ToList().ForEach(sig =>
                             {
                                 newAssignment.Add(new TeacherAssignment()
                                 {

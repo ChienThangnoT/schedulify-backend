@@ -185,7 +185,7 @@ namespace SchedulifySystem.API
 
 
             //config subject group service and repo
-            services.AddTransient<ISubjectGroupRepository, SubjectGroupRepository>();
+            services.AddTransient<IStudentClassGroupRepository, StudentClassGroupRepository>();
             services.AddTransient<ISubjectGroupService, SubjectGroupService>();
 
 
@@ -222,7 +222,7 @@ namespace SchedulifySystem.API
             services.AddTransient<ITermService, TermService>();
 
             //config Subject in group service and repo
-            services.AddTransient<ISubjectInGroupRepository, SubjectInGroupRepository>();
+            services.AddTransient<ICurriculumDetailRepository, CurriculumDetailRepository>();
             services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
 
             //config Timetable service and repo
