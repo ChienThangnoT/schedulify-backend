@@ -390,10 +390,11 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     //// kiểm tra số tiết học có khớp với yêu cầu không
-                    //if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
-                    //{
-                    //    throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
-                    //}
+                    //// không cần kiểm tra nữa
+                    if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
+                    {
+                        throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                    }
 
                     // kiểm tra xem giáo viên có được phân công không
                     if (assignment.TeacherId == null || assignment.TeacherId == 0)
@@ -1799,8 +1800,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 //EChromosomeType.ClassChromosome: Đây là loại nhiễm sắc thể đại diện cho dữ liệu cần lai tạo.
                 //Ở đây, nó có thể đại diện cho cấu trúc của thời khóa biểu (thời gian học của các lớp, giáo viên, v.v.).
                 case ECrossoverMethod.SinglePoint:
-                    //SinglePointCrossover(parents, children, EChromosomeType.ClassChromosome);
-                    TwoPointCrossover(parents, children);
+                    SinglePointCrossover(parents, children, EChromosomeType.ClassChromosome);
+                    //TwoPointCrossover(parents, children);
                     break;
                 default:
                     throw new NotImplementedException();

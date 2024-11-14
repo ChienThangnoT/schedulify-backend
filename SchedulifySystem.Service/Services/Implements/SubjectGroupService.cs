@@ -229,7 +229,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var listSBInGroup = subjectGroupDb.SubjectInGroups.ToList();
 
             var studentClass = await _unitOfWork.StudentClassesRepo.GetAsync(
-                filter: t => t.SubjectGroupId == subjectGroupDb.Id);
+                filter: t => t.SubjectGroupId == subjectGroupDb.Id && t.IsDeleted == false);
             if (studentClass.Any() || studentClass != null)
             {
                 foreach (var student in studentClass)

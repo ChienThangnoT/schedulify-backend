@@ -74,6 +74,9 @@ namespace SchedulifySystem.Service.Services.Implements
                             TermId = (int)sig.TermId
                         });
                     });
+
+                    item.PeriodCount = sg.SubjectInGroups.ToList().Sum(q=> q.MainSlotPerWeek + q.SubSlotPerWeek);
+
                     await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignment);
                 }
             }
