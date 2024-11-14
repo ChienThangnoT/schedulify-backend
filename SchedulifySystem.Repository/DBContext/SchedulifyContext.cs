@@ -35,8 +35,8 @@ public partial class SchedulifyContext : DbContext
     public DbSet<StudentClass> StudentClasses { get; set; }
     public DbSet<Subject> Subjects { get; set; }
     public DbSet<SubjectConfig> SubjectConfigs { get; set; }
-    public DbSet<StudentClassGroup> SubjectGroups { get; set; }
-    public DbSet<CurriculumDetail> SubjectInGroups { get; set; }
+    public DbSet<StudentClassGroup> StudentClassGroups { get; set; }
+    public DbSet<CurriculumDetail> CurriculumDetails { get; set; }
     public DbSet<TeachableSubject> TeachableSubjects { get; set; }
     public DbSet<Teacher> Teachers { get; set; }
     public DbSet<TeacherAssignment> TeacherAssignments { get; set; }
@@ -299,7 +299,7 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<StudentClass>()
             .HasOne(sc => sc.StudentClassGroup)
             .WithMany(t => t.StudentClasses)
-            .HasForeignKey(sc => sc.SubjectGroupId);
+            .HasForeignKey(sc => sc.StudentClassGroupId);
         modelBuilder.Entity<StudentClass>()
             .HasOne(sc => sc.Room)
             .WithMany(t => t.StudentClasses)
@@ -352,6 +352,8 @@ public partial class SchedulifyContext : DbContext
 
 
         // Student Class Group Entity
+        modelBuilder.Entity<CurriculumDetail>()
+            .ToTable("StudentClassGroup");
         modelBuilder.Entity<StudentClassGroup>()
             .HasKey(sg => sg.Id);
         modelBuilder.Entity<StudentClassGroup>()
@@ -371,6 +373,8 @@ public partial class SchedulifyContext : DbContext
            .HasForeignKey(sig => sig.CurriculumId);
 
         // Curriculum Detail Entity
+        modelBuilder.Entity<CurriculumDetail>()
+            .ToTable("CurriculumDetail");
         modelBuilder.Entity<CurriculumDetail>()
             .HasKey(sig => sig.Id);
         modelBuilder.Entity<CurriculumDetail>()

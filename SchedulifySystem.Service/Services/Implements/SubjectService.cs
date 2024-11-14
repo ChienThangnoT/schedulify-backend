@@ -369,7 +369,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var subject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId, filter: t => t.IsDeleted == false)
                 ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-            var subjectIsUsed = await _unitOfWork.SubjectInGroupRepo.GetAsync(filter: t => t.SubjectId == subjectId && t.IsDeleted == false);
+            var subjectIsUsed = await _unitOfWork.CurriculumDetailRepo.GetAsync(filter: t => t.SubjectId == subjectId && t.IsDeleted == false);
             if(subjectIsUsed != null)
             {
                 throw new DefaultException(ConstantResponse.SUBJECT_ALREADY_USED);

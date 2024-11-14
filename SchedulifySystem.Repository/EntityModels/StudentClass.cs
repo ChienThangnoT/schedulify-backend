@@ -12,13 +12,13 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Name { get; set; }
         public int? HomeroomTeacherId { get; set; }
         public int SchoolId { get; set; }
-        public int RoomId { get; set; }
+        public int? RoomId { get; set; }
         public int SchoolYearId { get; set; }
         public int MainSession { get; set; }
         public bool IsFullDay { get; set; } = false;
         public int PeriodCount { get; set; }
         public int Grade { get; set; }
-        public int? SubjectGroupId { get; set; }
+        public int? StudentClassGroupId { get; set; }
 
         public Room? Room { get; set; }
         public School? School { get; set; }

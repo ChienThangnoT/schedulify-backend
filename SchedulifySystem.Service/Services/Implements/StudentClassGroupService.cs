@@ -22,13 +22,13 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.Services.Implements
 {
-    public class SubjectGroupService : ISubjectGroupService
+    public class StudentClassGroupService : IStudentClassGroupService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private const int REQUIRE_ELECTIVE_SUBJECT = 4;
         private const int REQUIRE_SPECIALIZED_SUBJECT = 3;
-        public SubjectGroupService(IUnitOfWork unitOfWork, IMapper mapper)
+        public StudentClassGroupService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -612,12 +612,12 @@ namespace SchedulifySystem.Service.Services.Implements
         #region DeleteSubjectGroup
         public async Task<BaseResponseModel> DeleteSubjectGroup(int subjectGroupId)
         {
-            var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectGroupId, include: query => query.Include(sg => sg.CurriculumDetails)) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
-            subjectGroup.IsDeleted = true;
+            //var subjectGroup = await _unitOfWork.SubjectGroupRepo.GetByIdAsync(subjectGroupId, include: query => query.Include(sg => sg.CurriculumDetails)) ?? throw new NotExistsException(ConstantResponse.SUBJECT_GROUP_NOT_EXISTED);
+            //subjectGroup.IsDeleted = true;
 
-            _unitOfWork.SubjectGroupRepo.Update(subjectGroup);
-            _unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroup.CurriculumDetails);
-            await _unitOfWork.SaveChangesAsync();
+            //_unitOfWork.SubjectGroupRepo.Update(subjectGroup);
+            //_unitOfWork.SubjectInGroupRepo.RemoveRange(subjectGroup.CurriculumDetails);
+            //await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.DELETE_SUBJECT_GROUP_SUCCESS };
         }
         #endregion
@@ -627,60 +627,60 @@ namespace SchedulifySystem.Service.Services.Implements
         {
 
             // check valid subject assignment config
-            var invalidSubjects = model.SubjectAssignmentConfigs.Where(s => !s.CheckValid());
-            if (invalidSubjects.Any())
-            {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = "Subject config is not correct!",
-                    Result = invalidSubjects
-                };
-            }
+            //var invalidSubjects = model.SubjectAssignmentConfigs.Where(s => !s.CheckValid());
+            //if (invalidSubjects.Any())
+            //{
+            //    return new BaseResponseModel()
+            //    {
+            //        Status = StatusCodes.Status400BadRequest,
+            //        Message = "Subject config is not correct!",
+            //        Result = invalidSubjects
+            //    };
+            //}
 
 
-            var subjectGroupDbs = await _unitOfWork.SubjectGroupRepo.GetV2Async(
-                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted &&
-                model.SubjectGroupApplyIds.Contains(sg.Id) && sg.SchoolYearId == schoolYearId,
-                include: query => query.Include(sg => sg.CurriculumDetails));
+            //var subjectGroupDbs = await _unitOfWork.SubjectGroupRepo.GetV2Async(
+            //    filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted &&
+            //    model.SubjectGroupApplyIds.Contains(sg.Id) && sg.SchoolYearId == schoolYearId,
+            //    include: query => query.Include(sg => sg.CurriculumDetails));
 
-            var subjectDbs = await _unitOfWork.SubjectRepo.GetV2Async(
-                filter: s => !s.IsDeleted);
+            //var subjectDbs = await _unitOfWork.SubjectRepo.GetV2Async(
+            //    filter: s => !s.IsDeleted);
 
-            // check valid subject group id
-            var invalidSubjectGroupIds = model.SubjectGroupApplyIds.Where(i => !subjectGroupDbs.Select(s => s.Id).Contains(i));
+            //// check valid subject group id
+            //var invalidSubjectGroupIds = model.SubjectGroupApplyIds.Where(i => !subjectGroupDbs.Select(s => s.Id).Contains(i));
 
-            if (invalidSubjectGroupIds.Any())
-            {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.SUBJECT_GROUP_NOT_EXISTED,
-                    Result = invalidSubjects
-                };
-            }
+            //if (invalidSubjectGroupIds.Any())
+            //{
+            //    return new BaseResponseModel()
+            //    {
+            //        Status = StatusCodes.Status400BadRequest,
+            //        Message = ConstantResponse.SUBJECT_GROUP_NOT_EXISTED,
+            //        Result = invalidSubjects
+            //    };
+            //}
 
-            // insert data
-            var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.CurriculumDetails);
-            foreach (var subjectAssignment in model.SubjectAssignmentConfigs)
-            {
-                var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.SubjectId &&
-                sig.TermId == subjectAssignment.TermId);
+            //// insert data
+            //var subjectInGroups = subjectGroupDbs.SelectMany(sg => sg.CurriculumDetails);
+            //foreach (var subjectAssignment in model.SubjectAssignmentConfigs)
+            //{
+            //    var filtered = subjectInGroups.Where(sig => sig.SubjectId == subjectAssignment.SubjectId &&
+            //    sig.TermId == subjectAssignment.TermId);
 
-                foreach (var sig in filtered)
-                {
-                    var extraSlots = sig.IsSpecialized ? subjectDbs.First(s => s.Id == sig.SubjectId).SlotSpecialized / 35 : 0;
-                    sig.MainSlotPerWeek = subjectAssignment.MainSlotPerWeek + (int)extraSlots;
-                    sig.SubSlotPerWeek = subjectAssignment.SubSlotPerWeek;
-                    sig.MainMinimumCouple = subjectAssignment.MainMinimumCouple;
-                    sig.SubMinimumCouple = subjectAssignment.SubMinimumCouple;
-                    sig.SlotPerTerm = subjectAssignment.SlotPerTerm;
-                    sig.IsDoublePeriod = subjectAssignment.IsDoublePeriod;
-                    _unitOfWork.SubjectInGroupRepo.Update(sig);
-                }
+            //    foreach (var sig in filtered)
+            //    {
+            //        var extraSlots = sig.IsSpecialized ? subjectDbs.First(s => s.Id == sig.SubjectId).SlotSpecialized / 35 : 0;
+            //        sig.MainSlotPerWeek = subjectAssignment.MainSlotPerWeek + (int)extraSlots;
+            //        sig.SubSlotPerWeek = subjectAssignment.SubSlotPerWeek;
+            //        sig.MainMinimumCouple = subjectAssignment.MainMinimumCouple;
+            //        sig.SubMinimumCouple = subjectAssignment.SubMinimumCouple;
+            //        sig.SlotPerTerm = subjectAssignment.SlotPerTerm;
+            //        sig.IsDoublePeriod = subjectAssignment.IsDoublePeriod;
+            //        _unitOfWork.SubjectInGroupRepo.Update(sig);
+            //    }
 
-            }
-            await _unitOfWork.SaveChangesAsync();
+            //}
+            //await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,

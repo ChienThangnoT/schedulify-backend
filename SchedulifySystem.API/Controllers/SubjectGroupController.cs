@@ -11,9 +11,9 @@ namespace SchedulifySystem.API.Controllers
     [ApiController]
     public class SubjectGroupController : BaseController
     {
-        private readonly ISubjectGroupService _subjectGroupService;
+        private readonly IStudentClassGroupService _subjectGroupService;
 
-        public SubjectGroupController(ISubjectGroupService subjectGroupService)
+        public SubjectGroupController(IStudentClassGroupService subjectGroupService)
         {
             _subjectGroupService = subjectGroupService;
         }

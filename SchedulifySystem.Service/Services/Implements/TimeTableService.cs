@@ -599,7 +599,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //lấy ra ds tiết học của lớp đó trong timetableUnits
                 var classTimetableUnits = timetableUnits.Where(u => u.ClassId == classes[i].Id).ToList();
                 var mainSession = classes[i].MainSession;
-                var doubleSubjects = subjectByGroup.ContainsKey(classes[i].SubjectGroupId) ? subjectByGroup[classes[i].SubjectGroupId] : [];
+                var doubleSubjects = subjectByGroup.ContainsKey(classes[i].StudentClassGroupId) ? subjectByGroup[classes[i].StudentClassGroupId] : [];
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
                     //lấy ra ds tiết học đôi  theo chính khóa 
@@ -724,7 +724,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var fClass = src.Classes[classIndex];
             var mainSession = fClass.MainSession;
-            var doubleSubjects = src.DoubleSubjectsByGroup.ContainsKey(fClass.SubjectGroupId) ? src.DoubleSubjectsByGroup[fClass.SubjectGroupId] : [];
+            var doubleSubjects = src.DoubleSubjectsByGroup.ContainsKey(fClass.StudentClassGroupId) ? src.DoubleSubjectsByGroup[fClass.StudentClassGroupId] : [];
 
             foreach (var subject in doubleSubjects)
             {
@@ -997,13 +997,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 var classTimetableUnits = src.TimetableUnits.Where(u => u.ClassId == sClass.Id).ToList();
 
                 // Kiểm tra xem có nhóm tiết đôi không trước khi duyệt qua từng môn học
-                if (!src.DoubleSubjectsByGroup.ContainsKey(sClass.SubjectGroupId))
+                if (!src.DoubleSubjectsByGroup.ContainsKey(sClass.StudentClassGroupId))
                 {
                     continue; // Nếu không có nhóm tiết đôi nào cho lớp này, tiếp tục sang lớp khác
                 }
 
                 // loop qua ds tiết đôi 
-                var doubleSubjects = src.DoubleSubjectsByGroup[sClass.SubjectGroupId];
+                var doubleSubjects = src.DoubleSubjectsByGroup[sClass.StudentClassGroupId];
                 for (var subjectIndex = 0; subjectIndex < doubleSubjects.Count; subjectIndex++)
                 {
                     // lấy ra ds tiết tiết đôi của môn có trong class đó 

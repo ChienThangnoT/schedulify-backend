@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.Services.Interfaces
 {
-    public interface ISubjectGroupService
+    public interface IStudentClassGroupService
     {
         Task<BaseResponseModel> GetSubjectGroups(int schoolId, int? subjectGroupId, EGrade? grade,int? schoolYearId, bool includeDeleted,int pageIndex, int pageSize);
         Task<BaseResponseModel> GetSubjectGroupDetail(int subjectGroupId);
