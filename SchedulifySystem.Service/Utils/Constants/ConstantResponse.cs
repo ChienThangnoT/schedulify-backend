@@ -185,5 +185,15 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string IS_READ_SUCCESS = "Notification is read.";
 
 
+        //Student Class Group
+        public const string ADD_STUDENT_CLASS_GROUP_SUCCESS = "Add student class group success.";
+        public const string GET_STUDENT_CLASS_GROUP_SUCCESS = "Get student class group success.";
+        public const string UPDATE_STUDENT_CLASS_GROUP_SUCCESS = "Update student class group success.";
+        public const string DELETE_STUDENT_CLASS_GROUP_SUCCESS = "Delete student class group success.";
+        public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_EXISTED = "Student class group name or code does existed.";
+        public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_DUPLICATED = "Student class group name or code does douplicated.";
+        public const string STUDENT_CLASS_GROUP_NOT_FOUND = "Student class group does not found.";
+        
+
     }
 }

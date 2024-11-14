@@ -229,6 +229,10 @@ namespace SchedulifySystem.API
             services.AddTransient<ISchoolScheduleRepository, SchoolScheduleRepository>();
             services.AddTransient<ITimetableService, TimeTableService>();
 
+            //config Timetable service and repo
+            services.AddTransient<IStudentClassGroupRepository, StudentClassGroupRepository>();
+            services.AddTransient<IStudentClassGroupService, StudentClassGroupService>();
+
             //config Notification
             services.AddSignalR();
             services.AddScoped<INotificationService, NotificationService>();
