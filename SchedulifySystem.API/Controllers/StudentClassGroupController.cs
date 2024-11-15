@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassGroupBusinessModels;
+using SchedulifySystem.Service.Services.Implements;
 using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
@@ -17,9 +20,9 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        public Task<IActionResult> GetStudentClassGroups(int schoolId, int schoolYearId, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetStudentClassGroups(int schoolId, int yearId, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _studentClassGroupService.GetStudentClassGroups(schoolId, schoolYearId, pageIndex, pageSize));
+            return ValidateAndExecute(() => _studentClassGroupService.GetStudentClassGroups(schoolId, yearId, pageIndex, pageSize));
         }
 
         [HttpDelete("{id}")]
@@ -38,6 +41,14 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> UpdateStudentClassGroups(int id, UpdateStudentClassGroupModel model)
         {
             return ValidateAndExecute(() => _studentClassGroupService.UpdateStudentClassGroup(id, model));
+        }
+
+        [HttpPatch()]
+        [Route("assign-subject-group")]
+        [Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> AssignSubjectGroupToClasses(AssignSubjectGroup model)
+        {
+            return ValidateAndExecute(() => _studentClassGroupService.AssignSubjectGroupToClasses(model));
         }
 
     }
