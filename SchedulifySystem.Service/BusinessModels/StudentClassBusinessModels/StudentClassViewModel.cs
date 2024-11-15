@@ -24,6 +24,8 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int? CurriculumId { get; set; }
         public string? CurriculumName { get; set; }
         public int? SchoolYearId { get; set; }
+        public int RoomId { get; set; }
+        public string? RoomName { get; set; }
     }
 
     public class StudentClassViewName

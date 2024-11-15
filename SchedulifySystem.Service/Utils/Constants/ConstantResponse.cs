@@ -67,16 +67,17 @@ namespace SchedulifySystem.Service.Utils.Constants
         //subject group type
         public const string SUBJECT_GROUP_TYPE_NOT_EXISTED = "Subject group type not exist.";
 
-        //subject group
-        public const string SUBJECT_GROUP_NAME_OR_CODE_EXISTED = "Subject group name or code already exist.";
+        //Student Class Group
+        public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_EXISTED = "Student class group already exist.";
         public const string ADD_SUBJECT_GROUP_SUCCESS = "Add subject group success.";
         public const string UPDATE_SUBJECT_GROUP_SUCCESS = "Update subject group success.";
         public const string DELETE_SUBJECT_GROUP_SUCCESS = "Delete subject group success.";
-        public const string SUBJECT_GROUP_NOT_EXISTED = "Subject group not exist.";
+        public const string STUDENT_CLASS_GROUP_NOT_EXISTED = "Student class group not exist.";
         public const string GET_SUBJECT_GROUP_LIST_FAILED = "Get subject group list has no items";
         public const string GET_SUBJECT_GROUP_LIST_SUCCESS = "Get subject group list successful";
         public const string SUBJECT_GROUP_HAS_SUBJECTS_REGISTERED = "Subject group has assign, can not update grade.";
         public const string INVALID_NUMBER_SUBJECT = "Để tạo tổ hợp môn cần chọn 4 môn tự chọn và 3 môn chuyên đề.";
+        public const string INVALID_UPDATE_GRADE_DIFFERENT_STUDENT_CLASS_GROUP = "Không thể cập nhật khối vì khác khối của chương trình hiện tại của nhóm lớp.";
 
         //subject 
         public const string SUBJECT_NAME_EXISTED = "Subject name already exists in school.";
