@@ -16,8 +16,12 @@ namespace SchedulifySystem.Service.Mapper
                          opt => opt.MapFrom(src => src.Teacher != null ? src.Teacher.Abbreviation : null))
               .ForMember(dest => dest.HomeroomTeacherName,
                          opt => opt.MapFrom(src => src.Teacher != null ? $"{src.Teacher.FirstName} {src.Teacher.LastName}" : null))
-              .ForMember(dest => dest.SubjectGroupName,
-                         opt => opt.MapFrom(src => src.SubjectGroup.GroupName))
+              .ForMember(dest => dest.StudentClassGroupName,
+                         opt => opt.MapFrom(src => src.StudentClassGroup != null ? src.StudentClassGroup.GroupName : string.Empty))
+              .ForMember(dest => dest.CurriculumName,
+                         opt => opt.MapFrom(src => src.StudentClassGroup.Curriculum != null ? src.StudentClassGroup.Curriculum.CurriculumName : string.Empty))
+              .ForMember(dest => dest.RoomName,
+                         opt => opt.MapFrom(src => src.Room != null ? src.Room.Name : string.Empty))
               .ForMember(dest => dest.MainSessionText,
                          opt => opt.MapFrom(src => src.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều"));
 

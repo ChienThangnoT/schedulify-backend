@@ -6,16 +6,12 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace SchedulifySystem.Service.BusinessModels.SubjectGroupBusinessModels
+namespace SchedulifySystem.Service.BusinessModels.CurriculumBusinessModels
 {
-    public class SubjectGroupUpdateModel
+    public class CurriculumUpdateModel
     {
-        public string? GroupName { get; set; }
-        public string? GroupCode { get; set; }
-        public string? GroupDescription { get; set; }
+        public string? CurriculumName { get; set; }
         public EGrade Grade { get; set; }
-        public bool IsDeleted { get; set; }
-        public int SchoolYearId { get; set; }
         public List<int> ElectiveSubjectIds { get; set; } = new List<int>();
         public List<int> SpecializedSubjectIds { get; set; } = new List<int>();
         [JsonIgnore]

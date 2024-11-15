@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Repository.Repositories.Interfaces
 {
-    public interface ISubjectInGroupRepository : IGenericRepository<SubjectInGroup>
+    public interface IStudentClassGroupRepository : IGenericRepository<StudentClassGroup>
     {
     }
 }
