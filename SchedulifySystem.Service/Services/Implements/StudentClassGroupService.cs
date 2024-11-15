@@ -1,8 +1,11 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassGroupBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
@@ -174,6 +177,76 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
+        #region AssignSubjectGroupToClasses
+        public async Task<BaseResponseModel> AssignSubjectGroupToClasses(AssignSubjectGroup model)
+        {
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var studentClassGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(model.StudentClassGroupId,
+                                filter: t => t.IsDeleted == false,
+                                include: query => query.Include(sg => sg.Curriculum).ThenInclude(cd => cd.CurriculumDetails))
+                                ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_EXIST);
+
+                    foreach (var classId in model.ClassIds)
+                    {
+                        var founded = await _unitOfWork.StudentClassesRepo.GetByIdAsync(classId, filter: t => t.IsDeleted == false)
+                                        ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
+
+                        var classPeriodCount = 0;
+
+                        if (founded.StudentClassGroupId == null || founded.StudentClassGroupId != model.StudentClassGroupId)
+                        {
+                            founded.StudentClassGroupId = model.StudentClassGroupId;
+                            founded.UpdateDate = DateTime.UtcNow;
+
+                            // delete old assignment
+                            var oldAssignment = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(filter: ta => ta.StudentClassId == classId && ta.IsDeleted == false);
+                            _unitOfWork.TeacherAssignmentRepo.RemoveRange(oldAssignment);
+
+                            // add new assignment 
+                            var newAssignment = new List<TeacherAssignment>();
+                            studentClassGroup.Curriculum.CurriculumDetails.ToList().ForEach(sig =>
+                            {
+                                newAssignment.Add(new TeacherAssignment()
+                                {
+                                    AssignmentType = (int)AssignmentType.Permanent,
+                                    PeriodCount = sig.MainSlotPerWeek + sig.SubSlotPerWeek,
+                                    StudentClassId = classId,
+                                    CreateDate = DateTime.UtcNow,
+                                    SubjectId = sig.SubjectId,
+                                    TermId = (int)sig.TermId
+                                });
+                                classPeriodCount += sig.MainSlotPerWeek + sig.SubSlotPerWeek;
+                            });
+                            await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignment);
+                            _unitOfWork.StudentClassesRepo.Update(founded);
+                        }
+
+                        founded.PeriodCount = classPeriodCount;
+                        _unitOfWork.StudentClassesRepo.Update(founded);
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    transaction.Commit();
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = ConstantResponse.CURRICULUM_ASSIGN_SUCCESS
+                    };
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+        }
+        #endregion
+
+
     }
+
 
 }

@@ -6,7 +6,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/schools/{schoolId}/academic-years/{yearId}/curriculums/{subjectGroupId}/curriculum-details")]
+    [Route("api/schools/{schoolId}/academic-years/{yearId}/curriculums/{curriculumId}/curriculum-details")]
     [ApiController]
     public class CurriculumDetailController : BaseController
     {
@@ -19,9 +19,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPatch]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> UpdateTimeSlot(int schoolId, int yearId,int subjectGroupId,int termId,  List<CurriculumDetailUpdateModel> subjectInGroupUpdateModel)
+        public Task<IActionResult> UpdateTimeSlot(int schoolId, int yearId,int curriculumId, int termId,  List<CurriculumDetailUpdateModel> subjectInGroupUpdateModel)
         {
-            return ValidateAndExecute(() => _curriculumDetailService.UpdateCurriculumDetail(schoolId, yearId, subjectGroupId, termId, subjectInGroupUpdateModel));
+            return ValidateAndExecute(() => _curriculumDetailService.UpdateCurriculumDetail(schoolId, yearId, curriculumId, termId, subjectInGroupUpdateModel));
         }
     }
 }

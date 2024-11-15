@@ -1,4 +1,5 @@
-﻿using SchedulifySystem.Service.BusinessModels.StudentClassGroupBusinessModels;
+﻿using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
+using SchedulifySystem.Service.BusinessModels.StudentClassGroupBusinessModels;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -14,5 +15,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> AddStudentClassgroup(int schoolId, int schoolYearId, List<AddStudentClassGroupModel> models);
         Task<BaseResponseModel> UpdateStudentClassGroup(int classGroupId, UpdateStudentClassGroupModel model);
         Task<BaseResponseModel> DeleteStudentClassGroup(int classGroupId);
+        Task<BaseResponseModel> AssignSubjectGroupToClasses(AssignSubjectGroup model);
     }
 }
