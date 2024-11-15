@@ -22,4 +22,8 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         public ICollection<CurriculumDetail> CurriculumDetails { get; set; } = new List<CurriculumDetail>();
     }
+    public class StudentClassGroupViewName
+    {
+        public string? GroupName { get; set; }
+    }
 }
