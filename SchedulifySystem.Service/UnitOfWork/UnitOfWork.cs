@@ -34,6 +34,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IRoomSubjectRepository _roomSubjectRepository;
         private readonly ISchoolScheduleRepository _schoolScheduleRepository;
         private readonly INotificationRepository _notificationRepository;
+        private readonly ICurriculumRepository _curriculumRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -57,7 +58,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             ICurriculumDetailRepository curriculumDetailRepository,
             IRoomSubjectRepository roomSubjectRepository,
             ISchoolScheduleRepository schoolScheduleRepository,
-            INotificationRepository notificationRepository)
+            INotificationRepository notificationRepository,
+            ICurriculumRepository curriculumRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -82,6 +84,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             _roomSubjectRepository = roomSubjectRepository;
             _schoolScheduleRepository = schoolScheduleRepository;
             _notificationRepository = notificationRepository;
+            _studentClassGroupRepository = studentClassGroupRepository;
+            _curriculumRepository = curriculumRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -107,6 +111,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IRoomSubjectRepository RoomSubjectRepo => _roomSubjectRepository;
         public ISchoolScheduleRepository SchoolScheduleRepo => _schoolScheduleRepository;
         public INotificationRepository NotificationRepo => _notificationRepository;
+        public ICurriculumRepository CurriculumRepo => _curriculumRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {

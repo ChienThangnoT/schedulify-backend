@@ -67,15 +67,15 @@ namespace SchedulifySystem.Service.Utils.Constants
         //subject group type
         public const string SUBJECT_GROUP_TYPE_NOT_EXISTED = "Subject group type not exist.";
 
-        //Student Class Group
-        public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_EXISTED = "Student class group already exist.";
-        public const string ADD_SUBJECT_GROUP_SUCCESS = "Add subject group success.";
-        public const string UPDATE_SUBJECT_GROUP_SUCCESS = "Update subject group success.";
-        public const string DELETE_SUBJECT_GROUP_SUCCESS = "Delete subject group success.";
-        public const string STUDENT_CLASS_GROUP_NOT_EXISTED = "Student class group not exist.";
-        public const string GET_SUBJECT_GROUP_LIST_FAILED = "Get subject group list has no items";
-        public const string GET_SUBJECT_GROUP_LIST_SUCCESS = "Get subject group list successful";
-        public const string SUBJECT_GROUP_HAS_SUBJECTS_REGISTERED = "Subject group has assign, can not update grade.";
+        //curriiculum 
+        public const string CURRICULUM_NAME_OR_CODE_EXISTED = "Curriculum name or code already exist.";
+        public const string ADD_CURRICULUM_SUCCESS = "Add curriculum success.";
+        public const string UPDATE_CURRICULUM_SUCCESS = "Update curriculum success.";
+        public const string DELETE_CURRICULUM_SUCCESS = "Delete curriculum success.";
+        public const string CURRICULUM_NOT_EXISTED = "Curriculum not exist.";
+        public const string GET_CURRICULUM_LIST_FAILED = "Get curriculum list has no items";
+        public const string GET_CURRICULUM_LIST_SUCCESS = "Get curriculum list successful";
+        public const string CURRICULUM_HAS_SUBJECTS_REGISTERED = "curriculum has assign, can not update grade.";
         public const string INVALID_NUMBER_SUBJECT = "Để tạo tổ hợp môn cần chọn 4 môn tự chọn và 3 môn chuyên đề.";
         public const string INVALID_UPDATE_GRADE_DIFFERENT_STUDENT_CLASS_GROUP = "Không thể cập nhật khối vì khác khối của chương trình hiện tại của nhóm lớp.";
 
@@ -89,7 +89,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SUBJECT_NAME_ALREADY_EXIST_IN_LIST = "Subject name duplicate in list.";
         public const string SUBJECT_NAME_ALREADY_EXIST = "Subject name already exist.";
         public const string ADD_SUBJECT_LIST_SUCCESS = "Operation completed";
-        public const string GET_SUBJECT_GROUP_DETAIL_SUCCESS = "Get subject group detail success.";
+        public const string GET_CURRICULUM_DETAIL_SUCCESS = "Get subject group detail success.";
         public const string REQUIRE_ELECTIVE_SUBJECT = "Môn lựa chọn phải khác môn bắt buộc.";
         public const string INVALID_SPECIALIZED_SUBJECT = "Môn chuyên đề phải nằm trong nhóm môn bắt buộc hoặc là trong tổ hợp môn";
         public const string DELETE_SUBJECT_SUCCESS = "Delete subject success.";
@@ -117,7 +117,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string HOMEROOM_TEACHER_LIMIT = "Each teacher can only assign to a class.";
         public const string HOMEROOM_ASSIGN_SUCCESS = "Homeroom teacher assign success";
         public const string GET_SUBJECT_IN_CLASS_SUCCESS = "Get subject in classgroup success.";
-        public const string SUBJECT_GROUP_ASSIGN_SUCCESS = "The subject group assign success.";
+        public const string CURRICULUM_ASSIGN_SUCCESS = "The subject group assign success.";
 
         //School Year
         public const string SCHOOL_YEAR_NOT_EXIST = "The school year does not exist.";
@@ -185,6 +185,16 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string GET_NOT_READ_NOTIFICATION_SUCCESS = "Get unread notification success.";
         public const string IS_READ_SUCCESS = "Notification is read.";
 
+
+        //Student Class Group
+        public const string ADD_STUDENT_CLASS_GROUP_SUCCESS = "Add student class group success.";
+        public const string GET_STUDENT_CLASS_GROUP_SUCCESS = "Get student class group success.";
+        public const string UPDATE_STUDENT_CLASS_GROUP_SUCCESS = "Update student class group success.";
+        public const string DELETE_STUDENT_CLASS_GROUP_SUCCESS = "Delete student class group success.";
+        public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_EXISTED = "Student class group name or code does existed.";
+        public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_DUPLICATED = "Student class group name or code does douplicated.";
+        public const string STUDENT_CLASS_GROUP_NOT_FOUND = "Student class group does not found.";
+        
 
     }
 }

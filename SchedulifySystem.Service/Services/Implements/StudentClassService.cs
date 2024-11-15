@@ -1,26 +1,15 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using SchedulifySystem.Repository;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
-using SchedulifySystem.Repository.Repositories.Interfaces;
-using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
-using SchedulifySystem.Service.BusinessModels.SubjectInGroupBusinessModels;
-using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.UnitOfWork;
 using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.Services.Implements
 {
@@ -294,7 +283,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var studentClassGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync((int)updateStudentClassModel.StudentClassGroupId,
                                filter: t => t.IsDeleted == false,
                                include: query => query.Include(sg => sg.Curriculum).ThenInclude(cd => cd.CurriculumDetails))
-                               ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_EXISTED);
+                               ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_FOUND);
 
                 // delete old assignment
                 var oldAssignment = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(filter: ta => ta.StudentClassId == id);
@@ -478,8 +467,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     //transaction.Commit();
                     return new BaseResponseModel()
                     {
-                        Status = StatusCodes.Status200OK,
-                        Message = ConstantResponse.SUBJECT_GROUP_ASSIGN_SUCCESS
+                        Status = StatusCodes.Status200OK
+                        //Message = ConstantResponse.SUBJECT_GROUP_ASSIGN_SUCCESS
                     };
                 }
                 catch (Exception)
