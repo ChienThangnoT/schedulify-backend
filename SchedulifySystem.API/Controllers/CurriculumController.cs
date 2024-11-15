@@ -13,44 +13,44 @@ namespace SchedulifySystem.API.Controllers
     {
         private readonly ICurriculumService _curriculumService;
 
-        public CurriculumController(ICurriculumService subjectGroupService)
+        public CurriculumController(ICurriculumService curriculumService)
         {
-            _curriculumService = subjectGroupService;
+            _curriculumService = curriculumService;
         }
 
         [HttpGet]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetSubjectGroups(int schoolId, int yearId, int? subjectGroupId, EGrade? grade, bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetCurriculums(int schoolId, int yearId, EGrade? grade, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _curriculumService.GetCurriculums(schoolId, subjectGroupId, grade, yearId, includeDeleted, pageIndex, pageSize));
+            return ValidateAndExecute(() => _curriculumService.GetCurriculums(schoolId, grade, yearId, pageIndex, pageSize));
         }
 
         [HttpGet("{id}")]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetSubjectGroupDetail(int id)
+        public Task<IActionResult> GetCurriculumDetail(int schoolId, int yearId, int id)
         {
-            return ValidateAndExecute(() => _curriculumService.GetCurriculumDetails(id));
+            return ValidateAndExecute(() => _curriculumService.GetCurriculumDetails(schoolId, yearId, id));
         }
 
         [HttpPost]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AddSubjectGroup(int schoolId, CurriculumAddModel subjectGroupAddModel)
+        public Task<IActionResult> AddCurriculum(int schoolId, int yearId, CurriculumAddModel curriculumAddModel)
         {
-            return ValidateAndExecute(() => _curriculumService.CreateCurriculum(schoolId, subjectGroupAddModel));
+            return ValidateAndExecute(() => _curriculumService.CreateCurriculum(schoolId, yearId, curriculumAddModel));
         }
 
         [HttpPatch("{id}")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> UpdateSubjectGroup(int id, CurriculumUpdateModel model)
+        public Task<IActionResult> UpdateCurriculum(int schoolId, int yearId, int id, CurriculumUpdateModel model)
         {
-            return ValidateAndExecute(() => _curriculumService.UpdateCurriculum(id, model));
+            return ValidateAndExecute(() => _curriculumService.UpdateCurriculum(schoolId, yearId, id, model));
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> DeleteSubjectGroup(int id)
+        public Task<IActionResult> DeleteCurriculum(int schoolId, int yearId, int id)
         {
-            return ValidateAndExecute(() => _curriculumService.DeleteCurriculum(id));
+            return ValidateAndExecute(() => _curriculumService.DeleteCurriculum(schoolId, yearId, id));
         }
 
         [HttpPatch("quick-assign-period")]
@@ -61,6 +61,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet("quick-assign-period-data")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> GetQuickAssignPeriodData(int schoolId, int yearId)
         {
             return ValidateAndExecute(() => _curriculumService.GetQuickAssignPeriodData(schoolId, yearId));

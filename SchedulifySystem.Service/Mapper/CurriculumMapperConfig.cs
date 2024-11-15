@@ -12,7 +12,7 @@ namespace SchedulifySystem.Service.Mapper
 {
     public partial class MapperConfigs : Profile
     {
-        partial void SubjectGroupMapperConfig()
+        partial void CurriculumMapperConfig()
         {
             CreateMap<CurriculumAddModel, Curriculum>()
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
@@ -22,15 +22,10 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ReverseMap();
 
-            CreateMap<Curriculum, CurriculumDetailViewModel>()
-               .ForMember(dest => dest.SchoolName,
-                opt => opt.MapFrom(src => src.School != null ? src.School.Name : string.Empty))
-               .ReverseMap();
+            CreateMap<Curriculum, CurriculumViewModel>();
 
             CreateMap<Curriculum, CurriculumViewDetailModel>()
-                .ForMember(dest => dest.SchoolYear,
-                opt => opt.MapFrom(src => src.SchoolYear != null ? $"{src.SchoolYear.StartYear} - {src.SchoolYear.EndYear}":""))
-                .ReverseMap();
+               .ReverseMap();
         }
     }
 }

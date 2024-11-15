@@ -35,162 +35,132 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #region create Curriculum
-        public async Task<BaseResponseModel> CreateCurriculum(int schoolId, CurriculumAddModel CurriculumAddModel)
+        public async Task<BaseResponseModel> CreateCurriculum(int schoolId, int schoolYearId, CurriculumAddModel curriculumAddModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    // check exist 
-                    var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
-                        ?? throw new NotExistsException($"School not found with id {schoolId}");
-                    var schoolYear = (await _unitOfWork.SchoolYearRepo.ToPaginationIncludeAsync(
-                        filter: sy => sy.Id == CurriculumAddModel.SchoolYearId && sy.IsDeleted == false,
-                        include: query => query.Include(sy => sy.Terms))).Items.FirstOrDefault()
+                    // Kiểm tra sự tồn tại của trường học và năm học
+                    var schoolData = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: s => !s.IsDeleted && s.Status == (int)SchoolStatus.Active)
+                        ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+
+                    var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: sy => !sy.IsDeleted, include: query => query.Include(sy => sy.Terms))
                         ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
-                    var termInYear = await _unitOfWork.TermRepo.GetAsync(filter: t => t.SchoolYearId == schoolYear.Id && t.IsDeleted == false)
-                        ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
-                    List<Term> termList = termInYear.ToList();
-                    var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(
-                        filter: t => t.SchoolId == schoolId && t.Grade == (int)CurriculumAddModel.Grade
-                        && (t.CurriculumName.ToLower() == CurriculumAddModel.CurriculumName.ToLower())
-                        );
+                    var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(t =>
+                        t.SchoolId == schoolId && t.Grade == (int)curriculumAddModel.Grade &&
+                        t.CurriculumName.ToLower() == curriculumAddModel.CurriculumName.ToLower());
 
                     if (checkExistCurriculum.Any())
-                    {
-                        return new BaseResponseModel()
+                        return new BaseResponseModel
                         {
                             Status = StatusCodes.Status400BadRequest,
-                            Message = ConstantResponse.CURRICULUM_NAME_OR_CODE_EXISTED
+                            Message = ConstantResponse.CURRICULUM_NAME_EXISTED
                         };
-                    }
-                    // check enough number subject
-                    if (CurriculumAddModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT
-                        || CurriculumAddModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
+
+                    // Kiểm tra số lượng môn học chuyên ngành và tự chọn
+                    if (curriculumAddModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT ||
+                        curriculumAddModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
                     {
-                        return new BaseResponseModel()
+                        return new BaseResponseModel
                         {
                             Status = StatusCodes.Status400BadRequest,
                             Message = ConstantResponse.INVALID_NUMBER_SUBJECT
                         };
                     }
 
-                    var CurriculumAdd = _mapper.Map<Curriculum>(CurriculumAddModel);
-                    CurriculumAdd.SchoolId = schoolId;
-                    await _unitOfWork.CurriculumRepo.AddAsync(CurriculumAdd);
-                    //save to have group id
+                    // Thêm Curriculum
+                    var curriculum = _mapper.Map<Curriculum>(curriculumAddModel);
+                    curriculum.SchoolId = schoolId;
+                    curriculum.SchoolYearId = schoolYearId;
+                    await _unitOfWork.CurriculumRepo.AddAsync(curriculum);
                     await _unitOfWork.SaveChangesAsync();
-                    //generate data subject
 
-                    //ElectiveSubjects
-                    var newSubjectInGroupAdded = new List<CurriculumDetail>();
-                    foreach (int subjectId in CurriculumAddModel.ElectiveSubjectIds)
+                    // Tạo danh sách CurriculumDetail
+                    var termList = schoolYear.Terms.ToList();
+                    var curriculumDetails = new List<CurriculumDetail>();
+
+                    // Lấy tất cả các môn học từ database
+                    var subjects = await _unitOfWork.SubjectRepo.GetV2Async(filter: s => !s.IsDeleted);
+
+                    // Tạo danh sách các Elective Subjects từ danh sách đã lấy
+                    var electiveSubjects = subjects.Where(s => curriculumAddModel.ElectiveSubjectIds.Contains(s.Id));
+
+                    // Tìm các ID không tồn tại trong cơ sở dữ liệu
+                    var invalidIds = curriculumAddModel.ElectiveSubjectIds
+                        .Where(i => !subjects.Select(s => s.Id).Contains(i))
+                        .ToList();
+
+                    // Kiểm tra nếu có ID không hợp lệ
+                    if (invalidIds.Any())
                     {
-                        // check subject existed and not belong to require subject
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
-                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-                        if (checkSubject.IsRequired)
-                            return new BaseResponseModel
-                            {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = $"Không tìm thấy môn có Id: {string.Join(", ", invalidIds)}"
+                        };
+                    }
+                    // Thêm Elective Subjects
+                    foreach (var subject in electiveSubjects)
+                    {
+                        if (subject.IsRequired)
+                            return new BaseResponseModel() 
+                            { 
                                 Status = StatusCodes.Status400BadRequest,
-                                Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT,
-                                Result = subjectId
+                                Message = "Không thể chọn môn bắt buộc."
                             };
 
-                        // cal slot per term
+                        int slotPerTerm1 = (int)subject.TotalSlotInYear / 2;
+                        int slotPerTerm2 = (int)subject.TotalSlotInYear - slotPerTerm1;
 
-                        int slotPerTerm1 = (int)Math.Floor((double)checkSubject.TotalSlotInYear / 2);
-                        int slotPerTerm2 = (int)Math.Ceiling((double)checkSubject.TotalSlotInYear / 2);
-
-                        var newSubjectInGroup = new CurriculumDetail
-                        {
-                            SubjectId = subjectId,
-                            CurriculumId = CurriculumAdd.Id,
-                            MainSlotPerWeek = (checkSubject?.TotalSlotInYear / 35) ?? 0,
-                            IsSpecialized = CurriculumAddModel.SpecializedSubjectIds.Contains(subjectId)
-                        };
-
-                        for (int i = 0; i < termList.Count; i++)
-                        {
-                            newSubjectInGroup.CreateDate = DateTime.UtcNow;
-                            newSubjectInGroup.TermId = termList[i].Id;
-                            newSubjectInGroup.SlotPerTerm = (i == 0) ? slotPerTerm1 : slotPerTerm2;
-                            _unitOfWork.CurriculumDetailRepo.AddAsync(newSubjectInGroup.ShallowCopy());
-                            newSubjectInGroupAdded.Add(newSubjectInGroup);
-                        }
-                    }
-
-                    await _unitOfWork.SaveChangesAsync();
-                    //add required subject
-                    var requiredSubjects = await _unitOfWork.SubjectRepo.GetAsync(
-                        filter: t => t.IsDeleted == false && t.IsRequired == true);
-                    //var requiredSubjectList = new List<SubjectInGroup>();
-                    foreach (var subject in requiredSubjects)
-                    {
-                        int slotPerTerm1 = (int)Math.Floor((double)subject.TotalSlotInYear / 2);
-                        int slotPerTerm2 = (int)Math.Ceiling((double)subject.TotalSlotInYear / 2);
-
-                        var newSubjectRequiredInGroup = new CurriculumDetail
+                        curriculumDetails.AddRange(termList.Select((term, index) => new CurriculumDetail
                         {
                             SubjectId = subject.Id,
-                            CurriculumId = CurriculumAdd.Id,
-                            MainSlotPerWeek = (subject?.TotalSlotInYear / 35) ?? 0,
-                            IsSpecialized = CurriculumAddModel.SpecializedSubjectIds.Contains(subject.Id)
-                        };
+                            CurriculumId = curriculum.Id,
+                            MainSlotPerWeek = (int)subject.TotalSlotInYear / 35,
+                            SlotPerTerm = (term.EndWeek == 18) ? slotPerTerm1 : slotPerTerm2,
+                            TermId = term.Id,
+                            CreateDate = DateTime.UtcNow
+                        }));
+                    }
 
-                        for (int i = 0; i < termList.Count; i++)
+                    // thêm các môn bắt buộc 
+                    var requireSubjects = subjects.Where(s => s.IsRequired).ToList();
+                    foreach(var subject in requireSubjects)
+                    {
+                        int slotPerTerm1 = (int)subject.TotalSlotInYear / 2;
+                        int slotPerTerm2 = (int)subject.TotalSlotInYear - slotPerTerm1;
+
+                        curriculumDetails.AddRange(termList.Select((term, index) => new CurriculumDetail
                         {
-                            newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
-                            newSubjectRequiredInGroup.TermId = termList[i].Id;
-                            newSubjectRequiredInGroup.SlotPerTerm = (i == 0) ? slotPerTerm1 : slotPerTerm2;
-                            _unitOfWork.CurriculumDetailRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
-                            newSubjectInGroupAdded.Add(newSubjectRequiredInGroup);
-                        }
+                            SubjectId = subject.Id,
+                            CurriculumId = curriculum.Id,
+                            MainSlotPerWeek = (int)subject.TotalSlotInYear / 35,
+                            SlotPerTerm = (term.EndWeek == 18) ? slotPerTerm1 : slotPerTerm2,
+                            TermId = term.Id,
+                            CreateDate = DateTime.UtcNow
+                        }));
                     }
 
+                    // thêm chuyên đề
+                    var specializedSubjects = curriculumDetails.Where(s => curriculumAddModel.SpecializedSubjectIds.Contains(s.SubjectId));
+                    foreach(var subject in specializedSubjects)
+                    {
+                        subject.SlotPerTerm++;
+                        subject.MainSlotPerWeek++;
+                        subject.IsSpecialized = true;
+                    }
+
+                    await _unitOfWork.CurriculumDetailRepo.AddRangeAsync(curriculumDetails);
                     await _unitOfWork.SaveChangesAsync();
 
-                    //Specialized Subject
-                    var specializedSubjectNotInElectiveSubjects = CurriculumAddModel.SpecializedSubjectIds
-                        .Where(s => !CurriculumAddModel.ElectiveSubjectIds.Contains(s));
-
-                    foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
-                    {
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
-                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-
-                        if (!checkSubject.IsRequired)
-                            return new BaseResponseModel
-                            {
-                                Status = StatusCodes.Status400BadRequest,
-                                Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT,
-                                Result = subjectId
-                            };
-                    }
-
-                    //var subjectInGroupAdded = newSubjectInGroupAdded.FirstOrDefault(s => CurriculumAddModel.SpecializedSubjectIds.Contains(s.SubjectId));
                     transaction.Commit();
-                    //var subjectInGroupAdded = newSubjectInGroupAdded
-                    //    .Where(c => CurriculumAddModel.SpecializedSubjectIds.Contains(c.SubjectId)).ToList();
-
-                    var updateSpecialSubject = await _unitOfWork.CurriculumDetailRepo.GetV2Async(
-                        filter: t => t.CurriculumId == CurriculumAdd.Id && CurriculumAddModel.SpecializedSubjectIds.Contains(t.SubjectId)
-                        , include: query => query.Include(i => i.Subject));
-
-                    foreach (var subjectInGroup in updateSpecialSubject)
-                    {
-                        subjectInGroup.IsSpecialized = true;
-                        subjectInGroup.MainSlotPerWeek += (subjectInGroup.Subject?.SlotSpecialized / 35) ?? 0;
-                        _unitOfWork.CurriculumDetailRepo.Update(subjectInGroup);
-                    }
-                    await _unitOfWork.SaveChangesAsync();
-                    var result = _mapper.Map<BusinessModels.CurriculumBusinessModels.CurriculumDetailViewModel>(CurriculumAdd);
-                    return new BaseResponseModel()
+                    return new BaseResponseModel
                     {
                         Status = StatusCodes.Status201Created,
                         Message = ConstantResponse.ADD_CURRICULUM_SUCCESS,
-                        Result = result
+                        Result = _mapper.Map<CurriculumViewModel>(curriculum)
                     };
                 }
                 catch (Exception)
@@ -199,102 +169,26 @@ namespace SchedulifySystem.Service.Services.Implements
                     throw;
                 }
             }
-
         }
+
         #endregion
 
         #region Get Curriculum Detail
-        public async Task<BaseResponseModel> GetCurriculumDetails(int curriculumId)
+        public async Task<BaseResponseModel> GetCurriculumDetails(int schoolId, int yearId,int curriculumId)
         {
-            var curriculum = await _unitOfWork.CurriculumRepo.GetV2Async(
-                filter: t => t.Id == curriculumId && t.IsDeleted == false,
-                include: query => query.Include(c => c.CurriculumDetails)
-                           .ThenInclude(sg => sg.Subject));
+            var curriculum = await _unitOfWork.CurriculumRepo.GetByIdAsync(curriculumId,
+                filter: c =>  !c.IsDeleted && schoolId == c.SchoolId && yearId == c.SchoolYearId,
+                include: query => query.Include(c => c.StudentClassGroups).Include(c => c.CurriculumDetails)
+                           .ThenInclude(cd => cd.Subject)) ??
+                           throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
 
-            if (curriculum == null || !curriculum.Any())
-            {
-                throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
-            }
+            var result = _mapper.Map<CurriculumViewDetailModel>(curriculum);
+            result.StudentClassGroupViewNames = curriculum.StudentClassGroups.Where(cg => !cg.IsDeleted).Select(c => c.GroupName).ToList();
 
-            var curriculumDb = curriculum.FirstOrDefault();
-
-            var result = _mapper.Map<CurriculumViewDetailModel>(curriculumDb);
-
-
-            result.SubjectSelectiveViews = new List<SubjectViewDetailModel>();
-            result.SubjectSpecializedtViews = new List<SubjectViewDetailModel>();
-            result.SubjectRequiredViews = new List<SubjectViewDetailModel>();
-            result.StudentClassGroupViewNames = new List<StudentClassGroupViewName>();
-
-            var listSBInGroup = curriculumDb.CurriculumDetails.ToList();
-
-            var studentClassGroups = await _unitOfWork.StudentClassGroupRepo.GetAsync(
-                filter: t => t.CurriculumId == curriculumDb.Id && t.IsDeleted == false);
-            if (studentClassGroups.Any() || studentClassGroups != null)
-            {
-                foreach (var group in studentClassGroups)
-                {
-                    var studenClassName = new StudentClassGroupViewName
-                    {
-                        GroupName = group.GroupName
-                    };
-                    result.StudentClassGroupViewNames.Add(studenClassName);
-                }
-            }
-
-            var specializedSubjectIds = listSBInGroup
-                .Where(sig => sig.IsSpecialized)
-                .Select(sig => sig.SubjectId)
-                .ToList();
-
-            foreach (var item in listSBInGroup)
-            {
-                var subjectDetail = new SubjectViewDetailModel
-                {
-                    Id = item.Id,
-                    SubjectName = item.Subject?.SubjectName,
-                    Abbreviation = item.Subject?.Abbreviation,
-                    SubjectInGroupType = (ESubjectInGroupType)item.SubjectInGroupType,
-                    IsRequired = item.Subject?.IsRequired ?? false,
-                    Description = item.Subject?.Description,
-                    MainSlotPerWeek = item.MainSlotPerWeek,
-                    SubSlotPerWeek = item.SubSlotPerWeek,
-                    TotalSlotPerWeek = item.MainSlotPerWeek + item.SubSlotPerWeek,
-                    IsSpecialized = item.IsSpecialized,
-                    IsDoublePeriod = item.IsDoublePeriod,
-                    SlotPerTerm = item.SlotPerTerm,
-                    TermId = item.TermId ?? 0,
-                    TotalSlotInYear = item.Subject?.TotalSlotInYear,
-                    SlotSpecialized = item.Subject?.SlotSpecialized ?? 35,
-                    SubjectGroupType = (ESubjectGroupType)(item.Subject?.SubjectGroupType ?? 0),
-                    MainMinimumCouple = item.MainMinimumCouple,
-                    SubMinimumCouple = item.SubMinimumCouple,
-                };
-
-                if (item.Subject?.IsRequired == true)
-                {
-                    result.SubjectRequiredViews.Add(subjectDetail);
-
-                    if (specializedSubjectIds.Contains(item.SubjectId))
-                    {
-                        result.SubjectSpecializedtViews.Add(subjectDetail);
-                    }
-                }
-
-                else if (item.Subject?.IsRequired == false)
-                {
-                    result.SubjectSelectiveViews.Add(subjectDetail);
-
-                    if (specializedSubjectIds.Contains(item.SubjectId))
-                    {
-                        result.SubjectSpecializedtViews.Add(subjectDetail);
-                    }
-                }
-                else if (item.IsSpecialized)
-                {
-                    result.SubjectSpecializedtViews.Add(subjectDetail);
-                }
-            }
+            var subjectViewData = _mapper.Map<List<SubjectViewDetailModel>>(curriculum.CurriculumDetails);
+            result.SubjectSelectiveViews = subjectViewData.Where(s => !s.IsRequired).ToList();
+            result.SubjectSpecializedtViews = subjectViewData.Where(s => s.IsSpecialized).ToList();
+            result.SubjectRequiredViews = subjectViewData.Where(s => s.IsRequired).ToList();
 
             return new BaseResponseModel()
             {
@@ -308,84 +202,66 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region get Curriculums
-        public async Task<BaseResponseModel> GetCurriculums(int schoolId, int? CurriculumId, EGrade? grade, int? schoolYearId, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetCurriculums(int schoolId, EGrade? grade, int schoolYearId, int pageIndex, int pageSize)
         {
-            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => !t.IsDeleted && t.Status == (int)SchoolStatus.Active)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
-            if (CurriculumId != null)
-            {
-                var Curriculum = await _unitOfWork.CurriculumRepo.GetByIdAsync((int)CurriculumId, filter: t => t.IsDeleted == false)
-                    ?? throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
-            }
-            if (schoolYearId != null)
-            {
-                var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync((int)schoolYearId, filter: t => t.IsDeleted == false)
+
+            var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: t => !t.IsDeleted)
                     ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
-            }
 
             var curriculum = await _unitOfWork.CurriculumRepo.GetPaginationAsync(
                 filter: t => t.SchoolId == schoolId
-                && (CurriculumId == null || t.Id == CurriculumId)
                 && (grade == null || t.Grade == (int)grade)
-                && (schoolYearId == null || t.SchoolYearId == schoolYearId)
-                && t.IsDeleted == includeDeleted,
+                && (t.SchoolYearId == schoolYearId)
+                && !t.IsDeleted ,
                 includeProperties: "School",
                 orderBy: q => q.OrderBy(s => s.CurriculumName),
                 pageIndex: pageIndex,
                 pageSize: pageSize
                 );
-            if (curriculum.Items.Count == 0)
-            {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.GET_CURRICULUM_LIST_FAILED
-                };
-            }
-            var result = _mapper.Map<Pagination<BusinessModels.CurriculumBusinessModels.CurriculumDetailViewModel>>(curriculum);
+            var result = _mapper.Map<Pagination<CurriculumViewModel>>(curriculum);
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
-                Message = ConstantResponse.GET_CURRICULUM_LIST_SUCCESS
-                //Result = result
+                Message = ConstantResponse.GET_CURRICULUM_LIST_SUCCESS,
+                Result = result.Items.Count == 0 ? null : result
             };
         }
         #endregion
 
         #region Update Curriculum
-        public async Task<BaseResponseModel> UpdateCurriculum(int CurriculumId, CurriculumUpdateModel CurriculumUpdateModel)
+        public async Task<BaseResponseModel> UpdateCurriculum(int schoolId, int schoolYearId, int curriculumId, CurriculumUpdateModel curriculumUpdateModel)
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    var curriculums = await _unitOfWork.CurriculumRepo.GetV2Async(
-                    filter: t => t.Id == CurriculumId && t.IsDeleted == false,
+                    var CurriculumDb = await _unitOfWork.CurriculumRepo.GetByIdAsync(curriculumId,
+                    filter: t => !t.IsDeleted && t.SchoolId == schoolId && t.SchoolYearId == schoolYearId,
                     include: query => query.Include(c => c.CurriculumDetails)
                                .ThenInclude(sg => sg.Subject)
                                .Include(sg => sg.School)
                                .Include(sg => sg.SchoolYear)
-                               .ThenInclude(sy => sy.Terms));
-                    var termInYear = await _unitOfWork.TermRepo.GetAsync(filter: t => t.SchoolYearId == CurriculumUpdateModel.SchoolYearId && t.IsDeleted == false)
-                        ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
-                    List<Term> termList = termInYear.ToList();
-                    if (curriculums == null || !curriculums.Any())
-                    {
-                        throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
-                    }
+                               .ThenInclude(sy => sy.Terms)) ?? 
+                               throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
 
-                    var CurriculumDb = curriculums.FirstOrDefault();
+                    var termInYear = await _unitOfWork.TermRepo.GetAsync(filter: t => t.SchoolYearId == schoolYearId && !t.IsDeleted)
+                        ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+
+                    List<Term> termList = termInYear.ToList();
 
                     // Kiểm tra có sự thay đổi trong Name không
-                    bool isNameChanged = !string.Equals(CurriculumDb.CurriculumName, CurriculumUpdateModel.CurriculumName, StringComparison.OrdinalIgnoreCase);
+                    bool isNameChanged = !string.Equals(CurriculumDb.CurriculumName, curriculumUpdateModel.CurriculumName, StringComparison.OrdinalIgnoreCase);
 
-                    if (isNameChanged )
+                    if (isNameChanged)
                     {
                         // Thực hiện truy vấn kiểm tra trùng lặp chỉ khi có sự thay đổi
                         var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(
-                            filter: t => (t.CurriculumName.ToLower() == CurriculumUpdateModel.CurriculumName.ToLower()
+                            filter: t => (t.CurriculumName.ToLower() == curriculumUpdateModel.CurriculumName.ToLower()
                                           &&
-                                          t.Id != CurriculumId
+                                          t.Id != curriculumId && !t.IsDeleted && t.SchoolId == schoolId
+                                          && schoolYearId == t.SchoolYearId
                         ));
 
                         if (checkExistCurriculum.Any())
@@ -393,15 +269,15 @@ namespace SchedulifySystem.Service.Services.Implements
                             return new BaseResponseModel()
                             {
                                 Status = StatusCodes.Status400BadRequest,
-                                Message = ConstantResponse.CURRICULUM_NAME_OR_CODE_EXISTED
+                                Message = ConstantResponse.CURRICULUM_NAME_EXISTED
                             };
                         }
                     }
 
 
                     // check enough number subject
-                    if (CurriculumUpdateModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT
-                        || CurriculumUpdateModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
+                    if (curriculumUpdateModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT
+                        || curriculumUpdateModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
                     {
                         return new BaseResponseModel()
                         {
@@ -411,10 +287,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     // ko update grade nếu đã được sử dụng bởi lớp nào
-                    if (CurriculumUpdateModel.Grade != 0 && CurriculumUpdateModel.Grade != (EGrade)CurriculumDb.Grade)
+                    if (curriculumUpdateModel.Grade != 0 && curriculumUpdateModel.Grade != (EGrade)CurriculumDb.Grade)
                     {
                         var classGroups = await _unitOfWork.StudentClassGroupRepo.GetAsync(
-                            filter: t => t.Grade == (int)CurriculumUpdateModel.Grade && t.CurriculumId == CurriculumId && !t.IsDeleted);
+                            filter: t => t.Grade == (int)curriculumUpdateModel.Grade && t.CurriculumId == curriculumId && !t.IsDeleted);
 
                         if (classGroups.Any())
                         {
@@ -425,164 +301,105 @@ namespace SchedulifySystem.Service.Services.Implements
                             };
                         }
 
-                        CurriculumDb.Grade = (int)CurriculumUpdateModel.Grade;
+                        CurriculumDb.Grade = (int)curriculumUpdateModel.Grade;
                     }
 
-                    if (!string.IsNullOrEmpty(CurriculumUpdateModel.CurriculumName))
+                    if (!string.IsNullOrEmpty(curriculumUpdateModel.CurriculumName))
                     {
-                        CurriculumDb.CurriculumName = CurriculumUpdateModel.CurriculumName.Trim();
+                        CurriculumDb.CurriculumName = curriculumUpdateModel.CurriculumName.Trim();
+                    }
+
+                    // Lấy tất cả các môn học từ database
+                    var subjects = await _unitOfWork.SubjectRepo.GetV2Async(filter: s => !s.IsDeleted);
+
+                    // Tạo danh sách các Elective Subjects từ danh sách đã lấy
+                    var electiveSubjects = subjects.Where(s => curriculumUpdateModel.ElectiveSubjectIds.Contains(s.Id));
+
+                    // Tìm các ID không tồn tại trong cơ sở dữ liệu
+                    var invalidIds = curriculumUpdateModel.ElectiveSubjectIds
+                        .Where(i => !subjects.Select(s => s.Id).Contains(i))
+                        .ToList();
+
+                    // Kiểm tra nếu có ID không hợp lệ
+                    if (invalidIds.Any())
+                    {
+                        return new BaseResponseModel()
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = $"Không tìm thấy môn có Id: {string.Join(", ", invalidIds)}"
+                        };
                     }
 
                     // get list môn học hiện tại trong tổ hợp
-                    var existingSubjectIds = CurriculumDb.CurriculumDetails
-                        .Where(query => query.Subject.IsRequired != true)
-                        .Select(s => s.SubjectId).ToList();
-
-                    // xác định các môn tự chọn mới và các môn cần xóa bằng except
-                    var newElectiveSubjects = CurriculumUpdateModel.ElectiveSubjectIds.Except(existingSubjectIds).ToList();
-
-                    var subjectsToRemove = existingSubjectIds
-                        .Except(CurriculumUpdateModel.ElectiveSubjectIds)
-                        .Except(CurriculumUpdateModel.SpecializedSubjectIds)
+                    var oldElectiveSubjectIds = CurriculumDb.CurriculumDetails
+                        .Where(query => !query.Subject.IsRequired).Select(s => s.SubjectId).ToList();
+                        
+                    var subjectsToRemove = oldElectiveSubjectIds
+                        .Except(curriculumUpdateModel.ElectiveSubjectIds)
                         .ToList();
 
-                    // xóa các môn không có trong danh sách cập nhật từ SubjectInGroup
-                    if (subjectsToRemove.Any() || subjectsToRemove.Count != 0)
+                    var newElectiveSubjects = electiveSubjects.Where(s => !subjectsToRemove.Contains(s.Id) && !oldElectiveSubjectIds.Contains(s.Id));
+                    // Thêm Elective Subjects
+                    foreach (var subject in newElectiveSubjects)
+                    {
+                        if (subject.IsRequired)
+                            return new BaseResponseModel()
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = "Không thể chọn môn bắt buộc."
+                            };
+
+                        int slotPerTerm1 = (int)subject.TotalSlotInYear / 2;
+                        int slotPerTerm2 = (int)subject.TotalSlotInYear - slotPerTerm1;
+
+                        var newCurriculumDetails = termList.Select((term, index) => new CurriculumDetail
+                        {
+                            SubjectId = subject.Id,
+                            CurriculumId = curriculumId,
+                            MainSlotPerWeek = (int)subject.TotalSlotInYear / 35,
+                            SlotPerTerm = (term.EndWeek == 18) ? slotPerTerm1 : slotPerTerm2,
+                            TermId = term.Id,
+                            CreateDate = DateTime.UtcNow
+                        }).ToList();
+
+                        await _unitOfWork.CurriculumDetailRepo.AddRangeAsync(newCurriculumDetails);
+                    }
+
+
+                    if (subjectsToRemove.Any()) 
                     {
                         var subjectsToRemoveEntities = CurriculumDb.CurriculumDetails
                             .Where(s => subjectsToRemove.Contains(s.SubjectId))
                             .ToList();
-                        _unitOfWork.CurriculumDetailRepo.RemoveRange(subjectsToRemoveEntities);
-                    }
-
-                    // thêm các môn tự chọn mới
-                    foreach (var subjectId in newElectiveSubjects)
-                    {
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
-                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-
-                        if (checkSubject.IsRequired)
-                            return new BaseResponseModel
-                            {
-                                Status = StatusCodes.Status400BadRequest,
-                                Message = ConstantResponse.REQUIRE_ELECTIVE_SUBJECT,
-                                Result = subjectId
-                            };
-
-                        foreach (var term in termInYear)
+                        if (subjectsToRemoveEntities.Any())
                         {
-                            var newSubjectInGroup = new CurriculumDetail
-                            {
-                                SubjectId = subjectId,
-                                CurriculumId = CurriculumId,
-                                IsSpecialized = CurriculumUpdateModel.SpecializedSubjectIds.Contains(subjectId),
-                                TermId = term.Id
-                            };
-                            await _unitOfWork.CurriculumDetailRepo.AddAsync(newSubjectInGroup.ShallowCopy());
+                            _unitOfWork.CurriculumDetailRepo.RemoveRange(subjectsToRemoveEntities);
                         }
+
                     }
+                    // cập nhật môn chuyên đề
+                    var oldSpecializeSubjects = CurriculumDb.CurriculumDetails.Where(cd => cd.IsSpecialized).ToList();
+                    var newSpecializeSubjects = CurriculumDb.CurriculumDetails.Where(cd => curriculumUpdateModel.SpecializedSubjectIds.Contains(cd.SubjectId) && !cd.IsSpecialized);
+                    var removeSpecialzeSubjects = oldSpecializeSubjects.Where(cd => !curriculumUpdateModel.SpecializedSubjectIds.Contains(cd.SubjectId));
+
+                    foreach (var subject in removeSpecialzeSubjects)
+                    {
+                        subject.IsSpecialized = false;
+                        if (subject.MainSlotPerWeek > 0) { subject.MainSlotPerWeek--; } 
+                        else if(subject.SubSlotPerWeek > 0) subject.SubSlotPerWeek--;
+                        subject.SlotPerTerm--;
+                    }
+
+                    foreach (var subject in newSpecializeSubjects) 
+                    { 
+                        subject.IsSpecialized = true;
+                        if (subject.MainSlotPerWeek > 0) { subject.MainSlotPerWeek++; }
+                        else if (subject.SubSlotPerWeek > 0) subject.SubSlotPerWeek++;
+                        subject.SlotPerTerm++;
+                    }   
+
                     await _unitOfWork.SaveChangesAsync();
-
-                    //add required subject
-                    var requiredSubjects = await _unitOfWork.SubjectRepo.GetAsync(
-                        filter: t => t.IsDeleted == false && t.IsRequired == true);
-                    var requiredSubjectList = requiredSubjects.ToList();
-
-                    var requiredSBInDB = await _unitOfWork.CurriculumDetailRepo.GetAsync(filter: t => t.CurriculumId == CurriculumId && t.IsDeleted == false);
-                    var requiredSubjectInDBList = requiredSBInDB.ToList();
-
-                    if (!requiredSubjectList.All(subject => requiredSubjectInDBList.Any(dbSubject => dbSubject.Id == subject.Id)))
-                    {
-                        //var requiredSubjectList = new List<SubjectInGroup>();
-                        foreach (var subject in requiredSubjects)
-                        {
-                            int slotPerTerm1 = (int)Math.Floor((double)subject.TotalSlotInYear / 2);
-                            int slotPerTerm2 = (int)Math.Ceiling((double)subject.TotalSlotInYear / 2);
-
-                            var newSubjectRequiredInGroup = new CurriculumDetail
-                            {
-                                SubjectId = subject.Id,
-                                CurriculumId = CurriculumId,
-                                MainSlotPerWeek = (subject?.TotalSlotInYear / 35) ?? 0,
-                                IsSpecialized = CurriculumUpdateModel.SpecializedSubjectIds.Contains(subject.Id)
-                            };
-
-                            for (int i = 0; i < termList.Count; i++)
-                            {
-                                newSubjectRequiredInGroup.CreateDate = DateTime.UtcNow;
-                                newSubjectRequiredInGroup.TermId = termList[i].Id;
-                                newSubjectRequiredInGroup.SlotPerTerm = (i == 0) ? slotPerTerm1 : slotPerTerm2;
-                                await _unitOfWork.CurriculumDetailRepo.AddAsync(newSubjectRequiredInGroup.ShallowCopy());
-                            }
-                        }
-
-                        await _unitOfWork.SaveChangesAsync();
-                    }
-
-
-                    //Specialized Subject
-                    var specializedSubjectNotInElectiveSubjects = CurriculumUpdateModel.SpecializedSubjectIds
-                        .Where(s => !CurriculumUpdateModel.ElectiveSubjectIds.Contains(s));
-
-
-                    foreach (int subjectId in specializedSubjectNotInElectiveSubjects)
-                    {
-                        var checkSubject = await _unitOfWork.SubjectRepo.GetByIdAsync(subjectId)
-                            ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
-
-                        if (!checkSubject.IsRequired)
-                            return new BaseResponseModel
-                            {
-                                Status = StatusCodes.Status400BadRequest,
-                                Message = ConstantResponse.INVALID_SPECIALIZED_SUBJECT,
-                                Result = subjectId
-                            };
-                    }
-
                     transaction.Commit();
-
-                    var subjectInDB = await _unitOfWork.CurriculumRepo.GetV2Async(
-                        filter: t => t.Id == CurriculumId && t.IsDeleted == false,
-                        include: query => query.Include(q => q.CurriculumDetails));
-
-                    var CurriculumInDb = subjectInDB.FirstOrDefault();
-
-                    var existingSubjectIdsInDB = CurriculumInDb.CurriculumDetails
-                        .Where(query => query.IsSpecialized == true)
-                        .Select(s => s.SubjectId).ToList();
-
-                    var newSpecialSubjects = CurriculumUpdateModel.SpecializedSubjectIds.Except(existingSubjectIdsInDB).ToList();
-
-                    var subjectsSpecialToRemove = existingSubjectIdsInDB
-                        .Except(CurriculumUpdateModel.SpecializedSubjectIds)
-                        .ToList();
-
-                    var updateSpecialSubject = await _unitOfWork.CurriculumDetailRepo.GetAsync(
-                        filter: t => t.CurriculumId == CurriculumId && newSpecialSubjects.Contains(t.SubjectId));
-
-                    // update false các môn chuyên đề không có trong danh sách cập nhật
-                    if (subjectsSpecialToRemove.Count != 0)
-                    {
-                        var subjectsToRemoveEntities = CurriculumDb.CurriculumDetails
-                            .Where(s => subjectsSpecialToRemove.Contains(s.SubjectId))
-                            .ToList();
-                        foreach (var subjectInGroup in subjectsToRemoveEntities)
-                        {
-                            subjectInGroup.IsSpecialized = false;
-                            _unitOfWork.CurriculumDetailRepo.Update(subjectInGroup);
-                        }
-                    }
-
-                    //update new specialized
-                    foreach (var subjectInGroup in updateSpecialSubject)
-                    {
-                        subjectInGroup.IsSpecialized = true;
-                        _unitOfWork.CurriculumDetailRepo.Update(subjectInGroup);
-                    }
-
-                    _unitOfWork.CurriculumRepo.Update(CurriculumDb);
-                    await _unitOfWork.SaveChangesAsync();
-
                     return new BaseResponseModel()
                     {
                         Status = StatusCodes.Status200OK,
@@ -599,9 +416,18 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region DeleteCurriculum
-        public async Task<BaseResponseModel> DeleteCurriculum(int curriculumId)
+        public async Task<BaseResponseModel> DeleteCurriculum(int schoolId, int yearId, int curriculumId)
         {
-            var curriculum = await _unitOfWork.CurriculumRepo.GetByIdAsync(curriculumId, include: query => query.Include(sg => sg.CurriculumDetails)) ?? throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
+            var curriculum = await _unitOfWork.CurriculumRepo.GetByIdAsync(curriculumId,filter: c => c.SchoolId == schoolId && yearId == c.SchoolYearId,
+                include: query => query.Include(c => c.StudentClassGroups).Include(sg => sg.CurriculumDetails)) ?? throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
+            if(curriculum.StudentClassGroups.Where(scg => !scg.IsDeleted).Count() > 0)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Không thể xóa do có nhóm lớp đang sử dụng trương trình học!."
+                };
+            }
             curriculum.IsDeleted = true;
 
             _unitOfWork.CurriculumRepo.Update(curriculum);

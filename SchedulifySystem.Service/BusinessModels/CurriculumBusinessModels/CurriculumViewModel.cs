@@ -12,35 +12,23 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.CurriculumBusinessModels
 {
-    public class CurriculumDetailViewModel
+    public class CurriculumViewModel
     {
         public int Id { get; set; }
-        public string? GroupCode { get; set; }
-        public string? GroupName { get; set; }
-        public int SchoolId { get; set; }
-        public string? SchoolName { get; set; }
-        public string? GroupDescription { get; set; }
+        public string? CurriculumName { get; set; }
         public EGrade Grade { get; set; }
-        public string? SubjectGroupTypeName { get; set; }
-        public int? SchoolYearId { get; set; }
 
     }
 
     public class CurriculumViewDetailModel
     {
         public int Id { get; set; }
-        public string? GroupCode { get; set; }
-        public string? GroupName { get; set; }
-        public int SchoolId { get; set; }
-        public string? GroupDescription { get; set; }
+        public string? CurriculumName { get; set; }
         public EGrade Grade { get; set; }
         public List<SubjectViewDetailModel>? SubjectSelectiveViews { get; set; }
         public List<SubjectViewDetailModel>? SubjectSpecializedtViews { get; set; }
         public List<SubjectViewDetailModel>? SubjectRequiredViews { get; set; }
-        public List<StudentClassGroupViewName>? StudentClassGroupViewNames { get; set; }
-        public string? SubjectGroupTypeName { get; set; }
-        public int? SchoolYearId { get; set; }
-        public string? SchoolYear { get; set; }
+        public List<string>? StudentClassGroupViewNames { get; set; }
 
     }
 }

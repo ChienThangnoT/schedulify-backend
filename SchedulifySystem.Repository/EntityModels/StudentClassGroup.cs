@@ -21,8 +21,5 @@ namespace SchedulifySystem.Repository.EntityModels
         public Curriculum? Curriculum { get; set; }
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
     }
-    public class StudentClassGroupViewName
-    {
-        public string? GroupName { get; set; }
-    }
+    
 }

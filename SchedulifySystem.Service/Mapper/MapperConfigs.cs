@@ -33,8 +33,8 @@ namespace SchedulifySystem.Service.Mapper
             //add building mapper config
             BuildingMapperConfig();
 
-            //add subject group mapper config
-            SubjectGroupMapperConfig();
+            //add Curriculum Mapper Config
+            CurriculumMapperConfig();
 
             //add school mapper config
             SchoolMapperConfig();
@@ -46,7 +46,7 @@ namespace SchedulifySystem.Service.Mapper
             TeacherAssignmentMapperConfig();
 
             //add teacherAssignment mapper config
-            SubjectInGroupMapperrConfigs();
+            CurriculumDetailMapperConfig();
 
             //add Department Mapper Config
             DepartmentMapperConfig();
@@ -77,10 +77,10 @@ namespace SchedulifySystem.Service.Mapper
         partial void SubjectMapperConfig();
         partial void BuildingMapperConfig();
         partial void RoomMapperConfig();
-        partial void SubjectGroupMapperConfig();
+        partial void CurriculumMapperConfig();
         partial void SchoolMapperConfig();
         partial void TeacherAssignmentMapperConfig();
-        partial void SubjectInGroupMapperrConfigs();
+        partial void CurriculumDetailMapperConfig();
         partial void DepartmentMapperConfig();
         partial void TimetableMapperConfig();
         partial void TermMapperConfig();

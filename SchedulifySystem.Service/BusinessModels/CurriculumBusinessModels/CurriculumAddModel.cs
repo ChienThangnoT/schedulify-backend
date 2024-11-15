@@ -12,7 +12,6 @@ namespace SchedulifySystem.Service.BusinessModels.CurriculumBusinessModels
     {
         public string? CurriculumName { get; set; }
         public EGrade Grade { get; set; }
-        public int? SchoolYearId { get; set; }
         public List<int> ElectiveSubjectIds { get; set; } = new List<int>();
         public List<int> SpecializedSubjectIds { get; set; } = new List<int>();
     }

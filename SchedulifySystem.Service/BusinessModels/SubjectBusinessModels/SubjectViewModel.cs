@@ -28,6 +28,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
     public class SubjectViewDetailModel
     {
         public int Id { get; set; }
+        public int SubjectId { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
         public ESubjectInGroupType? SubjectInGroupType { get; set; }
