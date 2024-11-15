@@ -17,25 +17,25 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        private Task<IActionResult> GetStudentClassGroups(int schoolId, int schoolYearId, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetStudentClassGroups(int schoolId, int schoolYearId, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(() => _studentClassGroupService.GetStudentClassGroups(schoolId, schoolYearId, pageIndex, pageSize));
         }
 
         [HttpDelete("{id}")]
-        private Task<IActionResult> DeleteById(int id)
+        public Task<IActionResult> DeleteById(int id)
         {
             return ValidateAndExecute(() => _studentClassGroupService.DeleteStudentClassGroup(id));
         }
 
         [HttpPost]
-        private Task<IActionResult> AddStudentClassGroups(int schoolId, int schoolYearId, List<AddStudentClassGroupModel> models)
+        public Task<IActionResult> AddStudentClassGroups(int schoolId, int yearId, List<AddStudentClassGroupModel> models)
         {
-            return ValidateAndExecute(() => _studentClassGroupService.AddStudentClassgroup(schoolId, schoolYearId, models));
+            return ValidateAndExecute(() => _studentClassGroupService.AddStudentClassgroup(schoolId, yearId, models));
         }
 
         [HttpPut("{id}")]
-        private Task<IActionResult> UpdateStudentClassGroups(int id, UpdateStudentClassGroupModel model)
+        public Task<IActionResult> UpdateStudentClassGroups(int id, UpdateStudentClassGroupModel model)
         {
             return ValidateAndExecute(() => _studentClassGroupService.UpdateStudentClassGroup(id, model));
         }
