@@ -166,7 +166,7 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
-        public async Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId)
+        public async Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId, List<FixedTeacherAssignmentModel> fixedAssignments)
         {
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
                  filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId,
@@ -213,7 +213,7 @@ namespace SchedulifySystem.Service.Services.Implements
             foreach (var term in terms)
             {
                 if(term.Id == terms.First().Id)
-                    await AssignTeachers(assignmentFirsts, teachers.ToList(), teacherCapabilities, homeroomTeachers);
+                    await AssignTeachers(assignmentFirsts, teachers.ToList(), teacherCapabilities, homeroomTeachers, fixedAssignments);
                 else
                     foreach(var item in assignmentFirsts)
                     {
@@ -262,20 +262,50 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         public async Task AssignTeachers(
-    List<TeacherAssignment> assignments,
-    List<Teacher> teachers,
-    Dictionary<int, List<TeachableSubject>> teacherCapabilities,
-    Dictionary<int, int> homeroomTeachers) 
+            List<TeacherAssignment> assignments,
+            List<Teacher> teachers,
+            Dictionary<int, List<TeachableSubject>> teacherCapabilities,
+            Dictionary<int, int> homeroomTeachers,
+            List<FixedTeacherAssignmentModel> fixedAssignments) 
         {
-            // 1. Khởi tạo CpModel và các biến
-            CpModel model = new CpModel();
-            int numAssignments = assignments.Count;
+            // 1. Phân công giáo viên cố định trước
+            foreach (var fixedAssignment in fixedAssignments)
+            {
+                // Tìm nhiệm vụ cần phân công cố định
+                var assignment = assignments.FirstOrDefault(a => a.Id == fixedAssignment.AssignmentId);
+                var teacher = teachers.FirstOrDefault(t => t.Id == fixedAssignment.TeacherId);
+
+                // Kiểm tra nếu nhiệm vụ và giáo viên hợp lệ
+                if (assignment != null && teacher != null)
+                {
+                    // Đảm bảo giáo viên có thể dạy môn học và lớp này
+                    if (teacherCapabilities.ContainsKey(teacher.Id))
+                    {
+                        var teachableSubjects = teacherCapabilities[teacher.Id]
+                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
+                            .ToList();
+
+                        if (teachableSubjects.Any())
+                        {
+                            assignment.TeacherId = fixedAssignment.TeacherId;
+                            assignment.Teacher = teacher;
+                        }
+                    }
+                }
+            }
+
+            // Lọc danh sách assignments còn lại chưa được phân công
+            var remainingAssignments = assignments.Where(a => a.TeacherId == null).ToList();
+            int numRemainingAssignments = remainingAssignments.Count;
             int numTeachers = teachers.Count;
 
-            // Biến nhị phân đại diện cho việc phân công giáo viên cho từng assignment
-            BoolVar[,] assignmentMatrix = new BoolVar[numAssignments, numTeachers];
+            // 2. Khởi tạo CpModel và các biến
+            CpModel model = new CpModel();
 
-            for (int i = 0; i < numAssignments; i++)
+            // Biến nhị phân đại diện cho việc phân công giáo viên cho từng assignment
+            BoolVar[,] assignmentMatrix = new BoolVar[numRemainingAssignments, numTeachers];
+
+            for (int i = 0; i < numRemainingAssignments; i++)
             {
                 for (int j = 0; j < numTeachers; j++)
                 {
@@ -283,16 +313,16 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            // 2. Ràng buộc: Mỗi nhiệm vụ chỉ được phân cho một giáo viên
-            for (int i = 0; i < numAssignments; i++)
+            // 3. Ràng buộc: Mỗi nhiệm vụ chỉ được phân cho một giáo viên
+            for (int i = 0; i < numRemainingAssignments; i++)
             {
                 model.Add(LinearExpr.Sum(from j in Enumerable.Range(0, numTeachers) select assignmentMatrix[i, j]) == 1);
             }
 
-            // 3. Ràng buộc: Giáo viên chỉ có thể dạy các môn và khối lớp mà họ có thể dạy
-            for (int i = 0; i < numAssignments; i++)
+            // 4. Ràng buộc: Giáo viên chỉ có thể dạy các môn và khối lớp mà họ có thể dạy
+            for (int i = 0; i < numRemainingAssignments; i++)
             {
-                var assignment = assignments[i];
+                var assignment = remainingAssignments[i];
                 for (int j = 0; j < numTeachers; j++)
                 {
                     var teacher = teachers[j];
@@ -315,17 +345,17 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            // 4. Ràng buộc mềm: Số tiết tối đa của mỗi giáo viên là 17, nhưng có thể vượt quá nếu cần
+            // 5. Ràng buộc mềm: Số tiết tối đa của mỗi giáo viên là 17, nhưng có thể vượt quá nếu cần
             List<IntVar> overloadList = new List<IntVar>();
             foreach (var teacher in teachers)
             {
                 int teacherIndex = teachers.IndexOf(teacher);
                 List<IntVar> teacherLoad = new List<IntVar>();
 
-                for (int i = 0; i < numAssignments; i++)
+                for (int i = 0; i < numRemainingAssignments; i++)
                 {
-                    IntVar assignedLoad = model.NewIntVar(0, assignments[i].PeriodCount, $"load_{i}_{teacherIndex}");
-                    model.Add(assignedLoad == assignments[i].PeriodCount * assignmentMatrix[i, teacherIndex]);
+                    IntVar assignedLoad = model.NewIntVar(0, remainingAssignments[i].PeriodCount, $"load_{i}_{teacherIndex}");
+                    model.Add(assignedLoad == remainingAssignments[i].PeriodCount * assignmentMatrix[i, teacherIndex]);
                     teacherLoad.Add(assignedLoad);
                 }
 
@@ -338,17 +368,17 @@ namespace SchedulifySystem.Service.Services.Implements
                 overloadList.Add(overload);
             }
 
-            // 5. Thiết lập hàm mục tiêu để ưu tiên phân công tất cả các assignments
+            // 6. Thiết lập hàm mục tiêu để ưu tiên phân công tất cả các assignments
             LinearExpr objectiveExpr = LinearExpr.Sum(
-                from i in Enumerable.Range(0, numAssignments)
+                from i in Enumerable.Range(0, numRemainingAssignments)
                 from j in Enumerable.Range(0, numTeachers)
                 select assignmentMatrix[i, j]
             ) * 1000; // Trọng số lớn để đảm bảo tất cả các assignments được phân công trước
 
             // Ưu tiên giáo viên chủ nhiệm và các giáo viên có `IsMain`
-            for (int i = 0; i < numAssignments; i++)
+            for (int i = 0; i < numRemainingAssignments; i++)
             {
-                var assignment = assignments[i];
+                var assignment = remainingAssignments[i];
                 for (int j = 0; j < numTeachers; j++)
                 {
                     var teacher = teachers[j];
@@ -381,22 +411,22 @@ namespace SchedulifySystem.Service.Services.Implements
 
             model.Maximize(objectiveExpr);
 
-            // 6. Tạo solver và giải bài toán
+            // 7. Tạo solver và giải bài toán
             CpSolver solver = new CpSolver();
             solver.StringParameters = "max_time_in_seconds:300 log_search_progress:true";
             CpSolverStatus status = solver.Solve(model);
 
-            // 7. Cập nhật kết quả nếu có lời giải khả thi
+            // 8. Cập nhật kết quả nếu có lời giải khả thi
             if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
             {
-                for (int i = 0; i < numAssignments; i++)
+                for (int i = 0; i < numRemainingAssignments; i++)
                 {
                     for (int j = 0; j < numTeachers; j++)
                     {
                         if (solver.Value(assignmentMatrix[i, j]) == 1)
                         {
-                            assignments[i].TeacherId = teachers[j].Id;
-                            assignments[i].Teacher = teachers[j];
+                            remainingAssignments[i].TeacherId = teachers[j].Id;
+                            remainingAssignments[i].Teacher = teachers[j];
                         }
                     }
                 }
