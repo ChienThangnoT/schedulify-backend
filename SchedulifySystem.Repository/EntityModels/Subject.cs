@@ -17,6 +17,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int? SlotSpecialized {  get; set; }
         public int? SubjectGroupType { get; set; }
         public int SchoolYearId { get; set; }
+        public bool IsTeachedByHomeroomTeacher { get; set; } = false;
 
         public SchoolYear? SchoolYear { get; set; }
         public ICollection<CurriculumDetail> CurriculumDetails { get; set; } = new List<CurriculumDetail>();

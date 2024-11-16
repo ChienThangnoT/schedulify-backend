@@ -32,6 +32,7 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
+        #region Check data
         private async Task<BaseResponseModel> CheckData(HashSet<string> codes, HashSet<string> names, int schoolId, int schoolYearId, int skip = 0)
         {
             // Kiểm tra trùng lặp trong danh sách đầu vào
@@ -63,25 +64,23 @@ namespace SchedulifySystem.Service.Services.Implements
                 Status = StatusCodes.Status200OK
             };
         }
+        #endregion
 
+        #region Add Student Classgroup
         public async Task<BaseResponseModel> AddStudentClassgroup(int schoolId, int schoolYearId, List<AddStudentClassGroupModel> models)
         {
-            // Kiểm tra sự tồn tại của trường học và năm học
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
-            // Chuẩn bị dữ liệu để kiểm tra trùng lặp
             var codes = models.Select(m => m.StudentClassGroupCode.ToLower()).ToHashSet();
             var names = models.Select(m => m.GroupName.ToLower()).ToHashSet();
 
-            // Kiểm tra dữ liệu trùng lặp
             var checkResult = await CheckData(codes, names, schoolId, schoolYearId);
             if (checkResult.Status != StatusCodes.Status200OK)
                 return checkResult;
 
-            // Ánh xạ và chuẩn bị dữ liệu để lưu vào cơ sở dữ liệu
             var data = _mapper.Map<List<StudentClassGroup>>(models);
             data.ForEach(stg =>
             {
@@ -89,7 +88,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 stg.SchoolYearId = schoolYearId;
             });
 
-            // Lưu dữ liệu
             await _unitOfWork.StudentClassGroupRepo.AddRangeAsync(data);
             await _unitOfWork.SaveChangesAsync();
 
@@ -99,10 +97,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 Message = ConstantResponse.ADD_STUDENT_CLASS_GROUP_SUCCESS
             };
         }
+        #endregion                  
 
+        #region Delete Student ClassGroup
         public async Task<BaseResponseModel> DeleteStudentClassGroup(int classGroupId)
         {
-            // Kiểm tra xem nhóm lớp có tồn tại không
             var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(classGroupId);
             if (classGroup == null || classGroup.IsDeleted)
             {
@@ -113,7 +112,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            // Đánh dấu xóa
             classGroup.IsDeleted = true;
             await _unitOfWork.SaveChangesAsync();
 
@@ -123,13 +121,14 @@ namespace SchedulifySystem.Service.Services.Implements
                 Message = ConstantResponse.DELETE_STUDENT_CLASS_GROUP_SUCCESS
             };
         }
+        #endregion
 
+        #region Get Student Class Groups
         public async Task<BaseResponseModel> GetStudentClassGroups(int schoolId, int schoolYearId, int pageIndex = 1, int pageSize = 20)
         {
-            // Lấy danh sách nhóm lớp theo trường và năm học
             var classGroups = await _unitOfWork.StudentClassGroupRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
                 filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId,
-                include:query => query.Include(scg => scg.StudentClasses),
+                include: query => query.Include(scg => scg.StudentClasses),
                 orderBy: stg => stg.OrderBy(c => c.GroupName)
             );
 
@@ -150,13 +149,15 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = result
             };
         }
+        #endregion
 
+        #region Get Student Class Group By id
         public async Task<BaseResponseModel> GetStudentClassGroupById(int schoolId, int schoolYearId, int id)
         {
             // Lấy danh sách nhóm lớp theo trường và năm học
             var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(id,
                 filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId,
-                include: query => query.Include(scg => scg.StudentClasses)  
+                include: query => query.Include(scg => scg.StudentClasses)
             ) ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_FOUND);
 
             classGroup.StudentClasses = classGroup.StudentClasses
@@ -172,10 +173,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = result
             };
         }
+        #endregion
 
+        #region Update Student Class Group
         public async Task<BaseResponseModel> UpdateStudentClassGroup(int classGroupId, UpdateStudentClassGroupModel model)
         {
-            // Kiểm tra xem nhóm lớp có tồn tại không
             var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(classGroupId);
             if (classGroup == null || classGroup.IsDeleted)
             {
@@ -186,16 +188,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            // Chuẩn bị dữ liệu để kiểm tra trùng lặp
             var codes = new HashSet<string> { model.StudentClassGroupCode.ToLower() };
             var names = new HashSet<string> { model.GroupName.ToLower() };
 
-            // Sử dụng lại hàm CheckData để kiểm tra trùng lặp
             var checkResult = await CheckData(codes, names, (int)classGroup.SchoolId, (int)classGroup.SchoolYearId, classGroupId); ;
             if (checkResult.Status != StatusCodes.Status200OK)
                 return checkResult;
 
-            // Cập nhật thông tin
             classGroup.StudentClassGroupCode = model.StudentClassGroupCode;
             classGroup.GroupName = model.GroupName;
             classGroup.GroupDescription = model.GroupDescription;
@@ -208,6 +207,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 Message = ConstantResponse.UPDATE_STUDENT_CLASS_GROUP_SUCCESS
             };
         }
+        #endregion
 
         #region AssignCurriculumToClassGroup
         public async Task<BaseResponseModel> AssignCurriculumToClassGroup(int schoolId, int schoolYearId, int id, int curriculumId)
@@ -236,6 +236,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region Upsert Assignment
         private async Task UpsertAssignment(Curriculum curriculum, StudentClassGroup classGroup, List<StudentClass> classes)
         {
             using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -294,6 +295,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 throw;
             }
         }
+        #endregion
 
         #region AssignClassToClassGroup
         public async Task<BaseResponseModel> AssignClassToClassGroup(int schoolId, int schoolYearId, int id, AssignClassToClassGroup model)
