@@ -344,7 +344,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
                 }
 
-                // Chỉ cập nhật các trường không null
+                // chỉ cập nhật các trường không null
                 if (!string.IsNullOrEmpty(updateTeacherRequestModel.FirstName))
                 {
                     existedTeacher.FirstName = updateTeacherRequestModel.FirstName;
@@ -420,22 +420,31 @@ namespace SchedulifySystem.Service.Services.Implements
                     };
                 }
 
-                // Xóa những TeachableSubject không còn nằm trong danh sách SubjectIds và xóa chúng khỏi db
+                // xóa những teachableSubject không còn nằm trong danh sách subjectIds và xóa chúng khỏi db
                 var subjectsToRemove = existedTeacher.TeachableSubjects
                     .Where(rs => !subjectIds.Contains(rs.Id))
                     .ToList();
 
                 foreach (var subjectToRemove in subjectsToRemove)
                 {
-                    _unitOfWork.TeachableSubjectRepo.Remove(subjectToRemove); // Xóa trực tiếp từ repo
+                    _unitOfWork.TeachableSubjectRepo.Remove(subjectToRemove);
                 }
 
-                // Thêm các môn học mới vào TeachableSubjects nếu chưa có
+                // kiểm tra số lượng môn học được đánh dấu là isMain = true trong danh sách yêu cầu
+                int countMainSubjects = updateTeacherRequestModel.TeachableSubjects.Count(s => s.IsMain);
+
+                if (countMainSubjects > 1)
+                {
+                    throw new DefaultException(ConstantResponse.INVALID_NUMBER_MAIN_SUBJECR_OF_TEACHER);
+                }
+
+                // thêm các môn học mới vào TeachableSubjects nếu chưa có
                 foreach (var item in subjectObjectPara)
                 {
                     if (!existedTeacher.TeachableSubjects.Any(rs => rs.Id == item.Id))
                     {
                         var model = subjectsPara.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
+                        
                         foreach (var grade in model.Grades)
                         {
                             newTeachableSubjects.Add(new TeachableSubject()
@@ -444,17 +453,17 @@ namespace SchedulifySystem.Service.Services.Implements
                                 SubjectId = item.Id,
                                 CreateDate = DateTime.UtcNow,
                                 Grade = (int)grade,
-                                AppropriateLevel = model.IsMain ? MAX_APPROVIATE_LEVEL : MIN_APPROVIATE_LEVEL,
+                                AppropriateLevel = (int)model.AppropriateLevel,
                                 IsMain = model.IsMain,
                             });
                         }
                     }
                 }
 
-                // Thêm các TeachableSubject mới vào db
-                if (newTeachableSubjects.Any())
+                // add các TeachableSubject mới vào db
+                if (newTeachableSubjects.Count != 0)
                 {
-                    await _unitOfWork.TeachableSubjectRepo.AddRangeAsync(newTeachableSubjects); // Sử dụng repo để thêm các RoomSubject mới
+                    await _unitOfWork.TeachableSubjectRepo.AddRangeAsync(newTeachableSubjects);
                 }
 
 

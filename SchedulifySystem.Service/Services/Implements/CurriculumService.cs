@@ -41,7 +41,6 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    // Kiểm tra sự tồn tại của trường học và năm học
                     var schoolData = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: s => !s.IsDeleted && s.Status == (int)SchoolStatus.Active)
                         ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
@@ -59,7 +58,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             Message = ConstantResponse.CURRICULUM_NAME_EXISTED
                         };
 
-                    // Kiểm tra số lượng môn học chuyên ngành và tự chọn
+                    // check số lượng môn chuyên đề và tự chọn
                     if (curriculumAddModel.SpecializedSubjectIds.Count != REQUIRE_SPECIALIZED_SUBJECT ||
                         curriculumAddModel.ElectiveSubjectIds.Count != REQUIRE_ELECTIVE_SUBJECT)
                     {
@@ -70,30 +69,25 @@ namespace SchedulifySystem.Service.Services.Implements
                         };
                     }
 
-                    // Thêm Curriculum
+                    // add curriculum
                     var curriculum = _mapper.Map<Curriculum>(curriculumAddModel);
                     curriculum.SchoolId = schoolId;
                     curriculum.SchoolYearId = schoolYearId;
                     await _unitOfWork.CurriculumRepo.AddAsync(curriculum);
                     await _unitOfWork.SaveChangesAsync();
 
-                    // Tạo danh sách CurriculumDetail
                     var termList = schoolYear.Terms.ToList();
                     var curriculumDetails = new List<CurriculumDetail>();
 
-                    // Lấy tất cả các môn học từ database
                     var subjects = await _unitOfWork.SubjectRepo.GetV2Async(filter: s => !s.IsDeleted);
 
-                    // Tạo danh sách các Elective Subjects từ danh sách đã lấy
                     var electiveSubjects = subjects.Where(s => curriculumAddModel.ElectiveSubjectIds.Contains(s.Id));
 
-                    // Tìm các ID không tồn tại trong cơ sở dữ liệu
                     var invalidIds = curriculumAddModel.ElectiveSubjectIds
                         .Where(i => !subjects.Select(s => s.Id).Contains(i))
                         .ToList();
 
-                    // Kiểm tra nếu có ID không hợp lệ
-                    if (invalidIds.Any())
+                    if (invalidIds.Count != 0)
                     {
                         return new BaseResponseModel()
                         {
@@ -101,7 +95,8 @@ namespace SchedulifySystem.Service.Services.Implements
                             Message = $"Không tìm thấy môn có Id: {string.Join(", ", invalidIds)}"
                         };
                     }
-                    // Thêm Elective Subjects
+
+                    // add chuyen de
                     foreach (var subject in electiveSubjects)
                     {
                         if (subject.IsRequired)
@@ -125,7 +120,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         }));
                     }
 
-                    // thêm các môn bắt buộc 
+                    // add required
                     var requireSubjects = subjects.Where(s => s.IsRequired).ToList();
                     foreach(var subject in requireSubjects)
                     {
@@ -170,7 +165,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
         }
-
         #endregion
 
         #region Get Curriculum Detail
@@ -251,12 +245,10 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     List<Term> termList = termInYear.ToList();
 
-                    // Kiểm tra có sự thay đổi trong Name không
                     bool isNameChanged = !string.Equals(CurriculumDb.CurriculumName, curriculumUpdateModel.CurriculumName, StringComparison.OrdinalIgnoreCase);
 
                     if (isNameChanged)
                     {
-                        // Thực hiện truy vấn kiểm tra trùng lặp chỉ khi có sự thay đổi
                         var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(
                             filter: t => (t.CurriculumName.ToLower() == curriculumUpdateModel.CurriculumName.ToLower()
                                           &&
@@ -309,19 +301,15 @@ namespace SchedulifySystem.Service.Services.Implements
                         CurriculumDb.CurriculumName = curriculumUpdateModel.CurriculumName.Trim();
                     }
 
-                    // Lấy tất cả các môn học từ database
                     var subjects = await _unitOfWork.SubjectRepo.GetV2Async(filter: s => !s.IsDeleted);
 
-                    // Tạo danh sách các Elective Subjects từ danh sách đã lấy
                     var electiveSubjects = subjects.Where(s => curriculumUpdateModel.ElectiveSubjectIds.Contains(s.Id));
 
-                    // Tìm các ID không tồn tại trong cơ sở dữ liệu
                     var invalidIds = curriculumUpdateModel.ElectiveSubjectIds
                         .Where(i => !subjects.Select(s => s.Id).Contains(i))
                         .ToList();
 
-                    // Kiểm tra nếu có ID không hợp lệ
-                    if (invalidIds.Any())
+                    if (invalidIds.Count != 0)
                     {
                         return new BaseResponseModel()
                         {
@@ -339,7 +327,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         .ToList();
 
                     var newElectiveSubjects = electiveSubjects.Where(s => !subjectsToRemove.Contains(s.Id) && !oldElectiveSubjectIds.Contains(s.Id));
-                    // Thêm Elective Subjects
+                    // add chuyen de
                     foreach (var subject in newElectiveSubjects)
                     {
                         if (subject.IsRequired)

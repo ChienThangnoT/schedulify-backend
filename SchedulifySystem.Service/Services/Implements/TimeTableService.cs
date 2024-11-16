@@ -259,118 +259,118 @@ namespace SchedulifySystem.Service.Services.Implements
             // fix here ------------------------------------------------------------------------------------------------------------------
 
 
-            //var classesDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
-            //    filter: t => t.SchoolId == parameters.SchoolId &&
-            //                 t.SchoolYearId == parameters.SchoolYearId &&
-            //                 t.IsDeleted == false,
-            //    include: query => query.Include(c => c.StudentClassGroup)
-            //               .ThenInclude(sg => sg.CurriculumDetails).ThenInclude(sig => sig.Subject));
+            var classesDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: t => t.SchoolId == parameters.SchoolId &&
+                             t.SchoolYearId == parameters.SchoolYearId &&
+                             t.IsDeleted == false,
+                include: query => query.Include(c => c.StudentClassGroup).ThenInclude(c => c.Curriculum)
+                           .ThenInclude(sg => sg.CurriculumDetails).ThenInclude(sig => sig.Subject));
             // fix here ------------------------------------------------------------------------------------------------------------------
 
-            //var groupIds = classesDb.Select(c => c.StudentClassGroup.Id).ToList();
+            var groupIds = classesDb.Select(c => c.StudentClassGroup.Curriculum.Id).ToList();// get list curri
 
             // fix here ------------------------------------------------------------------------------------------------------------------
-            //var subjectsDb = (await _unitOfWork.SubjectInGroupRepo.GetV2Async(
-            //    filter: t => t.IsDeleted == false && groupIds.Contains(t.SubjectGroupId) && t.TermId == parameters.TermId,
-            //                include: query => query.Include(sig => sig.Subject))).ToList();
+            var subjectsDb = (await _unitOfWork.CurriculumDetailRepo.GetV2Async(
+                filter: t => t.IsDeleted == false && groupIds.Contains((int)t.CurriculumId) && t.TermId == parameters.TermId,
+                            include: query => query.Include(sig => sig.Subject))).ToList();
 
             //run parallel
             //await Task.WhenAll(classTask, subjectTask).ConfigureAwait(false);
 
-            // Lấy kết quả của các task song song
+            ////Lấy kết quả của các task song song
             //var classesDb = await classTask;
             //var subjectsDb = await subjectTask;
 
             // fix here ------------------------------------------------------------------------------------------------------------------
 
-            //if (classesDb == null || !classesDb.Any())
-            //{
-            //    throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
-            //}
+            if (classesDb == null || !classesDb.Any())
+            {
+                throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
+            }
 
-            //var classesDbList = classesDb.ToList();
-            //var classIds = classesDbList.Select(c => c.Id).ToList();
+            var classesDbList = classesDb.ToList();
+            var classIds = classesDbList.Select(c => c.Id).ToList();
 
-            //var subjectInClassesDb = classesDb
-            //    .Where(c => c.StudentClassGroup != null) // Lọc những lớp có SubjectGroup
-            //    .SelectMany(c => c.StudentClassGroup.SubjectInGroups) // Lấy danh sách SubjectInGroup từ SubjectGroup
-            //    .ToList();
+            var subjectInClassesDb = classesDb
+                .Where(c => c.StudentClassGroup.Curriculum != null) // Lọc những lớp có chương trình    
+                .SelectMany(c => c.StudentClassGroup.Curriculum.CurriculumDetails) // Lấy danh sách curri detail
+                .ToList();
 
             // add vào classes
-            /*Tạo đối tượng ClassTCDTO cho từng lớp học từ dữ liệu lấy được và thêm vào danh sách classes
+            /*Tạo đối tượng ClassScheduleModel cho từng lớp học từ dữ liệu lấy được và thêm vào danh sách classes
               Nếu số lượng lớp học trong danh sách không khớp với số lớp học yêu cầu từ tham số, phương thức sẽ ném ngoại lệ.
             */
 
             // fix here ------------------------------------------------------------------------------------------------------------------
 
-            //for (var i = 0; i < classesDbList.Count; i++)
-            //    classes.Add(new ClassScheduleModel(classesDbList[i]));
+            for (var i = 0; i < classesDbList.Count; i++)
+                classes.Add(new ClassScheduleModel(classesDbList[i]));
 
             ///*khởi tạo mảng hai chiều timetableFlags với số dòng là số lớp học và số cột là 61
             //  số lượng 61 có thể đại diện cho số tiết học trong một kỳ hoặc một tuần học
             //*/
-            //timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
+            timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
 
             //// fix here ------------------------------------------------------------------------------------------------------------------
-            ////subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
+            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
 
-            //var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-            //    filter: t => classIds.Contains(t.StudentClassId) && t.IsDeleted == false
-            //         && t.TermId == parameters.TermId,
-            //    include: query => query.Include(a => a.Teacher));
-            ////await assignmentTask;
+            var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+                filter: t => classIds.Contains(t.StudentClassId) && t.IsDeleted == false
+                     && t.TermId == parameters.TermId,
+                include: query => query.Include(a => a.Teacher));
+            //await assignmentTask;
 
-            //var assignmentsDb = await assignmentTask.ConfigureAwait(false);
-            //var assignmentsDbList = assignmentsDb.ToList();
-            //
+            var assignmentsDb = await assignmentTask.ConfigureAwait(false);
+            var assignmentsDbList = assignmentsDb.ToList();
+
 
 
             //get teacher từ assigntmment db
-            //var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
+            var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
 
-            //var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
-            //    filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
+            var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
 
-            //var teachersDb = await teacherTask.ConfigureAwait(false);
-            //var teachersDbList = teachersDb.ToList();
+            var teachersDb = await teacherTask.ConfigureAwait(false);
+            var teachersDbList = teachersDb.ToList();
 
-            //for (var i = 0; i < teachersDbList.Count; i++)
-            //    teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
+            for (var i = 0; i < teachersDbList.Count; i++)
+                teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
 
 
-            //teachers.AddRange(assignmentsDbList
-            //.Select(a => new TeacherScheduleModel(a.Teacher))
-            //.GroupBy(t => t.Id) // Group by Id to ensure distinct values
-            //.Select(g => g.First())); // Select the first item from each group
+            teachers.AddRange(assignmentsDbList
+            .Select(a => new TeacherScheduleModel(a.Teacher))
+            .GroupBy(t => t.Id) // Group by Id to ensure distinct values
+            .Select(g => g.First())); // Select the first item from each group
 
             //// tạo danh sách các assignment
             ///*Duyệt qua danh sách các phân công (assignmentsDb), tìm lớp học, môn học, và giáo viên tương ứng cho từng phân công.
             // Tạo đối tượng AssignmentTCDTO và thêm vào danh sách assignments.
             //*/
 
-            //for (var i = 0; i < assignmentsDbList.Count; i++)
-            //{
-            //    var studentClass = classes.FirstOrDefault(c => c.Id == assignmentsDbList[i].StudentClassId);
-            //    var subject = subjects.FirstOrDefault(s => s.SubjectId == assignmentsDbList[i].SubjectId);
-            //    var teacher = teachers.FirstOrDefault(t => t.Id == assignmentsDbList[i].TeacherId);
+            for (var i = 0; i < assignmentsDbList.Count; i++)
+            {
+                var studentClass = classes.FirstOrDefault(c => c.Id == assignmentsDbList[i].StudentClassId);
+                var subject = subjects.FirstOrDefault(s => s.SubjectId == assignmentsDbList[i].SubjectId);
+                var teacher = teachers.FirstOrDefault(t => t.Id == assignmentsDbList[i].TeacherId);
 
-            //    // Check if any of the elements are null and handle accordingly
-            //    if (studentClass == null)
-            //    {
-            //        throw new DefaultException($"Class with Id {assignmentsDbList[i].StudentClassId} not found.");
-            //    }
-            //    if (subject == null)
-            //    {
-            //        throw new DefaultException($"Subject with Id {assignmentsDbList[i].SubjectId} not found.");
-            //    }
-            //    if (teacher == null)
-            //    {
-            //        throw new DefaultException($"Teacher with Id {assignmentsDbList[i].TeacherId} not found.");
-            //    }
+                // Check if any of the elements are null and handle accordingly
+                if (studentClass == null)
+                {
+                    throw new DefaultException($"Class with Id {assignmentsDbList[i].StudentClassId} not found.");
+                }
+                if (subject == null)
+                {
+                    throw new DefaultException($"Subject with Id {assignmentsDbList[i].SubjectId} not found.");
+                }
+                if (teacher == null)
+                {
+                    throw new DefaultException($"Teacher with Id {assignmentsDbList[i].TeacherId} not found.");
+                }
 
-            //    // If all exist, proceed with adding to the assignments list
-            //    assignments.Add(new TeacherAssigmentScheduleModel(assignmentsDbList[i], teacher, subject, studentClass));
-            //}
+                // If all exist, proceed with adding to the assignments list
+                assignments.Add(new TeacherAssigmentScheduleModel(assignmentsDbList[i], teacher, subject, studentClass));
+            }
 
 
 
@@ -383,51 +383,51 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // fix here ------------------------------------------------------------------------------------------------------------------
 
-            //for (var i = 0; i < classesDbList.Count; i++)
-            //{
-            //    var periodCount = 0; // Tổng số tiết học trong lớp
-            //    var classPeriodCount = classesDbList[i].PeriodCount; // tổng số tiết yêu cầu của lớp học trong 1 tuần
+            for (var i = 0; i < classesDbList.Count; i++)
+            {
+                var periodCount = 0; // Tổng số tiết học trong lớp
+                var classPeriodCount = classesDbList[i].PeriodCount; // tổng số tiết yêu cầu của lớp học trong 1 tuần
 
-            //    var subjectInGroups = classesDbList[i].StudentClassGroup.SubjectInGroups.ToList();
-            //    // duyệt qua từng môn học trong lớp
-            //    for (var j = 0; j < subjectInGroups.Count; j++)
-            //    {
-            //        var subjectClass = subjectInGroups[j];
+                var curriculumDetails = classesDbList[i].StudentClassGroup.Curriculum.CurriculumDetails.ToList();
+                // duyệt qua từng môn học trong lớp
+                for (var j = 0; j < curriculumDetails.Count; j++)
+                {
+                    var subjectClass = curriculumDetails[j];
 
-            //        // tìm phân công giáo viên cho môn học
-            //        var assignment = assignmentsDbList.FirstOrDefault(a =>
-            //            a.SubjectId == subjectClass.SubjectId && a.StudentClassId == classesDbList[i].Id);
+                    // tìm phân công giáo viên cho môn học
+                    var assignment = assignmentsDbList.FirstOrDefault(a =>
+                        a.SubjectId == subjectClass.SubjectId && a.StudentClassId == classesDbList[i].Id);
 
-            //        // kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
-            //        if (assignment == null)
-            //        {
-            //            var subjectName = subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName;
-            //            throw new DefaultException($"Lớp {classesDbList[i].Name} chưa được phân công môn {subjectName}.");
-            //        }
+                    // kiểm tra xem có phân công hay không, nếu không thì ném ngoại lệ
+                    if (assignment == null)
+                    {
+                        var subjectName = subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName;
+                        throw new DefaultException($"Lớp {classesDbList[i].Name} chưa được phân công môn {subjectName}.");
+                    }
 
-            //        //// kiểm tra số tiết học có khớp với yêu cầu không
-            //        //// không cần kiểm tra nữa
-            //        if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
-            //        {
-            //            throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
-            //        }
+                    //// kiểm tra số tiết học có khớp với yêu cầu không
+                    //// không cần kiểm tra nữa
+                    if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
+                    {
+                        throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                    }
 
-            //        // kiểm tra xem giáo viên có được phân công không
-            //        if (assignment.TeacherId == null || assignment.TeacherId == 0)
-            //        {
-            //            throw new DefaultException($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
-            //        }
+                    // kiểm tra xem giáo viên có được phân công không
+                    if (assignment.TeacherId == null || assignment.TeacherId == 0)
+                    {
+                        throw new DefaultException($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
+                    }
 
-            //        // cộng số tiết của môn vào tổng số tiết của lớp
-            //        periodCount += (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek);
-            //    }
+                    // cộng số tiết của môn vào tổng số tiết của lớp
+                    periodCount += (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek);
+                }
 
-            //    // kiểm tra tổng số tiết của lớp
-            //    if (periodCount != classPeriodCount)
-            //    {
-            //        throw new DefaultException($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
-            //    }
-            //}
+                // kiểm tra tổng số tiết của lớp
+                if (periodCount != classPeriodCount)
+                {
+                    throw new DefaultException($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
+                }
+            }
 
             // update fixed period in para
             List<ClassPeriodScheduleModel> fixedPeriods = new List<ClassPeriodScheduleModel>();
@@ -656,37 +656,37 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #region RandomlyAssign thắng
         /*
-         RandomlyAssign() có nhiệm vụ phân bổ ngẫu nhiên các tiết học (timetable units) vào các vị trí trống trong thời khóa biểu cho mỗi lớp học. 
-         Điều này giúp tạo ra sự đa dạng trong quần thể ban đầu bằng cách sắp xếp các tiết học một cách ngẫu nhiên.
-         Phương thức này sẽ tìm các tiết trống trong thời khóa biểu (Unfilled) và sau đó gán ngẫu nhiên các tiết học vào những vị trí này.
-         Shuffle(): Hàm ngẫu nhiên hóa thứ tự của danh sách tiết học và vị trí trống, đảm bảo rằng các tiết học sẽ được gán một cách ngẫu nhiên.
+         RandomlyAssign() có nhiệm vụ phân bổ ngẫu nhiên các tiết học (timetable units) vào các vị trí trống trong thời khóa biểu cho mỗi lớp học
+         tạo ra sự đa dạng trong quần thể ban đầu bằng cách sắp xếp các tiết học một cách ngẫu nhiên
+         phương thức này sẽ tìm các tiết trống trong thời khóa biểu (Unfilled) và sau đó gán ngẫu nhiên các tiết học vào những vị trí này
+         Shuffle(): Hàm ngẫu nhiên hóa thứ tự của danh sách tiết học và vị trí trống, đảm bảo rằng các tiết học sẽ được gán một cách ngẫu nhiên
          */
         private async void RandomlyAssign(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             for (int i = 0; i < src.TimetableFlag.GetLength(0); i++)
             {
-                // Lấy danh sách các tiết trống buổi sáng và buổi chiều cho lớp hiện tại
+                //lấy danh sách các tiết trống buổi sáng và buổi chiều
                 List<int> morningSlots = GetAvailableSlots(src, i, MainSession.Morning);
                 List<int> afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon);
 
-                // Tìm các cặp tiết liên tiếp (consecutive slots)
+                // tìm các cặp tiết liên tiếp (consecutive slots)
                 List<(int, int)> morningPairs = FindConsecutivePairs(morningSlots);
                 List<(int, int)> afternoonPairs = FindConsecutivePairs(afternoonSlots);
 
-                // Ưu tiên phân bổ các tiết đôi trước
+                // phân bổ các tiết đôi trước
                 AssignDoublePeriods(src, i, morningPairs, afternoonPairs);
 
-                // Cập nhật lại danh sách slot trống sau khi phân bổ tiết đôi
+                // update lại danh sách slot trống sau khi phân bổ tiết đôi
                 morningSlots = GetAvailableSlots(src, i, MainSession.Morning);
                 afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon);
 
-                // Phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
+                // phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
                 AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots);
             }
         }
 
 
-        // Phương thức lấy các tiết trống theo buổi
+        // method lấy các tiết trống theo buổi
         private List<int> GetAvailableSlots(TimetableIndividual src, int classIndex, MainSession session)
         {
             List<int> slots = new List<int>();
@@ -705,7 +705,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return slots;
         }
 
-        // Phương thức tìm các cặp tiết liên tiếp
+        // method tìm các cặp tiết liên tiếp
         private List<(int, int)> FindConsecutivePairs(List<int> slots)
         {
             List<(int, int)> pairs = new List<(int, int)>();
@@ -719,7 +719,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return pairs;
         }
 
-        // Phân bổ tiết đôi vào các cặp tiết liên tiếp
+        // method phân bổ tiết đôi vào các cặp tiết liên tiếp
         private void AssignDoublePeriods(TimetableIndividual src, int classIndex, List<(int, int)> morningPairs, List<(int, int)> afternoonPairs)
         {
             var fClass = src.Classes[classIndex];
@@ -736,7 +736,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .Where(u => u.ClassId == fClass.Id && u.SubjectId == subject.SubjectId && u.Priority == EPriority.Double && (int)u.Session != mainSession)
                     .ToList();
 
-                // Phân bổ tiết đôi cho buổi chính và buổi phụ dựa trên session
+                // phân bổ tiết đôi buổi chính và buổi phụ dựa trên session
                 if (mainSession ==(int) MainSession.Morning)
                 {
                     AssignToConsecutiveSlots(morningPairs, mainPeriods, src, classIndex);
@@ -750,7 +750,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
 
-        // Phân bổ các tiết đôi vào các vị trí liên tiếp
+        // method phân bổ các tiết đôi vào các vị trí liên tiếp
         private void AssignToConsecutiveSlots(List<(int, int)> pairs, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex)
         {
             foreach (var period in periods)
@@ -772,7 +772,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
 
-        // Phân bổ các tiết đơn liên tục để tránh bị lủng
+        // method phân bổ các tiết đơn liên tục để tránh bị lủng owr cuối buổi
         private void AssignContinuousSinglePeriods(TimetableIndividual src, int classIndex, List<int> morningSlots, List<int> afternoonSlots)
         {
             morningSlots.Sort();
@@ -792,23 +792,23 @@ namespace SchedulifySystem.Service.Services.Implements
             AssignToContinuousSlots(afternoonSlots, afternoonPeriods, src, classIndex, MainSession.Afternoon);
         }
 
-        // Phân bổ tiết vào các vị trí liên tục để tránh bị lủng
+        // method phân bổ tiết vào các vị trí liên tục để tránh bị lủng
         private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, MainSession session)
         {
             foreach (var period in periods)
             {
                 if (slots.Count == 0) break;
 
-                // Lọc các slot theo đúng buổi học (sáng hoặc chiều)
+                // lọc các slot theo đúng buổi học
                 int sessionStart = session == MainSession.Morning ? 1 : 6;
                 int sessionEnd = session == MainSession.Morning ? 5 : 10;
 
-                // Lọc các slot hợp lệ cho buổi hiện tại
+                // lọc các slot hợp lệ cho buổi hiện tại
                 var validSlots = slots.Where(slot => (slot % 10) >= sessionStart && (slot % 10) <= sessionEnd).ToList();
 
                 if (validSlots.Count == 0) continue;
 
-                // Phân bổ tiết vào slot đầu tiên hợp lệ
+                // phân bổ tiết vào slot đầu tiên hợp lệ
                 period.StartAt = validSlots.First();
                 src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
                 slots.Remove(validSlots.First());
