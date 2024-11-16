@@ -156,6 +156,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string ADD_TEACHER_ASSIGNMENT_SUCCESS = "Add teaching assignment success.";
         public const string UPDATE_TEACHER_ASSIGNMENT_SUCCESS = "Update teaching assignment success.";
         public const string GET_TEACHER_ASSIGNTMENT_SUCCESS = "Get teacher assignment success.";
+        public const string INVALID_NUMBER_MAIN_SUBJECR_OF_TEACHER = "Each teacher only have 1 main subject.";
 
         //TeachableSubject
         public const string TEACHABLE_SUBJECT_NOT_EXIST = "The teachable subject does not exist.";

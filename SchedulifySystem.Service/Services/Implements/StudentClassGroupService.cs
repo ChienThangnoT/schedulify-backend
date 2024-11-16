@@ -61,22 +61,18 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> AddStudentClassgroup(int schoolId, int schoolYearId, List<AddStudentClassGroupModel> models)
         {
-            // Kiểm tra sự tồn tại của trường học và năm học
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
-            // Chuẩn bị dữ liệu để kiểm tra trùng lặp
             var codes = models.Select(m => m.StudentClassGroupCode.ToLower()).ToHashSet();
             var names = models.Select(m => m.GroupName.ToLower()).ToHashSet();
 
-            // Kiểm tra dữ liệu trùng lặp
             var checkResult = await CheckData(codes, names, schoolId, schoolYearId);
             if (checkResult.Status != StatusCodes.Status200OK)
                 return checkResult;
 
-            // Ánh xạ và chuẩn bị dữ liệu để lưu vào cơ sở dữ liệu
             var data = _mapper.Map<List<StudentClassGroup>>(models);
             data.ForEach(stg =>
             {
@@ -84,7 +80,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 stg.SchoolYearId = schoolYearId;
             });
 
-            // Lưu dữ liệu
             await _unitOfWork.StudentClassGroupRepo.AddRangeAsync(data);
             await _unitOfWork.SaveChangesAsync();
 
@@ -97,7 +92,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> DeleteStudentClassGroup(int classGroupId)
         {
-            // Kiểm tra xem nhóm lớp có tồn tại không
             var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(classGroupId);
             if (classGroup == null || classGroup.IsDeleted)
             {
@@ -108,7 +102,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            // Đánh dấu xóa
             classGroup.IsDeleted = true;
             await _unitOfWork.SaveChangesAsync();
 
@@ -121,7 +114,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetStudentClassGroups(int schoolId, int schoolYearId, int pageIndex = 1, int pageSize = 20)
         {
-            // Lấy danh sách nhóm lớp theo trường và năm học
             var classGroups = await _unitOfWork.StudentClassGroupRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
                 filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId,
                 orderBy: stg => stg.OrderBy(c => c.GroupName)
@@ -140,7 +132,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> UpdateStudentClassGroup(int classGroupId, UpdateStudentClassGroupModel model)
         {
-            // Kiểm tra xem nhóm lớp có tồn tại không
             var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(classGroupId);
             if (classGroup == null || classGroup.IsDeleted)
             {
@@ -151,16 +142,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            // Chuẩn bị dữ liệu để kiểm tra trùng lặp
             var codes = new HashSet<string> { model.StudentClassGroupCode.ToLower() };
             var names = new HashSet<string> { model.GroupName.ToLower() };
 
-            // Sử dụng lại hàm CheckData để kiểm tra trùng lặp
             var checkResult = await CheckData(codes, names, (int)classGroup.SchoolId, (int)classGroup.SchoolYearId, classGroupId); ;
             if (checkResult.Status != StatusCodes.Status200OK)
                 return checkResult;
 
-            // Cập nhật thông tin
             classGroup.StudentClassGroupCode = model.StudentClassGroupCode;
             classGroup.GroupName = model.GroupName;
             classGroup.GroupDescription = model.GroupDescription;

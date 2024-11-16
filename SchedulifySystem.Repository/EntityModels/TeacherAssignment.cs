@@ -14,7 +14,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public int AssignmentType { get; set; }
         public int PeriodCount { get; set; } // số lượng tiết trên tuần 
         public int TermId { get; set; }
-        public int StudentClassRoomSubjectId { get; set; }
+        public int? StudentClassRoomSubjectId { get; set; }
 
         public StudentClassRoomSubject? StudentClassRoomSubject { get; set; }
         public Teacher? Teacher { get; set; }
