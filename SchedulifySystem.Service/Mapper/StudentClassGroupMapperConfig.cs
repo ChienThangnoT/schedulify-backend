@@ -14,7 +14,17 @@ namespace SchedulifySystem.Service.Mapper
     {
         partial void StudentClassGroupMapperConfig()
         {
-            CreateMap<StudentClassGroup, AddStudentClassGroupModel>();
+            CreateMap<AddStudentClassGroupModel, StudentClassGroup>()
+                .ForMember(dest => dest.StudentClassGroupCode, otp => otp.MapFrom(src => src.StudentClassGroupCode.ToUpper()))
+                .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
+                .ReverseMap();
+            CreateMap<UpdateStudentClassGroupModel, StudentClassGroup>()
+                .ForMember(dest => dest.StudentClassGroupCode, otp => otp.MapFrom(src => src.StudentClassGroupCode.ToUpper()))
+                .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
+                .ReverseMap();
+            CreateMap<StudentClassGroup, StudentClassGroupViewModel>()
+                .ForMember(dest => dest.classes, otp => otp.MapFrom(src => src.StudentClasses))
+                .ReverseMap();
         }
     }
 }
