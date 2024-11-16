@@ -44,12 +44,19 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPatch()]
-        [Route("assign-subject-group")]
-        [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AssignSubjectGroupToClasses(AssignSubjectGroup model)
+        [Route("{id}/assign-curriculum/{curriculumId}")]
+        //[Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> AssignSubjectGroupToClasses(int schoolId, int yearId, int id, int curriculumId)
         {
-            return ValidateAndExecute(() => _studentClassGroupService.AssignSubjectGroupToClasses(model));
+            return ValidateAndExecute(() => _studentClassGroupService.AssignCurriculumToClassGroup(schoolId,yearId,id,curriculumId));
         }
 
+        [HttpPatch()]
+        [Route("{id}/AssignClassToClassGroup")]
+        //[Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> AssignSubjectGroupToClasses(int schoolId, int yearId, int id, AssignClassToClassGroup model)
+        {
+            return ValidateAndExecute(() => _studentClassGroupService.AssignClassToClassGroup(schoolId, yearId, id, model));
+        }
     }
 }

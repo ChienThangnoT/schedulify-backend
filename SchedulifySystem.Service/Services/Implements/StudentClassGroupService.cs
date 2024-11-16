@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using SchedulifySystem.Repository;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
@@ -13,6 +14,7 @@ using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -127,11 +129,41 @@ namespace SchedulifySystem.Service.Services.Implements
             // Lấy danh sách nhóm lớp theo trường và năm học
             var classGroups = await _unitOfWork.StudentClassGroupRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
                 filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId,
+                include:query => query.Include(scg => scg.StudentClasses),
                 orderBy: stg => stg.OrderBy(c => c.GroupName)
             );
 
+            // Lọc lại danh sách StudentClasses chưa bị xóa
+            foreach (var group in classGroups.Items)
+            {
+                group.StudentClasses = group.StudentClasses
+                    .Where(sc => !sc.IsDeleted)
+                    .ToList();
+            }
 
             var result = _mapper.Map<Pagination<StudentClassGroupViewModel>>(classGroups);
+
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.GET_STUDENT_CLASS_GROUP_SUCCESS,
+                Result = result
+            };
+        }
+
+        public async Task<BaseResponseModel> GetStudentClassGroupById(int schoolId, int schoolYearId, int id)
+        {
+            // Lấy danh sách nhóm lớp theo trường và năm học
+            var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(id,
+                filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId,
+                include: query => query.Include(scg => scg.StudentClasses)  
+            ) ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_FOUND);
+
+            classGroup.StudentClasses = classGroup.StudentClasses
+                    .Where(sc => !sc.IsDeleted)
+                    .ToList();
+
+            var result = _mapper.Map<Pagination<StudentClassGroupViewModel>>(classGroup);
 
             return new BaseResponseModel
             {
@@ -177,74 +209,151 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
-        #region AssignSubjectGroupToClasses
-        public async Task<BaseResponseModel> AssignSubjectGroupToClasses(AssignSubjectGroup model)
+        #region AssignCurriculumToClassGroup
+        public async Task<BaseResponseModel> AssignCurriculumToClassGroup(int schoolId, int schoolYearId, int id, int curriculumId)
         {
-            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(id,
+                filter: t => !t.IsDeleted && t.SchoolId == schoolId && t.SchoolYearId == schoolYearId,
+                include: query => query.Include(c => c.StudentClasses))
+                ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_EXIST);
+
+            var curriculum = await _unitOfWork.CurriculumRepo.GetByIdAsync(curriculumId,
+                filter: c => c.SchoolId == schoolId && c.SchoolYearId == schoolYearId,
+                include: query => query.Include(c => c.CurriculumDetails))
+                ?? throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
+
+            var classes = classGroup.StudentClasses.Where(c => !c.IsDeleted).ToList();
+            if (classes.Any() && classGroup.CurriculumId != curriculumId)
             {
-                try
-                {
-                    var studentClassGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(model.StudentClassGroupId,
-                                filter: t => t.IsDeleted == false,
-                                include: query => query.Include(sg => sg.Curriculum).ThenInclude(cd => cd.CurriculumDetails))
-                                ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_EXIST);
-
-                    foreach (var classId in model.ClassIds)
-                    {
-                        var founded = await _unitOfWork.StudentClassesRepo.GetByIdAsync(classId, filter: t => t.IsDeleted == false)
-                                        ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
-
-                        var classPeriodCount = 0;
-
-                        if (founded.StudentClassGroupId == null || founded.StudentClassGroupId != model.StudentClassGroupId)
-                        {
-                            founded.StudentClassGroupId = model.StudentClassGroupId;
-                            founded.UpdateDate = DateTime.UtcNow;
-
-                            // delete old assignment
-                            var oldAssignment = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(filter: ta => ta.StudentClassId == classId && ta.IsDeleted == false);
-                            _unitOfWork.TeacherAssignmentRepo.RemoveRange(oldAssignment);
-
-                            // add new assignment 
-                            var newAssignment = new List<TeacherAssignment>();
-                            studentClassGroup.Curriculum.CurriculumDetails.ToList().ForEach(sig =>
-                            {
-                                newAssignment.Add(new TeacherAssignment()
-                                {
-                                    AssignmentType = (int)AssignmentType.Permanent,
-                                    PeriodCount = sig.MainSlotPerWeek + sig.SubSlotPerWeek,
-                                    StudentClassId = classId,
-                                    CreateDate = DateTime.UtcNow,
-                                    SubjectId = sig.SubjectId,
-                                    TermId = (int)sig.TermId
-                                });
-                                classPeriodCount += sig.MainSlotPerWeek + sig.SubSlotPerWeek;
-                            });
-                            await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignment);
-                            _unitOfWork.StudentClassesRepo.Update(founded);
-                        }
-
-                        founded.PeriodCount = classPeriodCount;
-                        _unitOfWork.StudentClassesRepo.Update(founded);
-                    }
-
-                    await _unitOfWork.SaveChangesAsync();
-                    transaction.Commit();
-                    return new BaseResponseModel()
-                    {
-                        Status = StatusCodes.Status200OK,
-                        Message = ConstantResponse.CURRICULUM_ASSIGN_SUCCESS
-                    };
-                }
-                catch (Exception)
-                {
-                    transaction.Rollback();
-                    throw;
-                }
+                await UpsertAssignment(curriculum, classGroup, classes);
             }
+
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.CURRICULUM_ASSIGN_SUCCESS
+            };
         }
         #endregion
 
+        private async Task UpsertAssignment(Curriculum curriculum, StudentClassGroup classGroup, List<StudentClass> classes)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Fetch existing assignments once
+                var classIds = classes.Select(c => c.Id).ToList();
+                var oldAssignments = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+                    filter: ta => classIds.Contains(ta.StudentClassId) && !ta.IsDeleted);
+
+                if (oldAssignments.Any())
+                {
+                    _unitOfWork.TeacherAssignmentRepo.RemoveRange(oldAssignments);
+                }
+
+                // Prepare new assignments and update classes
+                var newAssignments = new List<TeacherAssignment>();
+                foreach (var sClass in classes)
+                {
+                    sClass.UpdateDate = DateTime.UtcNow;
+                    sClass.PeriodCount = 0;
+
+                    foreach (var sig in curriculum.CurriculumDetails)
+                    {
+                        newAssignments.Add(new TeacherAssignment
+                        {
+                            AssignmentType = (int)AssignmentType.Permanent,
+                            PeriodCount = sig.MainSlotPerWeek + sig.SubSlotPerWeek,
+                            StudentClassId = sClass.Id,
+                            CreateDate = DateTime.UtcNow,
+                            SubjectId = sig.SubjectId,
+                            TermId = (int)sig.TermId
+                        });
+
+                        sClass.PeriodCount += sig.MainSlotPerWeek + sig.SubSlotPerWeek;
+                    }
+
+                    _unitOfWork.StudentClassesRepo.Update(sClass);
+                }
+
+                // Add new assignments in bulk
+                if (newAssignments.Any())
+                {
+                    await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignments);
+                }
+
+                classGroup.UpdateDate = DateTime.UtcNow;
+                _unitOfWork.StudentClassGroupRepo.Update(classGroup);
+                await _unitOfWork.SaveChangesAsync();
+
+                transaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        #region AssignClassToClassGroup
+        public async Task<BaseResponseModel> AssignClassToClassGroup(int schoolId, int schoolYearId, int id, AssignClassToClassGroup model)
+        {
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId,
+                filter: s => s.Status == (int)SchoolStatus.Active)
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_ACCOUNT_NOT_EXIST);
+
+            var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(id,
+                filter: f => !f.IsDeleted && f.SchoolId == schoolId && f.SchoolYearId == schoolYearId,
+                include: query => query.Include(cg => cg.Curriculum).ThenInclude(c => c.CurriculumDetails))
+                ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_EXIST);
+
+            var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: f => !f.IsDeleted && f.SchoolId == schoolId && f.SchoolYearId == schoolYearId && model.ClassIds.Contains(f.Id));
+
+            if (classes.Count() != model.ClassIds.Count())
+            {
+                var invalidIds = model.ClassIds.Except(classes.Select(c => c.Id));
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = $"Lớp Id {string.Join(", ", invalidIds)} không tồn tại!"
+                };
+            }
+
+            var invalidClassesGrade = classes.Where(c => c.Grade != classGroup.Grade);
+            if (invalidClassesGrade.Any())
+            {
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = $"Lớp {string.Join(", ", invalidClassesGrade.Select(c => c.Name))} không cùng nhóm khối!"
+                };
+            }
+
+            var classesToUpsertAssignment = classes
+                .Where(c => !classGroup.StudentClasses.Select(sc => sc.Id).Contains(c.Id))
+                .ToList();
+
+            if (classesToUpsertAssignment.Any())
+            {
+                if (classGroup.Curriculum != null)
+                {
+                    await UpsertAssignment(classGroup.Curriculum, classGroup, classesToUpsertAssignment);
+                }
+                else
+                {
+                    classesToUpsertAssignment.ForEach(c => c.StudentClassGroupId = classGroup.Id);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+            }
+
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Thêm lớp vào nhóm lớp thành công!"
+            };
+        }
+        #endregion
 
     }
 

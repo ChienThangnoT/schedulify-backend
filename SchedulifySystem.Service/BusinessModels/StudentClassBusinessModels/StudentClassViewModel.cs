@@ -30,6 +30,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
 
     public class StudentClassViewName
     {
-        public string? StudentClassName { get; set; }
+        public int? Id { get; set; }
+        public string? Name { get; set; }
     }
 }
