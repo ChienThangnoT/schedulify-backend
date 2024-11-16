@@ -411,8 +411,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-
-        #region
+        #region Get Teacher Assignment Of Class
         public async Task<BaseResponseModel> GetTeacherAssignmentOfClass(int studentClassId, int schoolYearId)
         {
             var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: t => t.IsDeleted == false)
