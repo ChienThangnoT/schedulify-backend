@@ -111,9 +111,9 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost("reset-password/confirm")]
-        public Task<IActionResult> ConfirmResetPassword(string email, int code)
+        public Task<IActionResult> ConfirmResetPassword(ConfirmResetPasswordModel confirmResetPasswordModel)
         {
-            return ValidateAndExecute(() => _userService.ConfirmResetPassword(email, code));
+            return ValidateAndExecute(() => _userService.ConfirmResetPassword(confirmResetPasswordModel));
         }
         
         [HttpPost("reset-password/new-password")]

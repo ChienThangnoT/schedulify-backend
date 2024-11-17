@@ -435,9 +435,9 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region Confirm reset password
-        public async Task<BaseResponseModel> ConfirmResetPassword(string gmail, int code)
+        public async Task<BaseResponseModel> ConfirmResetPassword(ConfirmResetPasswordModel confirmResetPasswordModel)
         {
-            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
+            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(confirmResetPasswordModel.Email) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             if (existUser.Status != (int)AccountStatus.Active)
             {
                 return new BaseResponseModel()
@@ -447,7 +447,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            var sendOtp = await _otpService.ConfirmResetPassword(existUser.Id, code);
+            var sendOtp = await _otpService.ConfirmResetPassword(existUser.Id, confirmResetPasswordModel.Code);
             if (sendOtp != false)
             {
                 return new BaseResponseModel()
