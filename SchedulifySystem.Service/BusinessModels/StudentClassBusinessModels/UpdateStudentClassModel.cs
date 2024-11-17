@@ -14,9 +14,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int? SchoolYearId { get; set; }
         public MainSession? MainSession { get; set; }
         public bool IsFullDay { get; set; }
-        public int PeriodCount { get; set; }
         public EGrade Grade { get; set; }
-        public int? StudentClassGroupId { get; set; }
         public int? RoomId { get; set; }
     }
 }

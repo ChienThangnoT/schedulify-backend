@@ -258,7 +258,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // fix here ------------------------------------------------------------------------------------------------------------------
 
-
             var classesDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: t => t.SchoolId == parameters.SchoolId &&
                              t.SchoolYearId == parameters.SchoolYearId &&
@@ -314,28 +313,52 @@ namespace SchedulifySystem.Service.Services.Implements
             //// fix here ------------------------------------------------------------------------------------------------------------------
             subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
 
-            var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: t => classIds.Contains(t.StudentClassId) && t.IsDeleted == false
-                     && t.TermId == parameters.TermId,
-                include: query => query.Include(a => a.Teacher));
-            //await assignmentTask;
-
-            var assignmentsDb = await assignmentTask.ConfigureAwait(false);
-            var assignmentsDbList = assignmentsDb.ToList();
-
-
-
             //get teacher từ assigntmment db
-            var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
-
+            var teacherIds = parameters.TeacherAssignments.Select(t => t.TeacherId).Distinct().ToList();
             var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
-                filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
+                filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && !t.IsDeleted && t.SchoolId == parameters.SchoolId);
 
             var teachersDb = await teacherTask.ConfigureAwait(false);
             var teachersDbList = teachersDb.ToList();
 
             for (var i = 0; i < teachersDbList.Count; i++)
                 teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
+
+
+            var assigmentIds = parameters.TeacherAssignments.Select(a => a.AssignmentId);
+            //var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+            //    filter: t => classIds.Contains(t.StudentClassId) && t.IsDeleted == false
+            //         && t.TermId == parameters.TermId,
+            //    include: query => query.Include(a => a.Teacher));
+            var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+                filter: t => assigmentIds.Contains(t.Id) && !t.IsDeleted);
+            //await assignmentTask;
+
+            var assignmentsDb = await assignmentTask.ConfigureAwait(false);
+            foreach(var assignmentPara in parameters.TeacherAssignments)
+            {
+                var assignment = assignmentsDb.FirstOrDefault(a => a.Id == assignmentPara.AssignmentId) ?? 
+                    throw new NotExistsException($"Phân công id {assignmentPara.AssignmentId} không tồn tại trong hệ thống.");
+                
+                assignment.TeacherId = assignmentPara.TeacherId;
+                assignment.Teacher = teachersDbList.FirstOrDefault(t => t.Id == assignmentPara.TeacherId) ??
+                    throw new NotExistsException($"Không tìm thấy giáo viên id {assignmentPara.TeacherId}");
+            }
+            var assignmentsDbList = assignmentsDb.ToList();
+
+
+
+            ////get teacher từ assigntmment db
+            //var teacherIds = assignmentsDb.Select(a => a.TeacherId).Distinct().ToList();
+
+            //var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
+            //    filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && t.IsDeleted == false);
+
+            //var teachersDb = await teacherTask.ConfigureAwait(false);
+            //var teachersDbList = teachersDb.ToList();
+
+            //for (var i = 0; i < teachersDbList.Count; i++)
+            //    teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
 
 
             teachers.AddRange(assignmentsDbList
@@ -737,7 +760,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // phân bổ tiết đôi buổi chính và buổi phụ dựa trên session
-                if (mainSession ==(int) MainSession.Morning)
+                if (mainSession == (int)MainSession.Morning)
                 {
                     AssignToConsecutiveSlots(morningPairs, mainPeriods, src, classIndex);
                     AssignToConsecutiveSlots(afternoonPairs, subPeriods, src, classIndex);
@@ -1362,6 +1385,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             int errorCount = 0;
 
+            // Duyệt qua từng lớp trong danh sách
             foreach (var classObj in src.Classes)
             {
                 var mainSession = (MainSession)classObj.MainSession;

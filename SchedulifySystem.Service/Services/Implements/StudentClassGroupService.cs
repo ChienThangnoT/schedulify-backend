@@ -219,13 +219,16 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var curriculum = await _unitOfWork.CurriculumRepo.GetByIdAsync(curriculumId,
                 filter: c => c.SchoolId == schoolId && c.SchoolYearId == schoolYearId,
-                include: query => query.Include(c => c.CurriculumDetails))
+                include: query => query.Include(c => c.CurriculumDetails).ThenInclude(cd => cd.Subject))
                 ?? throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
 
             var classes = classGroup.StudentClasses.Where(c => !c.IsDeleted).ToList();
             if (classes.Any() && classGroup.CurriculumId != curriculumId)
             {
                 await UpsertAssignment(curriculum, classGroup, classes);
+                classGroup.CurriculumId = curriculumId;
+                _unitOfWork.StudentClassGroupRepo.Update(classGroup);
+                await _unitOfWork.SaveChangesAsync();
             }
 
             return new BaseResponseModel
@@ -268,7 +271,8 @@ namespace SchedulifySystem.Service.Services.Implements
                             StudentClassId = sClass.Id,
                             CreateDate = DateTime.UtcNow,
                             SubjectId = sig.SubjectId,
-                            TermId = (int)sig.TermId
+                            TermId = (int)sig.TermId,
+                            TeacherId = sig.Subject.IsTeachedByHomeroomTeacher ? sClass.HomeroomTeacherId : null,
                         });
 
                         sClass.PeriodCount += sig.MainSlotPerWeek + sig.SubSlotPerWeek;
@@ -306,8 +310,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(id,
                 filter: f => !f.IsDeleted && f.SchoolId == schoolId && f.SchoolYearId == schoolYearId,
-                include: query => query.Include(cg => cg.Curriculum).ThenInclude(c => c.CurriculumDetails))
+                include: query => query.Include(cg => cg.Curriculum))
                 ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_EXIST);
+
+            var curriculum = classGroup.Curriculum != null ? await _unitOfWork.CurriculumRepo.GetByIdAsync((int)classGroup.CurriculumId,
+                include: query => query.Include(c => c.CurriculumDetails).ThenInclude(cd => cd.Subject))
+                : null;
 
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: f => !f.IsDeleted && f.SchoolId == schoolId && f.SchoolYearId == schoolYearId && model.ClassIds.Contains(f.Id));
@@ -342,11 +350,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     await UpsertAssignment(classGroup.Curriculum, classGroup, classesToUpsertAssignment);
                 }
-                else
-                {
-                    classesToUpsertAssignment.ForEach(c => c.StudentClassGroupId = classGroup.Id);
-                    await _unitOfWork.SaveChangesAsync();
-                }
+                classesToUpsertAssignment.ForEach(c => c.StudentClassGroupId = classGroup.Id);
+                await _unitOfWork.SaveChangesAsync();
             }
 
             return new BaseResponseModel
