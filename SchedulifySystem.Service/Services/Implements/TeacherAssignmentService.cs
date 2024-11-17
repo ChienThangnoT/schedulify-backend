@@ -177,7 +177,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: a => classIds.Contains(a.StudentClassId) && a.TeacherId == null && !a.Subject.IsTeachedByHomeroomTeacher,
+                filter: a => classIds.Contains(a.StudentClassId) && !a.Subject.IsTeachedByHomeroomTeacher,
                 include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
@@ -278,39 +278,43 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            //foreach (var assignment in assignmentsDb)
-            //{
-            //    _unitOfWork.TeacherAssignmentRepo.Update(assignment);
-            //}
-            //await _unitOfWork.SaveChangesAsync();
 
-            // Tính toán số tiết dạy trên tuần của từng giáo viên
-            var teacherPeriodCounts = assignmentsDb
-                .Where(a => a.TeacherId != null)
+            var result = new List<TeacherAssignmentTermViewModel>();
+            foreach (var term in terms)
+            {
+                var assignmentByTerm = assignmentsDb.Where(a => a.TermId == term.Id);
+                var teacherPeriodCounts = assignmentByTerm.Where(a => a.TeacherId != null)
                 .GroupBy(a => a.TeacherId)
                 .Select(g =>
                 {
                     var teacher = teachers.First(t => t.Id == g.Key);
-                    return new
+                    return new TeacherPeriodCountViewModel()
                     {
-                        TeacherId = g.Key,
+                        TeacherId = (int)g.Key,
                         TeacherAbbreviation = teacher.Abbreviation,
                         TeacherName = teacher.FirstName + " " + teacher.LastName,
                         TotalPeriodsPerWeek = g.Sum(a => a.PeriodCount)
                     };
                 })
                 .ToList();
+                var minimalData = assignmentByTerm.Select(a => new TeacherAssignmentMinimalData() { AssignmentId = a.Id, TeacherId = a.TeacherId }).ToList();
 
-            // Trả về kết quả cùng với danh sách giáo viên và số tiết của họ
+                result.Add(new TeacherAssignmentTermViewModel()
+                {
+                    TermId = term.Id,
+                    TermName = term.Name,
+                    Assignments = _mapper.Map<List<TeacherAssignmentViewModel>>(assignmentByTerm),
+                    TeacherPeriodsCount = teacherPeriodCounts,
+                    AssignmentMinimalData = minimalData
+                }) ;
+            }
+
+
             return new BaseResponseModel
             {
                 Status = StatusCodes.Status200OK,
                 Message = "Phân công giáo viên thành công.",
-                Result = new
-                {
-                    Assignments = _mapper.Map<List<TeacherAssignmentTermViewModel>>(assignmentsDb),
-                    TeacherPeriodCounts = teacherPeriodCounts
-                }
+                Result = result
             };
         }
 
@@ -366,7 +370,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Lọc danh sách các assignments chưa được phân công hoặc không phải phân công cố định
             var remainingAssignments = assignments
-                .Where(a => !fixedAssignments.Any(fa => fa.AssignmentId == a.Id))
+                .Where(a => a.TeacherId == null)
                 .ToList();
             int numRemainingAssignments = remainingAssignments.Count;
             int numTeachers = teachers.Count;
