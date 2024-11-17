@@ -226,6 +226,9 @@ namespace SchedulifySystem.Service.Services.Implements
             if (classes.Any() && classGroup.CurriculumId != curriculumId)
             {
                 await UpsertAssignment(curriculum, classGroup, classes);
+                classGroup.CurriculumId = curriculumId;
+                _unitOfWork.StudentClassGroupRepo.Update(classGroup);
+                await _unitOfWork.SaveChangesAsync();
             }
 
             return new BaseResponseModel

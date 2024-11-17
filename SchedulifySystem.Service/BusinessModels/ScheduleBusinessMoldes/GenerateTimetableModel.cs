@@ -16,15 +16,16 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
     {
         [JsonIgnore]
         public int SchoolId { get; set; }
-        public DateTime ApplyDate { get; set; }
-        public DateTime ExpiredDate { get; set; }
+        [JsonIgnore]
         public int SchoolYearId { get; set; }
+        public int StartWeek { get; set; }
+        public int EndWeek { get; set; }
         public string? TimetableName { get; set; }
 
         public List<FixedPeriodScheduleModel>? FixedPeriodsPara { get; set; }
         public List<NoAssignPeriodScheduleModel>? NoAssignPeriodsPara { get; set; }
         public List<FreeTimetablePeriodScheduleModel>? FreeTimetablePeriodsPara { get; set; }
-        public List<TeacherAssignmentMinimalData> TeacherAssignments { get; set; }
+        public required List<TeacherAssignmentMinimalData> TeacherAssignments { get; set; }
 
         [JsonIgnore]
         public List<ClassPeriodScheduleModel> FixedPeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết cố định 
