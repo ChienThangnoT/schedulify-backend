@@ -16,6 +16,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int? MainSession { get; set; }
         public bool IsFullDay { get; set; } = false;
         public EGrade Grade { get; set; }
+        public string? RoomCode { get; set; }
 
         [JsonIgnore]
         public int? HomeroomTeacherId { get; set; }
@@ -23,5 +24,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int? SchoolId { get; set; }
         [JsonIgnore]
         public int? SchoolYearId { get; set; }
+        [JsonIgnore]
+        public int? RoomId { get; set; }
     }
 }
