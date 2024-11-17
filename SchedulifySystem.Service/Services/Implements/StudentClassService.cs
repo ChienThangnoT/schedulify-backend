@@ -37,43 +37,6 @@ namespace SchedulifySystem.Service.Services.Implements
             var classes = _mapper.Map<List<StudentClass>>(models);
             await _unitOfWork.StudentClassesRepo.AddRangeAsync(classes);
             await _unitOfWork.SaveChangesAsync();
-            for (int i = 0; i < classes.Count; i++)
-            {
-                classes[i].StudentClassGroupId = models[i].SGroupId;
-            }
-            var studentClassGroup = classes.GroupBy(s => s.StudentClassGroupId);
-            foreach (var group in studentClassGroup)
-            {
-                if (group.Key == null) continue;
-
-                var sg = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync((int)group.Key,
-                                filter: t => t.IsDeleted == false,
-                                include: query => query.Include(sg => sg.Curriculum).ThenInclude(c => c.CurriculumDetails));
-
-                foreach (var item in group.Select(g => g))
-                {
-                    var newAssignment = new List<TeacherAssignment>();
-                    sg.Curriculum.CurriculumDetails.ToList().ForEach(sig =>
-                    {
-                        newAssignment.Add(new TeacherAssignment()
-                        {
-                            AssignmentType = (int)AssignmentType.Permanent,
-                            PeriodCount = sig.MainSlotPerWeek + sig.SubSlotPerWeek,
-                            StudentClassId = item.Id,
-                            CreateDate = DateTime.UtcNow,
-                            SubjectId = sig.SubjectId,
-                            TermId = (int)sig.TermId
-                        });
-                    });
-
-                    item.PeriodCount = sg.Curriculum.CurriculumDetails.ToList().Sum(q => q.MainSlotPerWeek + q.SubSlotPerWeek);
-                    _unitOfWork.StudentClassesRepo.Update(item);
-                    await _unitOfWork.TeacherAssignmentRepo.AddRangeAsync(newAssignment);
-                }
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_CLASS_SUCCESS };
         }
         #endregion
@@ -149,22 +112,6 @@ namespace SchedulifySystem.Service.Services.Implements
                     Result = errorList
                 };
             }
-
-            // check add student class group
-            var classesWithGroup = models.Where(s => s.StudentClassGroupCode != null);
-            var groupCodes = classesWithGroup.Select(s => s.StudentClassGroupCode.ToLower()).Distinct().ToList();
-            var studentClassGroups = await _unitOfWork.StudentClassGroupRepo.GetV2Async(
-                filter: sg => sg.SchoolId == schoolId && !sg.IsDeleted && groupCodes.Contains(sg.StudentClassGroupCode.ToLower()));
-
-            foreach (var model in classesWithGroup)
-            {
-                var sg = studentClassGroups.FirstOrDefault(sg => sg.StudentClassGroupCode.ToLower().Equals(model.StudentClassGroupCode.ToLower()));
-                if (sg != null)
-                {
-                    model.SGroupId = sg.Id;
-                }
-            }
-
             // List of class names to check in the database
             var modelNames = models.Select(m => m.Name.ToLower()).ToList();
 
