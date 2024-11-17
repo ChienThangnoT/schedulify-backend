@@ -122,7 +122,7 @@ namespace SchedulifySystem.Service.Services.Implements
             else
             {
                 // Kiểm tra giáo viên có thể dạy các môn yêu cầu
-                var subjectsInAssignment = assignmentsDb.Select(t => t.SubjectId).Distinct().ToList();
+                var subjectsInAssignment = assignmentsDb.Where(s => !s.Subject.IsTeachedByHomeroomTeacher).Select(t => t.SubjectId).Distinct().ToList();
                 foreach (var sia in subjectsInAssignment)
                 {
                     if (!teachableSubjects.Contains(sia))
@@ -177,7 +177,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: a => classIds.Contains(a.StudentClassId) && !a.Subject.IsTeachedByHomeroomTeacher,
+                filter: a => classIds.Contains(a.StudentClassId) && !a.IsDeleted,
                 include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
@@ -351,14 +351,13 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         public async Task AssignTeachers(
-            List<TeacherAssignment> assignments,
-            List<Teacher> teachers,
-            Dictionary<int, List<TeachableSubject>> teacherCapabilities,
-            Dictionary<int, int> homeroomTeachers,
-            List<FixedTeacherAssignmentModel>? fixedAssignments)
+    List<TeacherAssignment> assignments,
+    List<Teacher> teachers,
+    Dictionary<int, List<TeachableSubject>> teacherCapabilities,
+    Dictionary<int, int> homeroomTeachers,
+    List<FixedTeacherAssignmentModel>? fixedAssignments)
         {
-
-            // Phân công cố định 
+            // Bước 1: Phân công giáo viên cố định trước
             foreach (var fixedAssignment in fixedAssignments)
             {
                 var assignment = assignments.FirstOrDefault(a => a.Id == fixedAssignment.AssignmentId);
@@ -367,20 +366,16 @@ namespace SchedulifySystem.Service.Services.Implements
                 assignment.Teacher = teacher;
             }
 
-
-            // Lọc danh sách các assignments chưa được phân công hoặc không phải phân công cố định
-            var remainingAssignments = assignments
-                .Where(a => a.TeacherId == null)
-                .ToList();
+            // Bước 2: Lọc danh sách các nhiệm vụ chưa được phân công giáo viên
+            var remainingAssignments = assignments.Where(a => a.TeacherId == null).ToList();
             int numRemainingAssignments = remainingAssignments.Count;
             int numTeachers = teachers.Count;
 
-            // 2. Khởi tạo CpModel và các biến
+            // Bước 3: Khởi tạo mô hình CP (Constraint Programming) để tối ưu hóa phân công giáo viên
             CpModel model = new CpModel();
-
-            // Biến nhị phân đại diện cho việc phân công giáo viên cho từng assignment
             BoolVar[,] assignmentMatrix = new BoolVar[numRemainingAssignments, numTeachers];
 
+            // Tạo biến nhị phân cho từng nhiệm vụ và giáo viên (1 nếu được phân công, 0 nếu không)
             for (int i = 0; i < numRemainingAssignments; i++)
             {
                 for (int j = 0; j < numTeachers; j++)
@@ -389,45 +384,23 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            // 3. Ràng buộc: Mỗi nhiệm vụ chỉ được phân cho một giáo viên
+            // Bước 4: Ràng buộc - Mỗi nhiệm vụ chỉ được phân công cho một giáo viên
             for (int i = 0; i < numRemainingAssignments; i++)
             {
                 model.Add(LinearExpr.Sum(from j in Enumerable.Range(0, numTeachers) select assignmentMatrix[i, j]) == 1);
             }
 
-            // 4. Ràng buộc: Giáo viên chỉ có thể dạy các môn và khối lớp mà họ có thể dạy
-            for (int i = 0; i < numRemainingAssignments; i++)
-            {
-                var assignment = remainingAssignments[i];
-                for (int j = 0; j < numTeachers; j++)
-                {
-                    var teacher = teachers[j];
-
-                    if (teacherCapabilities.ContainsKey(teacher.Id))
-                    {
-                        var teachableSubjects = teacherCapabilities[teacher.Id]
-                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
-                            .ToList();
-
-                        if (!teachableSubjects.Any())
-                        {
-                            model.Add(assignmentMatrix[i, j] == 0);
-                        }
-                    }
-                    else
-                    {
-                        model.Add(assignmentMatrix[i, j] == 0);
-                    }
-                }
-            }
-
-            // 5. Ràng buộc mềm: Số tiết tối đa của mỗi giáo viên là 17, nhưng có thể vượt quá nếu cần
+            // Bước 5: Khởi tạo từ điển để lưu tổng số tiết của mỗi giáo viên
+            Dictionary<int, IntVar> totalLoadDict = new Dictionary<int, IntVar>();
             List<IntVar> overloadList = new List<IntVar>();
+
+            // Ràng buộc số tiết tối đa là 17 cho mỗi giáo viên
             foreach (var teacher in teachers)
             {
                 int teacherIndex = teachers.IndexOf(teacher);
                 List<IntVar> teacherLoad = new List<IntVar>();
 
+                // Tính tổng số tiết mà giáo viên được phân công
                 for (int i = 0; i < numRemainingAssignments; i++)
                 {
                     IntVar assignedLoad = model.NewIntVar(0, remainingAssignments[i].PeriodCount, $"load_{i}_{teacherIndex}");
@@ -435,26 +408,40 @@ namespace SchedulifySystem.Service.Services.Implements
                     teacherLoad.Add(assignedLoad);
                 }
 
+                // Tính tổng số tiết cho giáo viên hiện tại
                 IntVar totalLoad = model.NewIntVar(0, 100, $"totalLoad_{teacherIndex}");
                 model.Add(totalLoad == LinearExpr.Sum(teacherLoad));
+                totalLoadDict[teacherIndex] = totalLoad;
 
+                // Tạo biến Boolean để kiểm tra nếu giáo viên có thể dạy không vượt quá 17 tiết
+                BoolVar canAssignWithinLimit = model.NewBoolVar($"canAssignWithinLimit_{teacherIndex}");
+                model.Add(totalLoad <= 17).OnlyEnforceIf(canAssignWithinLimit);
+
+                // Tạo biến cho số tiết vượt quá giới hạn 17 tiết
                 IntVar overload = model.NewIntVar(0, 100, $"overload_{teacherIndex}");
                 model.Add(overload >= totalLoad - 17);
                 model.Add(overload >= 0);
                 overloadList.Add(overload);
+
+                // Chỉ cho phép vượt quá 17 tiết nếu không còn lựa chọn nào khác
+                model.Add(overload == 0).OnlyEnforceIf(canAssignWithinLimit.Not());
             }
 
-            // 6. Thiết lập hàm mục tiêu để ưu tiên phân công tất cả các assignments
+            // Bước 6: Thiết lập hàm mục tiêu để tối ưu hóa việc phân công giáo viên
+            // Tối ưu hóa phân công để đảm bảo tất cả các nhiệm vụ được thực hiện
             LinearExpr objectiveExpr = LinearExpr.Sum(
                 from i in Enumerable.Range(0, numRemainingAssignments)
                 from j in Enumerable.Range(0, numTeachers)
                 select assignmentMatrix[i, j]
-            ) * 1000; // Trọng số lớn để đảm bảo tất cả các assignments được phân công trước
+            ) * 1000;
 
-            // Ưu tiên giáo viên chủ nhiệm và các giáo viên có `IsMain`
+            // Bước 7: Ưu tiên giáo viên chủ nhiệm và giáo viên có `IsMain` và `AppropriateLevel` cao
             for (int i = 0; i < numRemainingAssignments; i++)
             {
                 var assignment = remainingAssignments[i];
+                var studentClassId = assignment.StudentClassId;
+                int? homeroomTeacherId = homeroomTeachers.ContainsKey(studentClassId) ? homeroomTeachers[studentClassId] : null;
+
                 for (int j = 0; j < numTeachers; j++)
                 {
                     var teacher = teachers[j];
@@ -469,30 +456,35 @@ namespace SchedulifySystem.Service.Services.Implements
                             var maxAppropriateLevel = teachableSubjects.Max(ts => ts.AppropriateLevel);
                             var isMain = teachableSubjects.Any(ts => ts.IsMain);
 
-                            // Ưu tiên giáo viên chủ nhiệm dạy môn chuyên môn
-                            if (homeroomTeachers.ContainsKey(assignment.StudentClassId) &&
-                                homeroomTeachers[assignment.StudentClassId] == teacher.Id &&
-                                isMain)
+                            // Nếu giáo viên chủ nhiệm có thể dạy môn `IsMain`, ưu tiên phân công
+                            if (homeroomTeacherId == teacher.Id && isMain)
                             {
                                 objectiveExpr += assignmentMatrix[i, j] * 200;
                             }
 
-                            // Ưu tiên giáo viên có `IsMain = true` và `AppropriateLevel` cao hơn
-                            objectiveExpr += assignmentMatrix[i, j] * (isMain ? 20 : 0);
+                            // Nếu không, ưu tiên giáo viên có `IsMain` và `AppropriateLevel` cao
+                            if (isMain)
+                            {
+                                objectiveExpr += assignmentMatrix[i, j] * 20;
+                            }
                             objectiveExpr += assignmentMatrix[i, j] * maxAppropriateLevel;
                         }
                     }
                 }
             }
 
+            // Bước 8: Giảm thiểu số tiết vượt quá 17 tiết
+            objectiveExpr -= LinearExpr.Sum(overloadList) * 100;
+
+            // Thiết lập hàm mục tiêu
             model.Maximize(objectiveExpr);
 
-            // 7. Tạo solver và giải bài toán
+            // Bước 9: Sử dụng solver để tìm giải pháp tối ưu
             CpSolver solver = new CpSolver();
             solver.StringParameters = "max_time_in_seconds:300 log_search_progress:true";
             CpSolverStatus status = solver.Solve(model);
 
-            // 8. Cập nhật kết quả nếu có lời giải khả thi
+            // Bước 10: Cập nhật kết quả nếu tìm thấy lời giải khả thi
             if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
             {
                 for (int i = 0; i < numRemainingAssignments; i++)
@@ -509,9 +501,11 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             else
             {
+                // Thông báo nếu không tìm thấy lời giải khả thi
                 Console.WriteLine("Không tìm thấy lời giải khả thi.");
             }
         }
+
 
         public Task<BaseResponseModel> UpdateAssignment(int assignmentId)
         {
