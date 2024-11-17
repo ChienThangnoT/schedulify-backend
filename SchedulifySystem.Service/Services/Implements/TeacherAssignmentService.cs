@@ -166,7 +166,7 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
-        public async Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId, List<FixedTeacherAssignmentModel> fixedAssignments)
+        public async Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId, List<FixedTeacherAssignmentModel>? fixedAssignments)
         {
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
                  filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId,
@@ -277,6 +277,13 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+
+            //foreach (var assignment in assignmentsDb)
+            //{
+            //    _unitOfWork.TeacherAssignmentRepo.Update(assignment);
+            //}
+            //await _unitOfWork.SaveChangesAsync();
+
             // Tính toán số tiết dạy trên tuần của từng giáo viên
             var teacherPeriodCounts = assignmentsDb
                 .Where(a => a.TeacherId != null)
@@ -344,7 +351,7 @@ namespace SchedulifySystem.Service.Services.Implements
             List<Teacher> teachers,
             Dictionary<int, List<TeachableSubject>> teacherCapabilities,
             Dictionary<int, int> homeroomTeachers,
-            List<FixedTeacherAssignmentModel> fixedAssignments)
+            List<FixedTeacherAssignmentModel>? fixedAssignments)
         {
 
             // Phân công cố định 
