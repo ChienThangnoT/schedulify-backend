@@ -27,7 +27,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 
         public SubjectScheduleModel() { }
 
-        public SubjectScheduleModel(SubjectInGroup sig)
+        public SubjectScheduleModel(CurriculumDetail sig)
         {
            SubjectId = sig.SubjectId;
             Abbreviation = sig.Subject.Abbreviation;

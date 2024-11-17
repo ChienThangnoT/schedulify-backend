@@ -78,13 +78,7 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _studentClassService.AssignHomeroomTeacherToClasses(models));
         }
 
-        [HttpPatch()]
-        [Route("assign-subject-group")]
-        [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AssignSubjectGroupToClasses(AssignSubjectGroup model)
-        {
-            return ValidateAndExecute(() => _studentClassService.AssignSubjectGroupToClasses(model));
-        }
+       
 
     }
 }

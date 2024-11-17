@@ -8,18 +8,12 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels
 {
-    public class TeacherAssignmentTermViewModel : BaseEntity
+    public class TeacherAssignmentTermViewModel 
     {
-        public int PeriodCount { get; set; }
-        public int StudentClassId { get; set; }
-        public AssignmentType AssignmentType { get; set; } = AssignmentType.Permanent;
-        public int SubjectId { get; set; }
-        public string? SubjectName { get; set; }
-        public int? TeacherId { get; set; }
-        public string? TeacherFirstName { get;set; }
-        public string? TeacherLastName { get; set; }
-        public string? TeacherAbbreviation { get; set; }
         public int TermId { get; set; }
         public string? TermName { get; set;}
+        public List<TeacherAssignmentViewModel> Assignments { get; set; } = [];
+        public List<TeacherPeriodCountViewModel> TeacherPeriodsCount { get; set; } = [];
+        public List<TeacherAssignmentMinimalData> AssignmentMinimalData { get; set; } = [];
     }
 }

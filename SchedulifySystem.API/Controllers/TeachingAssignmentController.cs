@@ -33,9 +33,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPatch("auto-assign-teacher")]
         //[Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AutoAssignTeachers(int schoolId, int yearId)
+        public Task<IActionResult> AutoAssignTeachers(int schoolId, int yearId, List<FixedTeacherAssignmentModel>? fixedAssignment)
         {
-            return ValidateAndExecute(() => _teacherAssignmentService.AutoAssignTeachers(schoolId, yearId));
+            return ValidateAndExecute(() => _teacherAssignmentService.AutoAssignTeachers(schoolId, yearId, fixedAssignment ?? new List<FixedTeacherAssignmentModel>()));
         }
 
         [HttpGet("check-auto-assign-teacher")]

@@ -20,12 +20,17 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public bool IsFullDay { get; set; }
         public int PeriodCount { get; set; }
         public int? SubjectGroupId { get; set; }
-        public string SubjectGroupName { get; set; }
+        public string? StudentClassGroupName { get; set; }
+        public int? CurriculumId { get; set; }
+        public string? CurriculumName { get; set; }
         public int? SchoolYearId { get; set; }
+        public int RoomId { get; set; }
+        public string? RoomName { get; set; }
     }
 
     public class StudentClassViewName
     {
-        public string? StudentClassName { get; set; }
+        public int? Id { get; set; }
+        public string? Name { get; set; }
     }
 }

@@ -11,6 +11,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
     {
         public string SubjectAbreviation {  get; set; }
         public List<EGrade> Grades { get; set; } = new List<EGrade>();
+        public EAppropriateLevel AppropriateLevel { get; set; }
         public bool IsMain { get; set; }
     }
 }

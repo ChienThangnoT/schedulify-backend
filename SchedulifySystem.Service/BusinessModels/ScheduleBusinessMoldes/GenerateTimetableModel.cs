@@ -2,6 +2,7 @@
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
+using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<FixedPeriodScheduleModel>? FixedPeriodsPara { get; set; }
         public List<NoAssignPeriodScheduleModel>? NoAssignPeriodsPara { get; set; }
         public List<FreeTimetablePeriodScheduleModel>? FreeTimetablePeriodsPara { get; set; }
+        public List<TeacherAssignmentMinimalData> TeacherAssignments { get; set; }
 
         [JsonIgnore]
         public List<ClassPeriodScheduleModel> FixedPeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết cố định 
