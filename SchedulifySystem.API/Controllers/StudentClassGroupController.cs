@@ -45,15 +45,15 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPatch()]
         [Route("{id}/assign-curriculum/{curriculumId}")]
-        //[Authorize(Roles = "SchoolManager")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> AssignSubjectGroupToClasses(int schoolId, int yearId, int id, int curriculumId)
         {
             return ValidateAndExecute(() => _studentClassGroupService.AssignCurriculumToClassGroup(schoolId,yearId,id,curriculumId));
         }
 
         [HttpPatch()]
-        [Route("{id}/AssignClassToClassGroup")]
-        //[Authorize(Roles = "SchoolManager")]
+        [Route("{id}/assign-class-to-class-group")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> AssignSubjectGroupToClasses(int schoolId, int yearId, int id, AssignClassToClassGroup model)
         {
             return ValidateAndExecute(() => _studentClassGroupService.AssignClassToClassGroup(schoolId, yearId, id, model));

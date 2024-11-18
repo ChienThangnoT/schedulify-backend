@@ -224,11 +224,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
 
             // Check existed name or code
-            var foundRooms = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
-                filter: b => !b.IsDeleted && b.Id != room.Id &&
-                (model.Name.ToLower().Equals(b.Name.ToLower()) || model.RoomCode.ToUpper().Equals(b.RoomCode)));
+            var isDuplicate = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
+                filter: b => !b.IsDeleted && b.Id != room.Id && !model.Name.Equals(room.Name, StringComparison.OrdinalIgnoreCase) 
+                && !model.RoomCode.Equals(room.RoomCode, StringComparison.OrdinalIgnoreCase) &&
+                (model.Name.Equals(b.Name, StringComparison.OrdinalIgnoreCase) ||
+                 model.RoomCode.Equals(b.RoomCode, StringComparison.OrdinalIgnoreCase)));
 
-            if (foundRooms.Items.Any())
+            if (isDuplicate.Items.Count != 0)
             {
                 return new BaseResponseModel
                 {
@@ -242,7 +244,6 @@ namespace SchedulifySystem.Service.Services.Implements
             var subjectIds = subjects.Select(s => s.Id).ToList();
             var newRoomSubjects = new List<RoomSubject>();
 
-            // Nếu là phòng thực hành, xử lý môn học
             if (model.RoomType == ERoomType.PRACTICE_ROOM)
             {
                 if (model.SubjectIds == null || !model.SubjectIds.All(s => subjectIds.Contains(s)))
@@ -254,17 +255,17 @@ namespace SchedulifySystem.Service.Services.Implements
                     };
                 }
 
-                // Xóa những RoomSubject không còn nằm trong danh sách SubjectIds và xóa chúng khỏi db
+                // remove roomSubject không còn nằm trong danh sách SubjectIds và xóa khỏi db
                 var subjectsToRemove = room.RoomSubjects
                     .Where(rs => !model.SubjectIds.Contains((int)rs.SubjectId))
                     .ToList();
 
                 foreach (var subjectToRemove in subjectsToRemove)
                 {
-                    _unitOfWork.RoomSubjectRepo.Remove(subjectToRemove); // Xóa trực tiếp từ repo
+                    _unitOfWork.RoomSubjectRepo.Remove(subjectToRemove);
                 }
 
-                // Thêm các môn học mới vào RoomSubjects nếu chưa có
+                // add các môn học mới vào RoomSubjects nếu chưa có
                 foreach (var item in model.SubjectIds)
                 {
                     if (!room.RoomSubjects.Any(rs => rs.SubjectId == item))
@@ -273,18 +274,15 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
 
-                // Thêm các RoomSubject mới vào db
-                if (newRoomSubjects.Any())
+                if (newRoomSubjects.Count != 0)
                 {
-                    await _unitOfWork.RoomSubjectRepo.AddRangeAsync(newRoomSubjects); // Sử dụng repo để thêm các RoomSubject mới
+                    await _unitOfWork.RoomSubjectRepo.AddRangeAsync(newRoomSubjects);
                 }
             }
 
-            // Map các thay đổi từ model sang room hiện tại
-            var newRoom = _mapper.Map(model, room);
+            _mapper.Map(model, room);
 
-            // Cập nhật Room trong cơ sở dữ liệu
-            _unitOfWork.RoomRepo.Update(newRoom);
+            _unitOfWork.RoomRepo.Update(room);
             await _unitOfWork.SaveChangesAsync();
 
             return new BaseResponseModel
