@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -114,26 +115,58 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            var roomCodes = models.Where(r =>!r.RoomCode.IsNullOrEmpty()).Select(c => c.RoomCode.ToLower());
-            if(roomCodes.Any() )
-            {
-                var groupByRoomCode = models.GroupBy(c => c.RoomCode);
-                var roomDb = await _unitOfWork.RoomRepo.GetV2Async(
-                    filter: r => r.Building.SchoolId == schoolId && !r.IsDeleted && roomCodes.Contains(r.RoomCode.ToLower()),
-                    include: query => query.Include(s => s.StudentClasses));
+            // Check duplicate RoomCode in the list
+            var roomGroups = models
+                .Where(m => !string.IsNullOrEmpty(m.RoomCode))
+                .GroupBy(m => m.RoomCode.ToLower())
+                .Where(g => g.Count() > 1)
+                .ToList();
 
-                foreach (var model in models)
+            if (roomGroups.Any())
+            {
+                var errorRooms = roomGroups.SelectMany(g => g).ToList();
+                return new BaseResponseModel
                 {
-                    var room = roomDb.FirstOrDefault(r => r.RoomCode.ToLower().Equals(model.RoomCode.ToLower())) ??
-                        throw new NotExistsException($"Không tìm thấy phòng mã {model.RoomCode}");
-                    
-                    model.RoomId = room.Id;
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.ROOM_CODE_DUPLICATED,
+                    Result = errorRooms
+                };
+            }
+
+            // Check rooms in the database
+            var roomCodes = models
+                .Where(m => !string.IsNullOrEmpty(m.RoomCode))
+                .Select(m => m.RoomCode.ToLower())
+                .ToList();
+
+            var roomsInDb = await _unitOfWork.RoomRepo.GetV2Async(
+                filter: r => r.Building.SchoolId == schoolId &&
+                             !r.IsDeleted &&
+                             roomCodes.Contains(r.RoomCode.ToLower()),
+                include: query => query.Include(r => r.StudentClasses)
+            );
+
+            foreach (var model in models.Where(m => !string.IsNullOrEmpty(m.RoomCode)))
+            {
+                var matchingRoom = roomsInDb.FirstOrDefault(r => r.RoomCode.ToLower() == model.RoomCode.ToLower()) 
+                    ?? throw new NotExistsException($"Không tìm thấy phòng mã {model.RoomCode}");
+                model.RoomId = matchingRoom.Id;
+
+                var currentCountInList = models
+                    .Count(m => m.RoomCode.Equals(model.RoomCode, StringComparison.OrdinalIgnoreCase));
+
+                var currentCountInDb = matchingRoom.StudentClasses.Count(c => !c.IsDeleted);
+
+                if (currentCountInList + currentCountInDb > matchingRoom.MaxClassPerTime)
+                {
+                    throw new DefaultException($"Phòng {model.RoomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}).");
                 }
             }
-            
+
+
             // List of class names to check in the database
             var modelNames = models.Select(m => m.Name.ToLower()).ToList();
-            
+
             // Check class duplicates in the database
             var foundClass = await _unitOfWork.StudentClassesRepo.ToPaginationIncludeAsync(
                 filter: sc => sc.SchoolId == schoolId && !sc.IsDeleted &&
@@ -222,25 +255,36 @@ namespace SchedulifySystem.Service.Services.Implements
             var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false)
                 ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
 
-
-
             if (updateStudentClassModel.RoomId != null && updateStudentClassModel.RoomId != existedClass.RoomId)
             {
-                var checkkExistRoom = await _unitOfWork.RoomRepo.GetByIdAsync((int)updateStudentClassModel.RoomId, filter: t => t.IsDeleted == false)
+                var checkExistRoom = await _unitOfWork.RoomRepo.GetByIdAsync((int)updateStudentClassModel.RoomId, filter: t => t.IsDeleted == false)
                     ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
 
-                var cheeckRoomIsUse = await _unitOfWork.StudentClassesRepo.GetAsync(filter: t => t.IsDeleted == false && t.RoomId == updateStudentClassModel.RoomId);
-                if (cheeckRoomIsUse != null)
+                var classesUsingRoom = await _unitOfWork.StudentClassesRepo.GetAsync(
+                    filter: t => t.IsDeleted == false && t.RoomId == updateStudentClassModel.RoomId && t.Id != id
+                );
+
+                if (classesUsingRoom.Count() > checkExistRoom.MaxClassPerTime)
                 {
-                    throw new DefaultException(ConstantResponse.ROOM_ALREADY_IN_USE);
+                    throw new DefaultException($"Phòng này đã đạt số lớp tối đa ({checkExistRoom.MaxClassPerTime}).");
                 }
             }
+
             updateStudentClassModel.RoomId ??= existedClass.RoomId;
 
             if (updateStudentClassModel.HomeroomTeacherId != null && updateStudentClassModel.HomeroomTeacherId != existedClass.HomeroomTeacherId)
             {
-                var checkkExistTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync((int)updateStudentClassModel.HomeroomTeacherId, filter: t => t.IsDeleted == false)
+                var checkExistTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync((int)updateStudentClassModel.HomeroomTeacherId, filter: t => t.IsDeleted == false)
                     ?? throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
+
+                var classesWithTeacher = await _unitOfWork.StudentClassesRepo.ExistsAsync(
+                    filter: t => t.IsDeleted == false && t.HomeroomTeacherId == updateStudentClassModel.HomeroomTeacherId && t.Id != id
+                );
+
+                if (classesWithTeacher)
+                {
+                    throw new DefaultException(ConstantResponse.HOMEROOM_TEACHER_LIMIT);
+                }
 
             }
             updateStudentClassModel.HomeroomTeacherId ??= existedClass.HomeroomTeacherId;

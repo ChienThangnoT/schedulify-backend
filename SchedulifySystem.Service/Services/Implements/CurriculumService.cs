@@ -47,7 +47,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: sy => !sy.IsDeleted, include: query => query.Include(sy => sy.Terms))
                         ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
-                    var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(t =>
+                    var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(t => !t.IsDeleted &&
                         t.SchoolId == schoolId && t.Grade == (int)curriculumAddModel.Grade &&
                         t.CurriculumName.ToLower() == curriculumAddModel.CurriculumName.ToLower());
 
