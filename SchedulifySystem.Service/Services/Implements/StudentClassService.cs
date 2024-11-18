@@ -226,7 +226,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (updateStudentClassModel.RoomId != null && updateStudentClassModel.RoomId != existedClass.RoomId)
             {
-                var checkkExistRoom = await _unitOfWork.RoomRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false)
+                var checkkExistRoom = await _unitOfWork.RoomRepo.GetByIdAsync((int)updateStudentClassModel.RoomId, filter: t => t.IsDeleted == false)
                     ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
             }
             updateStudentClassModel.RoomId ??= existedClass.RoomId;
