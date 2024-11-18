@@ -208,6 +208,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     filter: r => r.Building.SchoolId == schoolId && (buildingId == null ? true : r.Building.Id == buildingId) && (roomType == null || roomType == (ERoomType) r.RoomType) && !r.IsDeleted
                     , include: query => query.Include(r => r.RoomSubjects).ThenInclude(rs => rs.Subject)
                 );
+            if (found.Items.Count == 0)
+            {
+                throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+            }
             var response = _mapper.Map<Pagination<RoomViewModel>>(found);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_ROOM_SUCCESS, Result = response };
         }
