@@ -228,6 +228,12 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var checkkExistRoom = await _unitOfWork.RoomRepo.GetByIdAsync((int)updateStudentClassModel.RoomId, filter: t => t.IsDeleted == false)
                     ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+
+                var cheeckRoomIsUse = await _unitOfWork.StudentClassesRepo.GetAsync(filter: t => t.IsDeleted == false && t.RoomId == updateStudentClassModel.RoomId);
+                if (cheeckRoomIsUse != null)
+                {
+                    throw new DefaultException(ConstantResponse.ROOM_ALREADY_IN_USE);
+                }
             }
             updateStudentClassModel.RoomId ??= existedClass.RoomId;
 
