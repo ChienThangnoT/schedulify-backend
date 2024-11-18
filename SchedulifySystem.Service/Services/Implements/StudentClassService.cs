@@ -264,7 +264,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     filter: t => t.IsDeleted == false && t.RoomId == updateStudentClassModel.RoomId && t.Id != id
                 );
 
-                if (classesUsingRoom.Count() > checkExistRoom.MaxClassPerTime)
+                if (classesUsingRoom.Count() >= checkExistRoom.MaxClassPerTime)
                 {
                     throw new DefaultException($"Phòng này đã đạt số lớp tối đa ({checkExistRoom.MaxClassPerTime}).");
                 }
