@@ -283,7 +283,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 if (classesWithTeacher)
                 {
-                    throw new DefaultException(ConstantResponse.HOMEROOM_TEACHER_LIMIT);
+                    throw new DefaultException(ConstantResponse.HOMEROOM_TEACHER_ASSIGNED);
                 }
 
             }
