@@ -18,7 +18,6 @@ namespace SchedulifySystem.Service.Services.Implements
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private const int ROOT = 0;
 
         public StudentClassService(IUnitOfWork unitOfWork, IMapper mapper)
         {
