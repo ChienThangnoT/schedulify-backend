@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
 
@@ -33,9 +34,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPatch("auto-assign-teacher")]
         //[Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AutoAssignTeachers(int schoolId, int yearId, List<FixedTeacherAssignmentModel>? fixedAssignment)
+        public Task<IActionResult> AutoAssignTeachers(int schoolId, int yearId,AutoAssignTeacherModel model)
         {
-            return ValidateAndExecute(() => _teacherAssignmentService.AutoAssignTeachers(schoolId, yearId, fixedAssignment ?? new List<FixedTeacherAssignmentModel>()));
+            return ValidateAndExecute(() => _teacherAssignmentService.AutoAssignTeachers(schoolId, yearId, model));
         }
 
         [HttpGet("check-auto-assign-teacher")]
