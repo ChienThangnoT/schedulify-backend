@@ -17,7 +17,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassGroupBusinessModel
         public string? StudentClassGroupCode { get; set; }
         public int Grade { get; set; }
         public int? SchoolYearId { get; set; }
-        public List<StudentClassViewName> classes { get; set; }
+        public List<StudentClassViewName>? Classes { get; set; }
 
     }
 }

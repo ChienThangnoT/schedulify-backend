@@ -6,6 +6,7 @@ using SchedulifySystem.Repository;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
+using SchedulifySystem.Service.BusinessModels.NotificationBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.SchoolBusinessModels;
@@ -36,6 +37,7 @@ namespace SchedulifySystem.Service.Services.Implements
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService;
         private readonly Random _random = new();
 
         private static readonly int AVAILABLE_SLOT_PER_WEEK = 61;
@@ -49,10 +51,11 @@ namespace SchedulifySystem.Service.Services.Implements
         private static readonly List<string> DAY_OF_WEEKS = new List<string>() { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật" };
         private static readonly List<string> SLOTS = new List<string>() { "Tiết 1", "Tiết 2", "Tiết 3", "Tiết 4", "Tiết 5", "Tiết 6", "Tiết 7", "Tiết 8", "Tiết 9", "Tiết 10" };
 
-        public TimeTableService(IUnitOfWork unitOfWork, IMapper mapper)
+        public TimeTableService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _notificationService = notificationService;
         }
 
 
@@ -220,6 +223,22 @@ namespace SchedulifySystem.Service.Services.Implements
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
 
+            if (parameters.CurrentUserEmail != null)
+            {
+                var _ = await _unitOfWork.UserRepo.GetAsync(filter: t => t.Email == parameters.CurrentUserEmail && t.Status == (int)AccountStatus.Active)
+                               ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
+
+                NotificationModel noti = new NotificationModel
+                {
+                    Title = "Tạo thời khóa biểu thành công",
+                    Message = $"Thời khóa biểu đã được tạo thành công lúc {DateTime.UtcNow}",
+                    Type = ENotificationType.HeThong,
+                    Link = ""
+                };
+                await _notificationService.SendNotificationToUser(_.FirstOrDefault().Id, noti);
+            }
+
+
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
@@ -335,11 +354,11 @@ namespace SchedulifySystem.Service.Services.Implements
             //await assignmentTask;
 
             var assignmentsDb = await assignmentTask.ConfigureAwait(false);
-            foreach(var assignmentPara in parameters.TeacherAssignments)
+            foreach (var assignmentPara in parameters.TeacherAssignments)
             {
-                var assignment = assignmentsDb.FirstOrDefault(a => a.Id == assignmentPara.AssignmentId) ?? 
+                var assignment = assignmentsDb.FirstOrDefault(a => a.Id == assignmentPara.AssignmentId) ??
                     throw new NotExistsException($"Phân công id {assignmentPara.AssignmentId} không tồn tại trong hệ thống.");
-                
+
                 assignment.TeacherId = assignmentPara.TeacherId;
                 assignment.Teacher = teachersDbList.FirstOrDefault(t => t.Id == assignmentPara.TeacherId) ??
                     throw new NotExistsException($"Không tìm thấy giáo viên id {assignmentPara.TeacherId}");
@@ -1075,7 +1094,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
-        #region CheckHC07
+        #region CheckHC07 fix here
         /*
          * HC07: Ràng buộc về môn học có số lượng tiết dạy đồng thời
          * Trong cùng một khung giờ học, số tiết dạy của môn học không vượt quá số phòng thực hành có sẵn. 
@@ -1155,7 +1174,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
-        #region CheckHC08
+        #region CheckHC08 
         /*
          * HC08: Ràng buộc môn học chỉ học 1 lần trong một buổi 
          * Trong một buổi học, các phân công được xếp phải là các phân công có môn học khác nhau (trừ cặp phân công được chỉ định là tiết đôi)

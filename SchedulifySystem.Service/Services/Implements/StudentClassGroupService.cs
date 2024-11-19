@@ -152,10 +152,9 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region Get Student Class Group By id
-        public async Task<BaseResponseModel> GetStudentClassGroupById(int schoolId, int schoolYearId, int id)
+        public async Task<BaseResponseModel> GetStudentClassGroupDetail(int schoolId, int schoolYearId, int studentClassGroupId)
         {
-            // Lấy danh sách nhóm lớp theo trường và năm học
-            var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(id,
+            var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(studentClassGroupId,
                 filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId,
                 include: query => query.Include(scg => scg.StudentClasses)
             ) ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_GROUP_NOT_FOUND);
@@ -164,7 +163,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .Where(sc => !sc.IsDeleted)
                     .ToList();
 
-            var result = _mapper.Map<Pagination<StudentClassGroupViewModel>>(classGroup);
+            var result = _mapper.Map<StudentClassGroupViewModel>(classGroup);
 
             return new BaseResponseModel
             {
