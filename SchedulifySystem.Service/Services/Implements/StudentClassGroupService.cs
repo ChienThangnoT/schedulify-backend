@@ -33,7 +33,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #region Check data
-        private async Task<BaseResponseModel> CheckData(HashSet<string> codes, HashSet<string> names, int schoolId, int schoolYearId, int skip = 0)
+        private async Task<BaseResponseModel> CheckData(HashSet<string> codes, HashSet<string> names, int schoolId, int schoolYearId, EGrade? eGrade,int skip = 0)
         {
             // Kiểm tra trùng lặp trong danh sách đầu vào
             if (codes.Count != codes.Distinct().Count() || names.Count != names.Distinct().Count())
@@ -59,6 +59,25 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
+            // check change grade has conflict with student class
+            if (eGrade.HasValue)
+            {
+                var classGroups = await _unitOfWork.StudentClassGroupRepo.GetV2Async(
+                    filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId && stg.Id == skip,
+                    include: query => query.Include(t => t.StudentClasses));
+
+                var duplicateGrade = classGroups.Any(t => t.StudentClasses.Any(sc => sc.Grade == (int)eGrade.Value));
+                if (duplicateGrade)
+                {
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = ConstantResponse.INVALID_UPDATE_GRADE_DIFFERENT_STUDENT_CLASS_GROUP_V1
+                    };
+                }
+            }
+
+
             return new BaseResponseModel
             {
                 Status = StatusCodes.Status200OK
@@ -77,7 +96,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var codes = models.Select(m => m.StudentClassGroupCode.ToLower()).ToHashSet();
             var names = models.Select(m => m.GroupName.ToLower()).ToHashSet();
 
-            var checkResult = await CheckData(codes, names, schoolId, schoolYearId);
+            var checkResult = await CheckData(codes, names, schoolId, schoolYearId, null);
             if (checkResult.Status != StatusCodes.Status200OK)
                 return checkResult;
 
@@ -190,13 +209,14 @@ namespace SchedulifySystem.Service.Services.Implements
             var codes = new HashSet<string> { model.StudentClassGroupCode.ToLower() };
             var names = new HashSet<string> { model.GroupName.ToLower() };
 
-            var checkResult = await CheckData(codes, names, (int)classGroup.SchoolId, (int)classGroup.SchoolYearId, classGroupId); ;
+            var checkResult = await CheckData(codes, names, (int)classGroup.SchoolId, (int)classGroup.SchoolYearId, model.Grade ,classGroupId); ;
             if (checkResult.Status != StatusCodes.Status200OK)
                 return checkResult;
 
             classGroup.StudentClassGroupCode = model.StudentClassGroupCode;
             classGroup.GroupName = model.GroupName;
             classGroup.GroupDescription = model.GroupDescription;
+            classGroup.Grade = (int)model.Grade;
 
             _unitOfWork.StudentClassGroupRepo.Update(classGroup);
 
@@ -222,6 +242,15 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: c => c.SchoolId == schoolId && c.SchoolYearId == schoolYearId,
                 include: query => query.Include(c => c.CurriculumDetails).ThenInclude(cd => cd.Subject))
                 ?? throw new NotExistsException(ConstantResponse.CURRICULUM_NOT_EXISTED);
+
+            if (classGroup.Grade != curriculum.Grade)
+            {
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.CURRICULUM_GRADE_MISMATCH
+                };
+            }
 
             var classes = classGroup.StudentClasses.Where(c => !c.IsDeleted).ToList();
             if (classes.Any() && classGroup.CurriculumId != curriculumId)

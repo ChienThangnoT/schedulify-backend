@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +12,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassGroupBusinessModel
         public string? GroupName { get; set; }
         public string? GroupDescription { get; set; }
         public string? StudentClassGroupCode { get; set; }
-        public int Grade { get; set; }
+        public EGrade Grade { get; set; }
 
     }
 }
