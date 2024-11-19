@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,5 +12,6 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int SubjectId { get; set; }
         public List<int> ClassIds { get; set; }
         public int RoomId { get; set; }
+        public MainSession Session { get; set; }
     }
 }
