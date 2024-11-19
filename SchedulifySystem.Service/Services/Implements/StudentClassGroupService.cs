@@ -198,6 +198,8 @@ namespace SchedulifySystem.Service.Services.Implements
             classGroup.GroupName = model.GroupName;
             classGroup.GroupDescription = model.GroupDescription;
 
+            _unitOfWork.StudentClassGroupRepo.Update(classGroup);
+
             await _unitOfWork.SaveChangesAsync();
 
             return new BaseResponseModel
