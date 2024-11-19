@@ -119,6 +119,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string HOMEROOM_ASSIGN_SUCCESS = "Homeroom teacher assign success";
         public const string GET_SUBJECT_IN_CLASS_SUCCESS = "Get subject in classgroup success.";
         public const string CURRICULUM_ASSIGN_SUCCESS = "The curriculum assign success.";
+        public const string CURRICULUM_GRADE_MISMATCH = "The curriculum and student class group is different about grade.";
 
         //School Year
         public const string SCHOOL_YEAR_NOT_EXIST = "The school year does not exist.";
@@ -171,6 +172,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string STUDENT_CLASS_GROUP_NOT_EXIST = "The student class group not exist.";
         public const string STUDENT_CLASS_NOT_HAVE_ASSIGNMENT = "The student class not have assignment.";
         public const string GET_STUDENT_CLASS_ASSIGNMENT_SUCCESS = "Get student class assignments success.";
+        public const string INVALID_UPDATE_GRADE_DIFFERENT_STUDENT_CLASS_GROUP_V1 = "Không thể cập nhật khối vì khác khối của các lớp hiện tại trong nhóm lớp.";
+
 
         //Term
         public const string TERM_NOT_FOUND = "Term not exist.";
