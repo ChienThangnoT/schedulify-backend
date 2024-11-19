@@ -24,9 +24,9 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherService.GetTeachers(schoolId, departmentId, includeDeleted, pageIndex, pageSize));
         }
-        
 
-        [HttpGet("assignment")]
+
+        [HttpGet("{teacherId}/assignments")]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
         public Task<IActionResult> GetTeacherAssignmentDetail([Required] int teacherId, [Required] int schoolYearId)
         {
@@ -40,11 +40,18 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _teacherService.CreateTeachers(schoolId, models));
         }
 
-        [HttpPut("{id}")]
+        [HttpPatch("{id}")]
         [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateTeacher(int id, UpdateTeacherModel model)
         {
             return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
+        }
+        
+        [HttpPatch("{id}/teachable-subjects")]
+        [Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> UpdateTeachableSubjects(int id, List<SubjectGradeModel> teachableSubjects)
+        {
+            return ValidateAndExecute(() => _teacherService.UpdateTeachableSubjects(id, teachableSubjects));
         }
 
         [HttpGet("{id}")]
@@ -61,7 +68,7 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _teacherService.DeleteTeacher(id));
         }
 
-        [HttpPatch("assign-department-head")]
+        [HttpPatch("department-heads")]
         [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> AssignDepartmentHead(int schoolId, List<AssignTeacherDepartmentHeadModel> models)
         {

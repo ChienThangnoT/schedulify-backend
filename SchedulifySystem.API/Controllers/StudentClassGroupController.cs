@@ -25,6 +25,12 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _studentClassGroupService.GetStudentClassGroups(schoolId, yearId, pageIndex, pageSize));
         }
 
+        [HttpGet("{id}")]
+        public Task<IActionResult> GetStudentClassGroupDetail(int schoolId, int yearId, int id)
+        {
+            return ValidateAndExecute(() => _studentClassGroupService.GetStudentClassGroupDetail(schoolId, yearId, id));
+        }
+
         [HttpDelete("{id}")]
         public Task<IActionResult> DeleteById(int id)
         {

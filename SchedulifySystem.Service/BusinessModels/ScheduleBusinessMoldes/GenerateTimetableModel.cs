@@ -15,6 +15,8 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
     public class GenerateTimetableModel
     {
         [JsonIgnore]
+        public string? CurrentUserEmail { get; set; }
+        [JsonIgnore]
         public int SchoolId { get; set; }
         [JsonIgnore]
         public int SchoolYearId { get; set; }

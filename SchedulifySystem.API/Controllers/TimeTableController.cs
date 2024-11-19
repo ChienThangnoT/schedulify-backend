@@ -10,16 +10,20 @@ namespace SchedulifySystem.API.Controllers
     public class TimeTableController : BaseController
     {
         private readonly ITimetableService _timetableService;
+        private readonly IClaimsService _claimsService;
 
-        public TimeTableController(ITimetableService timetableService)
+        public TimeTableController(ITimetableService timetableService, IClaimsService claimsService)
         {
             _timetableService = timetableService;
+            _claimsService = claimsService;
         }
 
 
         [HttpPost("generate")]
         public async Task<IActionResult> Generate(int schoolId,int yearId, GenerateTimetableModel parameters)
         {
+            var currentEmail = _claimsService.GetCurrentUserEmail;
+            parameters.CurrentUserEmail = currentEmail;
             parameters.SchoolId = schoolId;
             parameters.SchoolYearId = yearId;
             var result = await _timetableService.Generate(parameters);
