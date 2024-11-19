@@ -140,6 +140,9 @@ namespace SchedulifySystem.API
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddAutoMapper(typeof(MapperConfigs).Assembly);
 
+            // config claim service 
+            services.AddTransient<IClaimsService, ClaimsService>();
+
             //config user service and repo
             services.AddTransient<IUserRepository, UserRepository>();
             services.AddTransient<IUserService, UserService>();

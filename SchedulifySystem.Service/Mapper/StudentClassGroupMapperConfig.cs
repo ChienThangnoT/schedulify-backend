@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassGroupBusinessModels;
+using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,8 +24,10 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
                 .ReverseMap();
             CreateMap<StudentClassGroup, StudentClassGroupViewModel>()
-                .ForMember(dest => dest.classes, otp => otp.MapFrom(src => src.StudentClasses))
+                .ForMember(dest => dest.Classes, otp => otp.MapFrom(src => src.StudentClasses))
                 .ReverseMap();
+            CreateMap<UpdateTeacherModel, Teacher>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }
