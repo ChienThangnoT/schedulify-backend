@@ -171,7 +171,8 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
                  filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId,
-                 include: query => query.Include(cls => cls.TeacherAssignments));
+                 include: query => query.Include(cls => cls.TeacherAssignments)
+                 .Include(cls => cls.StudentClassGroup).ThenInclude(cg => cg.Curriculum).ThenInclude(c => c.CurriculumDetails));
 
             var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId, filter: y => !y.IsDeleted
                 , include: query => query.Include(y => y.Terms));
@@ -179,7 +180,10 @@ namespace SchedulifySystem.Service.Services.Implements
             var classIds = classes.Select(selector => selector.Id).ToList();
             var assignmentsDb = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
                 filter: a => classIds.Contains(a.StudentClassId) && !a.IsDeleted,
-                include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).Include(a => a.Term));
+                include: query => query.Include(a => a.Subject).Include(a => a.StudentClass).ThenInclude(a => a.StudentClassGroup).Include(a => a.Term));
+
+            var curriculum = classes.Select(cls => cls.StudentClassGroup.Curriculum)
+                .Distinct().ToDictionary(c => c.Id, c => c.CurriculumDetails);
 
             var teachers = await _unitOfWork.TeacherRepo.GetV2Async(
                 filter: t => !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong && t.SchoolId == schoolId,
@@ -266,7 +270,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     await AssignTeachers(assignmentFirsts,
                         teachers.ToList(), teacherCapabilities,
                         homeroomTeachers, model.fixedAssignment,
-                        model.classCombinations);
+                        model.classCombinations,
+                        curriculum,
+                        classes.ToList());
                 }
                 else
                 {
@@ -363,7 +369,9 @@ namespace SchedulifySystem.Service.Services.Implements
     Dictionary<int, List<TeachableSubject>> teacherCapabilities,
     Dictionary<int, int> homeroomTeachers,
     List<FixedTeacherAssignmentModel>? fixedAssignments,
-    List<ClassCombination>? classCombinations)
+    List<ClassCombination>? classCombinations,
+    Dictionary<int, ICollection<CurriculumDetail>>? curriculums,
+    ICollection<StudentClass>? classes)
         {
             // Bước 1: Phân công giáo viên cố định trước
             if (fixedAssignments != null)
@@ -408,7 +416,9 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     // lấy ra các assign của lớp gộp 
                     var relatedAssignments = remainingAssignments
-                        .Where(a => combination.ClassIds.Contains(a.StudentClassId) && a.SubjectId == combination.SubjectId)
+                        .Where(a => combination.ClassIds.Contains(a.StudentClassId) &&
+                        a.SubjectId == combination.SubjectId &&
+                        IsHaveSubjectInSession(curriculums, a.StudentClass, combination.Session, combination.SubjectId))
                         .ToList();
 
                     if (relatedAssignments.Any())
@@ -546,6 +556,40 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
 
+        public bool IsClassCombinationable(Dictionary<int, ICollection<CurriculumDetail>> curriculum, List<StudentClass> sClasses, MainSession session, int subjectId)
+        {
+            var firstClass = sClasses.First();
+            var fCurriculumDetails = curriculum[(int)firstClass.StudentClassGroup.CurriculumId];
+            var fcds = fCurriculumDetails.FirstOrDefault();
+            if (fcds == null) return false;
+            var fcountPeriod = (int)session == firstClass.MainSession ? fcds.MainSlotPerWeek > 0 : fcds.SubSlotPerWeek > 0;
+            for (int i = 1; i < sClasses.Count; i++)
+            {
+                var curriculumDetails = curriculum[(int)firstClass.StudentClassGroup.CurriculumId];
+                var cds = curriculumDetails.FirstOrDefault();
+                if (cds == null) return false;
+                var countPeriod = (int)session == firstClass.MainSession ? cds.MainSlotPerWeek > 0 : cds.SubSlotPerWeek > 0;
+                if (fcountPeriod != countPeriod) return false;
+            }
+            return true;
+        }
+
+        private bool IsHaveSubjectInSession(Dictionary<int, ICollection<CurriculumDetail>> curriculum, StudentClass sClass, MainSession session, int subjectId)
+        {
+            if (curriculum.ContainsKey((int)sClass.StudentClassGroup.CurriculumId))
+            {
+                var curriculumDetails = curriculum[(int)sClass.StudentClassGroup.CurriculumId];
+                if (sClass.MainSession == (int)session)
+                {
+                    return curriculumDetails.Any(c => c.SubjectId == subjectId && c.MainSlotPerWeek > 0);
+                }
+                else if (sClass.IsFullDay)
+                {
+                    return curriculumDetails.Any(c => c.SubjectId == subjectId && c.SubSlotPerWeek > 0);
+                }
+            }
+            return false;
+        }
 
         public Task<BaseResponseModel> UpdateAssignment(int assignmentId)
         {
