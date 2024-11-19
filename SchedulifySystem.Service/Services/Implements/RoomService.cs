@@ -48,7 +48,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> CheckValidDataAddRooms(int schoolId, List<AddRoomModel> models)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t=> t.IsDeleted == false) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t=> t.IsDeleted == false) 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var ValidList = new List<AddRoomModel>();
             var errorList = new List<AddRoomModel>();
@@ -62,7 +63,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.ROOM_NAME_DUPLICATED, Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } };
+                return new BaseResponseModel 
+                { 
+                    Status = StatusCodes.Status400BadRequest, 
+                    Message = ConstantResponse.ROOM_NAME_DUPLICATED, 
+                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } 
+                };
             }
             //check duplicate code in list
             errorList = models
@@ -73,7 +79,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.ROOM_CODE_DUPLICATED, Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } };
+                return new BaseResponseModel 
+                { 
+                    Status = StatusCodes.Status400BadRequest, 
+                    Message = ConstantResponse.ROOM_CODE_DUPLICATED, 
+                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } 
+                };
             }
 
 
@@ -137,7 +148,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.BUILDING_CODE_NOT_EXIST, Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } };
+                return new BaseResponseModel() 
+                { 
+                    Status = StatusCodes.Status404NotFound, 
+                    Message = ConstantResponse.BUILDING_CODE_NOT_EXIST, 
+                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } 
+                };
             }
 
 
