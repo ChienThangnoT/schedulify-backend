@@ -11,6 +11,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public int TeacherId { get; set; }
         public string? TeacherFirstName { get; set; }
         public string? TeacherLastName { get; set; }
+        public int? DepartmentId { get; set; }
         public int TotalSlotInYear { get; set; }
         public int OveragePeriods { get; set; }
         public List<AssignmentTeacherDetail>? AssignmentDetails { get; set; }
