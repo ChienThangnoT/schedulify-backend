@@ -3,6 +3,7 @@ using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
+using SchedulifySystem.Service.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,8 +42,16 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         [JsonIgnore]
         public List<RoomSubjectScheduleModel> PracticeRoomWithSubjects { get; set; } = new List<RoomSubjectScheduleModel>(); //
 
+        public int RequiredBreakPeriods { get; set; } = 1;
+        public int MinimumDaysOff { get; set; } = 0;
         public int MaxPeriodPerSession { get; set; } = 5;
         public int MinPeriodPerSession { get; set; } = 0;
         public int TermId { get; set; }
+        public int DaysInWeek { get; set; } = 5;
+
+        public int GetAvailableSlotsPerWeek()
+        {
+            return DaysInWeek * 10 + 1;
+        }
     }
 }
