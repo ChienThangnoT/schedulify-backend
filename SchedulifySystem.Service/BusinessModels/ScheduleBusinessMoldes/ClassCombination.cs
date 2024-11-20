@@ -13,5 +13,6 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<int> ClassIds { get; set; }
         public int RoomId { get; set; }
         public MainSession Session { get; set; }
+        public int? TeacherId { get; set; }
     }
 }
