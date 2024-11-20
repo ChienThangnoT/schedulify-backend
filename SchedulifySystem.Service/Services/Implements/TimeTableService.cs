@@ -660,6 +660,16 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+
+            // đánh dấu những assignment có lớp gộp
+            foreach(var sClass in parameters.ClassCombinations)
+            {
+                var founded = timetableUnits.Where(u => u.SubjectId == sClass.SubjectId && sClass.ClassIds.Contains((int)u.ClassId));
+                foreach (var item in founded)
+                {
+                    item.ClassCombinationIds = sClass.ClassIds;
+                }
+            }
             //sắp xếp lại danh sách timetableUnits theo thứ tự tên lớp học và tạo ra một danh sách mới với thứ tự đã được sắp xếp
             timetableUnits = [.. timetableUnits.OrderBy(u => u.ClassName)];
 

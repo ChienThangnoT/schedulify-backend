@@ -27,6 +27,8 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
     };
 });
 
+// Add IHttpContextAccessor
+builder.Services.AddHttpContextAccessor();
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
