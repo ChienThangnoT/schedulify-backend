@@ -469,6 +469,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     throw new DefaultException($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
                 }
+
+                if (periodCount > AVAILABLE_SLOT_PER_WEEK)
+                {
+                    throw new DefaultException($"Tổng số tiết học của lớp {classesDbList[i].Name} vượt quá số tiết có sẵn trong tuần.");
+                }
             }
 
             // update fixed period in para
@@ -892,8 +897,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 + CheckSC03(src)
                 + CheckSC04(src)
                 + CheckSC07(src)
-                + CheckSC10(src)
-                + CheckHC12(src);
+                + CheckSC10(src, parameters)
+                + CheckHC12(src, parameters);
             }
             src.GetConstraintErrors();
         }
@@ -1474,7 +1479,7 @@ namespace SchedulifySystem.Service.Services.Implements
          * HC12: Ràng buộc về tiết trống giữa 2 buổi học trong 1 ngày
          * Giữa 2 buổi học trong 1 ngày phải có ít nhât 1 tiết trống.
          */
-        private static int CheckHC12(TimetableIndividual src)
+        private static int CheckHC12(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             int count = 0;
 
@@ -1500,23 +1505,28 @@ namespace SchedulifySystem.Service.Services.Implements
                     // Nếu có tiết học ở cả hai thời điểm trên, nghĩa là không có tiết trống giữa hai buổi
                     if (morningLastPeriod != null && afternoonFirstPeriod != null)
                     {
-                        count++;
+                        int gapBetweenPeriods = afternoonFirstPeriod.StartAt - morningLastPeriod.StartAt - 1;
 
-                        var errorMessage = $"Lớp {classObj.Name} không có tiết trống giữa buổi sáng và buổi chiều vào ngày {day + 2}.";
-
-                        morningLastPeriod.ConstraintErrors.Add(new ConstraintErrorModel
+                        if (gapBetweenPeriods < parameters.RequiredBreakPeriods)
                         {
-                            Code = "HC12",
-                            ClassName = classObj.Name,
-                            Description = errorMessage
-                        });
+                            count++;
 
-                        afternoonFirstPeriod.ConstraintErrors.Add(new ConstraintErrorModel
-                        {
-                            Code = "HC12",
-                            ClassName = classObj.Name,
-                            Description = errorMessage
-                        });
+                            var errorMessage = $"Lớp {classObj.Name} không có tiết trống giữa buổi sáng và buổi chiều vào ngày {day + 2}.";
+
+                            morningLastPeriod.ConstraintErrors.Add(new ConstraintErrorModel
+                            {
+                                Code = "HC12",
+                                ClassName = classObj.Name,
+                                Description = errorMessage
+                            });
+
+                            afternoonFirstPeriod.ConstraintErrors.Add(new ConstraintErrorModel
+                            {
+                                Code = "HC12",
+                                ClassName = classObj.Name,
+                                Description = errorMessage
+                            });
+                        }
                     }
                 }
             }
@@ -1764,7 +1774,7 @@ namespace SchedulifySystem.Service.Services.Implements
          * SC10: Ràng buộc về giáo viên có buổi nghỉ trong tuần
          * Mỗi giáo viên có ít nhất một ngày nghỉ hoàn toàn (cả sáng lẫn chiều) trong tuần
          */
-        private static int CheckSC10(TimetableIndividual src)
+        private static int CheckSC10(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             var count = 0;
 
@@ -1782,8 +1792,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     daysTaught[day] = true;
                 }
 
+                var daysOff = daysTaught.Count(day => !day);
+
                 // Kiểm tra xem có ít nhất một ngày mà giáo viên không phải dạy
-                if (!daysTaught.Contains(false))
+                if (daysOff < parameters.MinimumDaysOff)
                 {
                     count++;
 
@@ -1795,13 +1807,14 @@ namespace SchedulifySystem.Service.Services.Implements
                             Code = "SC10",
                             IsHardConstraint = false,
                             TeacherName = teacher.Abbreviation,
-                            Description = $"Giáo viên {teacher.FirstName} {teacher.LastName} không có ngày nghỉ trong tuần."
+                            Description = $"Giáo viên {teacher.FirstName} {teacher.LastName} chỉ có {daysOff} ngày nghỉ trong tuần, " +
+                                  $"nên cần ít nhất {parameters.MinimumDaysOff} ngày nghỉ."
                         });
                     }
                 }
             }
 
-            return count; // Trả về số lượng vi phạm ràng buộc
+            return count;
         }
         #endregion
 
@@ -1853,9 +1866,10 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
+        #region MyRegion
         private List<TimetableIndividual> TwoPointCrossover(
-    List<TimetableIndividual> parents,
-    List<TimetableIndividual> children)
+           List<TimetableIndividual> parents,
+           List<TimetableIndividual> children)
         {
             int length = parents[0].TimetableUnits.Count;
 
@@ -1886,7 +1900,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             return children;
         }
-
+        #endregion
 
         #region SinglePointCrossover
         /*

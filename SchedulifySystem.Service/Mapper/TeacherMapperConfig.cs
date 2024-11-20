@@ -19,19 +19,20 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<Teacher, TeacherViewModel>()
                 .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : string.Empty))
                 .ForMember(dest => dest.Gender, otp => otp.MapFrom(src => src.Gender == (int)Gender.Female ? "Female" : "Male"))
-                .ForMember(dest => dest.TeachableSubjects, opt => opt.MapFrom(src =>
-                    src.TeachableSubjects
-                        .GroupBy(ts => ts.SubjectId)
-                        .Select(group => new TeachableSubjectViewModel
-                            {
-                                SubjectId = group.Key,
-                                SubjectName = group.First().Subject.SubjectName,
-                                Abbreviation = group.First().Subject.Abbreviation.ToUpper(),
-                                AppropriateLevel = group.First().AppropriateLevel,
-                                Grade = group.Select(ts => (EGrade)ts.Grade).Distinct().ToList(),
-                                IsMain = group.First().IsMain,
-                            })
-                        ));
+                .ForMember(dest => dest.TeachableSubjects, opt => opt.MapFrom(src =>src.TeachableSubjects));
+
+            CreateMap<TeachableSubject, TeachableSubjectViewModel>()
+                .ForMember(dest => dest.SubjectId, otp => otp.MapFrom(src => src.Subject.Id) )
+                .ForMember(dest => dest.SubjectName, otp => otp.MapFrom(src => src.Subject.SubjectName))
+                .ForMember(dest => dest.Abbreviation, otp => otp.MapFrom(src => src.Subject.Abbreviation))
+                .ForMember(dest => dest.ListApproriateLevelByGrades, opt => opt.MapFrom(src => new List<ListApproriateLevelByGrade>
+                {
+                    new ListApproriateLevelByGrade
+                    {
+                        AppropriateLevel = (EAppropriateLevel)src.AppropriateLevel,
+                        Grade = (EGrade)src.Grade
+                    }
+                }));
 
             CreateMap<CreateTeacherModel, Teacher>()
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
