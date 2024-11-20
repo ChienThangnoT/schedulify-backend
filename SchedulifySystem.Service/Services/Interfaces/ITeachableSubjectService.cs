@@ -1,4 +1,5 @@
-﻿using SchedulifySystem.Service.ViewModels.ResponseModels;
+﻿using SchedulifySystem.Service.Enums;
+using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface ITeachableSubjectService
     {
         Task<BaseResponseModel> GetByTeacherId(int schoolId, int id);
-        Task<BaseResponseModel> GetBySubjectId(int schoolId, int id);
+        Task<BaseResponseModel> GetBySubjectId(int schoolId, int id, EGrade eGrade);
     }
 }
