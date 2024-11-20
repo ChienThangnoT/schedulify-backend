@@ -205,12 +205,23 @@ namespace SchedulifySystem.Service.Services.Implements
                              (models.Select(m => m.Email).Contains(t.Email) ||
                               models.Select(m => m.Abbreviation.ToLower()).Any(a => t.Abbreviation.ToLower().StartsWith(a))));
 
+            var activeAccountEmails = (await _unitOfWork.UserRepo.GetAsync(
+                filter: a => a.Status == (int)AccountStatus.Active)).Select(a => a.Email.ToLower()).ToHashSet();
+            var existingTeacherEmails = (await _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => !t.IsDeleted && t.SchoolId == schoolId)).Select(t => t.Email.ToLower()).ToHashSet();
+
+
             // Create a set to track abbreviations that have been assigned during this process
             var assignedAbbreviations = new HashSet<string>(existingTeachers.Select(t => t.Abbreviation.ToLower()));
 
             // Check department code exist
             foreach (var model in models)
             {
+                if (existingTeacherEmails.Contains(model.Email.ToLower()) || activeAccountEmails.Contains(model.Email.ToLower()))
+                {
+                    errorList.Add(model);
+                    continue;
+                }
 
                 var department = (await _unitOfWork.DepartmentRepo.GetAsync(filter: d => d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower()))).FirstOrDefault();
                 if (department == null)
@@ -463,11 +474,28 @@ namespace SchedulifySystem.Service.Services.Implements
                 var newTeachableSubjects = new List<TeachableSubject>();
                 foreach (var item in subjectObjectPara)
                 {
-                    if (!existedTeacher.TeachableSubjects.Any(rs => rs.SubjectId == item.Id))
+                    var model = teachableSubjects.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
+
+                    var existingTeachableSubjects = existedTeacher.TeachableSubjects
+                        .Where(ts => ts.SubjectId == item.Id)
+                        .ToList();
+
+                    foreach (var grade in model.ListApproriateLevelByGrades)
                     {
-                        var model = teachableSubjects.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
-                        foreach (var grade in model.ListApproriateLevelByGrades)
+                        var existingSubject = existingTeachableSubjects.FirstOrDefault(ts => ts.Grade == (int)grade.Grade);
+                        if (existingSubject != null)
                         {
+                            // Update nếu có sự thay đổi
+                            if (existingSubject.AppropriateLevel != (int)grade.AppropriateLevel || existingSubject.IsMain != model.IsMain)
+                            {
+                                existingSubject.AppropriateLevel = (int)grade.AppropriateLevel;
+                                existingSubject.IsMain = model.IsMain;
+                                existingSubject.UpdateDate = DateTime.UtcNow;
+                            }
+                        }
+                        else
+                        {
+                            // Thêm mới nếu không tồn tại
                             newTeachableSubjects.Add(new TeachableSubject()
                             {
                                 TeacherId = existedTeacher.Id,
@@ -500,7 +528,9 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             try
             {
-                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
+                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, 
+                    include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
+
                 var teacherViewModels = new TeacherViewModel
                 {
                     Id = teacher.Id,
@@ -687,6 +717,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     TeacherId = group.Key,
                     TeacherFirstName = group.First().Teacher?.FirstName,
                     TeacherLastName = group.First().Teacher?.LastName,
+                    DepartmentId = (int)group.First().Teacher?.DepartmentId,
                     TotalSlotInYear = group.Sum(x => x.PeriodCount * (x.Term.EndWeek - x.Term.StartWeek + 1)),
                     OveragePeriods = (group.Sum(x => x.PeriodCount * (x.Term.EndWeek - x.Term.StartWeek + 1))) - 17 * group.First().Term.EndWeek,
                     AssignmentDetails = group.Select(a => new AssignmentTeacherDetail
