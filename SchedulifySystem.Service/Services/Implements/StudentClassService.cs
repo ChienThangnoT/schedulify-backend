@@ -147,7 +147,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             foreach (var model in models.Where(m => !string.IsNullOrEmpty(m.RoomCode)))
             {
-                var matchingRoom = roomsInDb.FirstOrDefault(r => r.RoomCode.ToLower() == model.RoomCode.ToLower()) 
+                var matchingRoom = roomsInDb.FirstOrDefault(r => r.RoomCode.ToLower() == model.RoomCode.ToLower())
                     ?? throw new NotExistsException($"Không tìm thấy phòng mã {model.RoomCode}");
                 model.RoomId = matchingRoom.Id;
 
@@ -415,6 +415,45 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = assignmentDictionary
             };
         }
+        #endregion
+
+        #region GetClassCombination
+        public async Task<BaseResponseModel> GetClassCombination(int schoolId, int yearId, int subjectId, EGrade grade, MainSession mainSession)
+        {
+            var curriculums = await _unitOfWork.CurriculumRepo.GetV2Async(
+                filter: c => c.CurriculumDetails.Any(c => c.SubjectId == subjectId) &&
+                !c.IsDeleted && c.SchoolId == schoolId && c.SchoolYearId == yearId,
+                include: query => query.Include(c => c.CurriculumDetails)
+                .Include(c => c.StudentClassGroups));
+
+            var classgroupIds = curriculums.SelectMany(c => c.StudentClassGroups).Where(cg => !cg.IsDeleted && cg.Grade == (int) grade).Select(cg => cg.Id);
+
+            var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: c =>c.StudentClassGroupId != null && classgroupIds.Contains((int)c.StudentClassGroupId) && !c.IsDeleted && c.SchoolId == schoolId && c.SchoolYearId == yearId && (int) grade == c.Grade,
+                include: query => query.Include(c => c.StudentClassGroup).ThenInclude(c => c.Curriculum).ThenInclude(c => c.CurriculumDetails));
+
+            var classesBySesion = classes.GroupBy(c => c.MainSession);
+            var result = new List<StudentClassViewName>();
+            foreach (var g in classesBySesion)
+            {
+                var filtered = g.Where(c => c.StudentClassGroup.Curriculum.CurriculumDetails
+                .Any(c => c.SubjectId == subjectId &&
+                ((c.MainSlotPerWeek > 0 && g.Key == (int)mainSession) || (c.SubSlotPerWeek > 0 && g.Key != (int)mainSession))));
+
+                result.AddRange(filtered.Select(c => new StudentClassViewName
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                }));
+            }
+            return new BaseResponseModel()
+            {
+                Message = result.Count() > 1 ? "Lấy danh sách lớp có thể gộp thành công!" : "Không có lớp nào khả thi để gộp",
+                Status = StatusCodes.Status200OK,
+                Result = result.Count() > 1 ? result.OrderBy(r => r.Name) : null
+            };
+        }
+
         #endregion
     }
 }

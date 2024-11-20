@@ -383,6 +383,25 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
+            if(classCombinations != null)
+            {
+                var fixedClassCombinations = classCombinations.Where(c => c.TeacherId != null);
+                foreach(var combination in fixedClassCombinations)
+                {
+                    var relatedAssignments = assignments
+                        .Where(a => combination.ClassIds.Contains(a.StudentClassId) &&
+                                    a.SubjectId == combination.SubjectId &&
+                                    IsHaveSubjectInSession(curriculums, a.StudentClass, combination.Session, combination.SubjectId))
+                        .ToList();
+                    var teacher = teachers.FirstOrDefault(t => t.Id == combination.TeacherId);
+                    relatedAssignments.ForEach(a =>
+                    {
+                        a.TeacherId = teacher.Id;
+                        a.Teacher = teacher;
+                    });
+                }
+            }
+
             // Bước 2: Lọc danh sách các nhiệm vụ chưa được phân công giáo viên
             var remainingAssignments = assignments.Where(a => a.TeacherId == null).ToList();
             int numRemainingAssignments = remainingAssignments.Count;
@@ -413,7 +432,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 LinearExpr groupViolationExpr = LinearExpr.Sum(new List<LinearExpr>());// Tính tổng số vi phạm lớp gộp
 
-                foreach (var combination in classCombinations)
+                foreach (var combination in classCombinations.Where(c => c.TeacherId == null))
                 {
                     var relatedAssignments = remainingAssignments
                         .Where(a => combination.ClassIds.Contains(a.StudentClassId) &&
