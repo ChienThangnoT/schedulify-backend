@@ -78,7 +78,13 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _studentClassService.AssignHomeroomTeacherToClasses(models));
         }
 
-       
+        [HttpGet]
+        [Route("class-combination")]
+        [Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> GetClassCombination(int schoolId, int yearId, int subjectId, EGrade grade, MainSession session)
+        {
+            return ValidateAndExecute(() => _studentClassService.GetClassCombination(schoolId, yearId, subjectId, grade, session));
+        }
 
     }
 }
