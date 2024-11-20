@@ -271,8 +271,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         teachers.ToList(), teacherCapabilities,
                         homeroomTeachers, model.fixedAssignment,
                         model.classCombinations,
-                        curriculum,
-                        classes.ToList());
+                        curriculum);
                 }
                 else
                 {
@@ -370,8 +369,7 @@ namespace SchedulifySystem.Service.Services.Implements
     Dictionary<int, int> homeroomTeachers,
     List<FixedTeacherAssignmentModel>? fixedAssignments,
     List<ClassCombination>? classCombinations,
-    Dictionary<int, ICollection<CurriculumDetail>>? curriculums,
-    ICollection<StudentClass>? classes)
+    Dictionary<int, ICollection<CurriculumDetail>>? curriculums)
         {
             // Bước 1: Phân công giáo viên cố định trước
             if (fixedAssignments != null)
@@ -410,34 +408,37 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // Bước 5: Ràng buộc - Lớp gộp sẽ chỉ phân công cho 1 giáo viên 
+            IntVar totalGroupViolations = model.NewIntVar(0, 1000, "totalGroupViolations");
             if (classCombinations != null)
             {
+                LinearExpr groupViolationExpr = LinearExpr.Sum(new List<LinearExpr>());// Tính tổng số vi phạm lớp gộp
+
                 foreach (var combination in classCombinations)
                 {
-                    // lấy ra các assign của lớp gộp 
                     var relatedAssignments = remainingAssignments
                         .Where(a => combination.ClassIds.Contains(a.StudentClassId) &&
-                        a.SubjectId == combination.SubjectId &&
-                        IsHaveSubjectInSession(curriculums, a.StudentClass, combination.Session, combination.SubjectId))
+                                    a.SubjectId == combination.SubjectId &&
+                                    IsHaveSubjectInSession(curriculums, a.StudentClass, combination.Session, combination.SubjectId))
                         .ToList();
 
                     if (relatedAssignments.Any())
                     {
-                        var assignmentIndices = relatedAssignments.Select(a => remainingAssignments.IndexOf(a)).ToList();
+                        // Tạo biến đại diện cho giáo viên phân công cho lớp gộp
+                        IntVar teacherForCombination = model.NewIntVar(0, numTeachers - 1, $"teacher_combination_{combination.SubjectId}");
 
-                        foreach (int teacherIndex in Enumerable.Range(0, numTeachers))
+                        // Đảm bảo mỗi assignment trong lớp gộp được phân công cho cùng một giáo viên
+                        foreach (var assignment in relatedAssignments)
                         {
-                            // tạo 1 biến đại diện cho giáo viên sẽ được assign cho toàn bộ assignment trong lớp gộp 
-                            BoolVar teacherAssignedToCombination = model.NewBoolVar($"teacher_{teacherIndex}_combination_{combination.SubjectId}");
-
-                            // kiểm tra xem các phân công có trong lớp gộp có được gán cùng 1 giáo viên 
-                            foreach (var assignmentIndex in assignmentIndices)
-                            {
-                                model.Add(assignmentMatrix[assignmentIndex, teacherIndex] == teacherAssignedToCombination);
-                            }
+                            int assignmentIndex = remainingAssignments.IndexOf(assignment);
+                            model.Add(LinearExpr.Sum(
+                                from j in Enumerable.Range(0, numTeachers)
+                                select assignmentMatrix[assignmentIndex, j] * j) == teacherForCombination);
                         }
                     }
                 }
+
+                // Ràng buộc tổng số vi phạm lớp gộp
+                model.Add(totalGroupViolations == groupViolationExpr);
             }
 
             // Bước 6: Khởi tạo từ điển để lưu tổng số tiết của mỗi giáo viên
@@ -506,13 +507,12 @@ namespace SchedulifySystem.Service.Services.Implements
                             var maxAppropriateLevel = teachableSubjects.Max(ts => ts.AppropriateLevel);
                             var isMain = teachableSubjects.Any(ts => ts.IsMain);
 
-                            // Nếu giáo viên chủ nhiệm có thể dạy môn `IsMain`, ưu tiên phân công
+                            // Ưu tiên cao hơn cho giáo viên có `IsMain` và mức `AppropriateLevel` cao
                             if (homeroomTeacherId == teacher.Id && isMain)
                             {
                                 objectiveExpr += assignmentMatrix[i, j] * 200;
                             }
 
-                            // Nếu không, ưu tiên giáo viên có `IsMain` và `AppropriateLevel` cao
                             if (isMain)
                             {
                                 objectiveExpr += assignmentMatrix[i, j] * 20;
@@ -525,6 +525,9 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Bước 9: Giảm thiểu số tiết vượt quá 17 tiết
             objectiveExpr -= LinearExpr.Sum(overloadList) * 100;
+
+            // Phạt vi phạm lớp gộp
+            objectiveExpr -= totalGroupViolations * 500;
 
             // Thiết lập hàm mục tiêu
             model.Maximize(objectiveExpr);

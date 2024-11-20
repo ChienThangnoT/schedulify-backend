@@ -28,7 +28,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<NoAssignPeriodScheduleModel>? NoAssignPeriodsPara { get; set; }
         public List<FreeTimetablePeriodScheduleModel>? FreeTimetablePeriodsPara { get; set; }
         public required List<TeacherAssignmentMinimalData> TeacherAssignments { get; set; }
-        public List<ClassCombination> classCombinations { get; set; }
+        public List<ClassCombination> ClassCombinations { get; set; }
 
         [JsonIgnore]
         public List<ClassPeriodScheduleModel> FixedPeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết cố định 

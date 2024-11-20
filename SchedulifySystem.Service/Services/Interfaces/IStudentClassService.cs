@@ -19,5 +19,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> AssignHomeroomTeacherToClasses(AssignListStudentClassModel assignListStudentClassModel);
         Task<BaseResponseModel> GetSubjectInGroupOfClass(int schoolId, int termId, int studentClassId);
         Task<BaseResponseModel> GetTeacherAssignmentOfClass(int studentClassId, int schoolYearId);
+        Task<BaseResponseModel> GetClassCombination(int schoolId, int yearId, int subjectId, EGrade grade, MainSession mainSession);
     }
 }
