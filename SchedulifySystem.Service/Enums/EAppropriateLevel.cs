@@ -8,10 +8,10 @@ namespace SchedulifySystem.Service.Enums
 {
     public enum EAppropriateLevel
     {
-        Unqualified,
-        Basic,
-        Proficient,
-        Advanced,
-        Mastery
+        Unqualified = 1,
+        Basic = 2,
+        Proficient = 3,
+        Advanced = 4,
+        Mastery = 5
     }
 }

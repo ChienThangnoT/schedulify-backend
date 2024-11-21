@@ -205,12 +205,23 @@ namespace SchedulifySystem.Service.Services.Implements
                              (models.Select(m => m.Email).Contains(t.Email) ||
                               models.Select(m => m.Abbreviation.ToLower()).Any(a => t.Abbreviation.ToLower().StartsWith(a))));
 
+            var activeAccountEmails = (await _unitOfWork.UserRepo.GetAsync(
+                filter: a => a.Status == (int)AccountStatus.Active)).Select(a => a.Email.ToLower()).ToHashSet();
+            var existingTeacherEmails = (await _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => !t.IsDeleted && t.SchoolId == schoolId)).Select(t => t.Email.ToLower()).ToHashSet();
+
+
             // Create a set to track abbreviations that have been assigned during this process
             var assignedAbbreviations = new HashSet<string>(existingTeachers.Select(t => t.Abbreviation.ToLower()));
 
             // Check department code exist
             foreach (var model in models)
             {
+                if (existingTeacherEmails.Contains(model.Email.ToLower()) || activeAccountEmails.Contains(model.Email.ToLower()))
+                {
+                    errorList.Add(model);
+                    continue;
+                }
 
                 var department = (await _unitOfWork.DepartmentRepo.GetAsync(filter: d => d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower()))).FirstOrDefault();
                 if (department == null)
@@ -259,13 +270,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 foreach (var model in models)
                 {
                     var list = new List<TeachableSubject>();
-                    foreach (var grade in model.MainSubject.Grades)
+                    foreach (var grade in model.MainSubject.ListApproriateLevelByGrades)
                     {
                         var teachableSubject = new TeachableSubject
                         {
                             CreateDate = DateTime.UtcNow,
                             SubjectId = subjectLookup[model.MainSubject.SubjectAbreviation.ToLower()],
-                            Grade = (int)grade,
+                            Grade = (int)grade.Grade,
                             AppropriateLevel = MAX_APPROVIATE_LEVEL,
                             IsMain = true
                         };
@@ -319,18 +330,70 @@ namespace SchedulifySystem.Service.Services.Implements
         #region GetTeachers
         public async Task<BaseResponseModel> GetTeachers(int schoolId, int? departmentId, bool includeDeleted, int pageIndex, int pageSize)
         {
+            // Kiểm tra sự tồn tại của trường học
             _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+
+            // Kiểm tra sự tồn tại của phòng ban nếu được cung cấp
             if (departmentId != null)
             {
                 var department = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)departmentId) ??
                     throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
             }
-            var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(pageSize: pageSize, pageIndex: pageIndex,
-                filter: t => t.SchoolId == schoolId && (includeDeleted ? true : t.IsDeleted == false) && (departmentId == null || departmentId == t.DepartmentId),
-                include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
-            var teachersResponse = _mapper.Map<Pagination<TeacherViewModel>>(teachers);
-            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse };
+
+            // Lấy danh sách giáo viên với các môn học và khối phù hợp
+            var teachers = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(
+                pageSize: pageSize,
+                pageIndex: pageIndex,
+                filter: t => t.SchoolId == schoolId && (includeDeleted || !t.IsDeleted)
+                            && (departmentId == null || departmentId == t.DepartmentId),
+                include: query => query.Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject)
+            );
+
+            var teacherViewModels = teachers.Items.Select(teacher => new TeacherViewModel
+            {
+                Id = teacher.Id,
+                FirstName = teacher.FirstName,
+                LastName = teacher.LastName,
+                Abbreviation = teacher.Abbreviation,
+                Email = teacher.Email,
+                DepartmentId = teacher.DepartmentId,
+                DepartmentName = teacher.Department?.Name,
+                Gender = (Gender)teacher.Gender,
+                Status = teacher.Status,
+                IsDeleted = teacher.IsDeleted,
+                Phone = teacher.Phone,
+                PeriodCount = teacher.PeriodCount,
+                TeachableSubjects = teacher.TeachableSubjects
+                    .GroupBy(ts => ts.SubjectId)
+                    .Select(group => new TeachableSubjectViewModel
+                    {
+                        SubjectId = group.Key,
+                        SubjectName = group.First().Subject?.SubjectName,
+                        Abbreviation = group.First().Subject?.Abbreviation,
+                        IsMain = group.First().IsMain,
+                        ListApproriateLevelByGrades = group.Select(ts => new ListApproriateLevelByGrade
+                        {
+                            AppropriateLevel = (EAppropriateLevel)ts.AppropriateLevel,
+                            Grade = (EGrade)ts.Grade
+                        }).ToList()
+                    }).ToList()
+            }).ToList();
+
+            var teachersResponse = new Pagination<TeacherViewModel>
+            {
+                Items = teacherViewModels,
+                PageIndex = pageIndex,
+                PageSize = pageSize,
+                TotalItemCount = teachers.TotalItemCount
+            };
+
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Result = teachersResponse
+            };
         }
+
         #endregion
 
         #region UpdateTeacher
@@ -411,18 +474,35 @@ namespace SchedulifySystem.Service.Services.Implements
                 var newTeachableSubjects = new List<TeachableSubject>();
                 foreach (var item in subjectObjectPara)
                 {
-                    if (!existedTeacher.TeachableSubjects.Any(rs => rs.SubjectId == item.Id))
+                    var model = teachableSubjects.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
+
+                    var existingTeachableSubjects = existedTeacher.TeachableSubjects
+                        .Where(ts => ts.SubjectId == item.Id)
+                        .ToList();
+
+                    foreach (var grade in model.ListApproriateLevelByGrades)
                     {
-                        var model = teachableSubjects.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
-                        foreach (var grade in model.Grades)
+                        var existingSubject = existingTeachableSubjects.FirstOrDefault(ts => ts.Grade == (int)grade.Grade);
+                        if (existingSubject != null)
                         {
+                            // Update nếu có sự thay đổi
+                            if (existingSubject.AppropriateLevel != (int)grade.AppropriateLevel || existingSubject.IsMain != model.IsMain)
+                            {
+                                existingSubject.AppropriateLevel = (int)grade.AppropriateLevel;
+                                existingSubject.IsMain = model.IsMain;
+                                existingSubject.UpdateDate = DateTime.UtcNow;
+                            }
+                        }
+                        else
+                        {
+                            // Thêm mới nếu không tồn tại
                             newTeachableSubjects.Add(new TeachableSubject()
                             {
                                 TeacherId = existedTeacher.Id,
                                 SubjectId = item.Id,
                                 CreateDate = DateTime.UtcNow,
-                                Grade = (int)grade,
-                                AppropriateLevel = (int)model.AppropriateLevel,
+                                Grade = (int)grade.Grade,
+                                AppropriateLevel = (int)grade.AppropriateLevel,
                                 IsMain = model.IsMain,
                             });
                         }
@@ -448,9 +528,41 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             try
             {
-                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
-                var teachersResponse = _mapper.Map<TeacherViewModel>(teacher);
-                return teacher != null ? new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teachersResponse } :
+                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, 
+                    include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
+
+                var teacherViewModels = new TeacherViewModel
+                {
+                    Id = teacher.Id,
+                    FirstName = teacher.FirstName,
+                    LastName = teacher.LastName,
+                    Abbreviation = teacher.Abbreviation,
+                    Email = teacher.Email,
+                    DepartmentId = teacher.DepartmentId,
+                    DepartmentName = teacher.Department?.Name,
+                    Gender = (Gender)teacher.Gender,
+                    Status = teacher.Status,
+                    IsDeleted = teacher.IsDeleted,
+                    TeacherRole = (TeacherRole)teacher.TeacherRole,
+                    Phone = teacher.Phone,
+                    DateOfBirth = teacher.DateOfBirth,
+                    PeriodCount = teacher.PeriodCount,
+                    TeachableSubjects = teacher.TeachableSubjects
+                    .GroupBy(ts => ts.SubjectId)
+                    .Select(group => new TeachableSubjectViewModel
+                    {
+                        SubjectId = group.Key,
+                        SubjectName = group.First().Subject?.SubjectName,
+                        Abbreviation = group.First().Subject?.Abbreviation,
+                        IsMain = group.First().IsMain,
+                        ListApproriateLevelByGrades = group.Select(ts => new ListApproriateLevelByGrade
+                        {
+                            AppropriateLevel = (EAppropriateLevel)ts.AppropriateLevel,
+                            Grade = (EGrade)ts.Grade
+                        }).ToList()
+                    }).ToList()
+                };
+                return teacher != null ? new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teacherViewModels } :
                     new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
             }
             catch (Exception ex)
@@ -583,7 +695,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region 
+        #region Get Teacher AssignmentDetail
         public async Task<BaseResponseModel> GetTeacherAssignmentDetail(int teacherId, int schoolYearId)
         {
             var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(schoolYearId, filter: t => t.IsDeleted == false)
@@ -607,6 +719,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     TeacherId = group.Key,
                     TeacherFirstName = group.First().Teacher?.FirstName,
                     TeacherLastName = group.First().Teacher?.LastName,
+                    DepartmentId = (int)group.First().Teacher?.DepartmentId,
                     TotalSlotInYear = group.Sum(x => x.PeriodCount * (x.Term.EndWeek - x.Term.StartWeek + 1)),
                     OveragePeriods = (group.Sum(x => x.PeriodCount * (x.Term.EndWeek - x.Term.StartWeek + 1))) - 17 * group.First().Term.EndWeek,
                     AssignmentDetails = group.Select(a => new AssignmentTeacherDetail

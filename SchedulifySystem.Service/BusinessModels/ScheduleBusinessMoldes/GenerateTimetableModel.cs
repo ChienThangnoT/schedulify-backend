@@ -47,7 +47,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int MaxPeriodPerSession { get; set; } = 5;
         public int MinPeriodPerSession { get; set; } = 0;
         public int TermId { get; set; }
-        public int DaysInWeek { get; set; } = 5;
+        public int DaysInWeek { get; set; } = 6;
 
         public int GetAvailableSlotsPerWeek()
         {

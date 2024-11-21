@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
@@ -25,9 +26,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet("subjects/{subjectId}/teachable-subjects")]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetBySubjectId(int schoolId, int subjectId)
+        public Task<IActionResult> GetBySubjectId(int schoolId, int subjectId, EGrade eGrade)
         {
-            return ValidateAndExecute(() => _service.GetBySubjectId(schoolId, subjectId));
+            return ValidateAndExecute(() => _service.GetBySubjectId(schoolId, subjectId, eGrade));
         }
     }
 }
