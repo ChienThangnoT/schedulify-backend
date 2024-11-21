@@ -324,10 +324,10 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < classesDbList.Count; i++)
                 classes.Add(new ClassScheduleModel(classesDbList[i]));
 
-            ///*khởi tạo mảng hai chiều timetableFlags với số dòng là số lớp học và số cột là 61
+            //*khởi tạo mảng hai chiều timetableFlags với số dòng là số lớp học và số cột là 61
             //  số lượng 61 có thể đại diện cho số tiết học trong một kỳ hoặc một tuần học
             //*/
-            timetableFlags = new ETimetableFlag[classes.Count, AVAILABLE_SLOT_PER_WEEK];
+            timetableFlags = new ETimetableFlag[classes.Count, parameters.GetAvailableSlotsPerWeek()];
 
             //// fix here ------------------------------------------------------------------------------------------------------------------
             subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
@@ -342,7 +342,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
             for (var i = 0; i < teachersDbList.Count; i++)
                 teachers.Add(new TeacherScheduleModel(teachersDbList[i]));
-
 
             var assigmentIds = parameters.TeacherAssignments.Select(a => a.AssignmentId);
             //var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
@@ -470,7 +469,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     throw new DefaultException($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
                 }
 
-                if (periodCount > AVAILABLE_SLOT_PER_WEEK)
+                if (periodCount > parameters.GetAvailableSlotsPerWeek())
                 {
                     throw new DefaultException($"Tổng số tiết học của lớp {classesDbList[i].Name} vượt quá số tiết có sẵn trong tuần.");
                 }
@@ -543,7 +542,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var a = classes[i].IsFullDay ? 0 : classes[i].MainSession == (int)MainSession.Morning ? 0 : 5;
                 // j sẽ là index cho mỗi ngày, (max một tuần 60 tiết), mỗi vòng tăng 10 tức sang ngày mới
                 int maxSlot = classes[i].IsFullDay ? 10 : 5;
-                for (var j = 1; j < AVAILABLE_SLOT_PER_WEEK; j += 10)
+                for (var j = 1; j < parameters.GetAvailableSlotsPerWeek(); j += 10)
                     // trong ngày j đánh dấu tiết khả dụng để xếp 
                     for (var k = j; k < j + maxSlot; k++)
                         timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
@@ -713,8 +712,8 @@ namespace SchedulifySystem.Service.Services.Implements
             for (int i = 0; i < src.TimetableFlag.GetLength(0); i++)
             {
                 //lấy danh sách các tiết trống buổi sáng và buổi chiều
-                List<int> morningSlots = GetAvailableSlots(src, i, MainSession.Morning);
-                List<int> afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon);
+                List<int> morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters);
+                List<int> afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters);
 
                 // tìm các cặp tiết liên tiếp (consecutive slots)
                 List<(int, int)> morningPairs = FindConsecutivePairs(morningSlots);
@@ -724,8 +723,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 AssignDoublePeriods(src, i, morningPairs, afternoonPairs);
 
                 // update lại danh sách slot trống sau khi phân bổ tiết đôi
-                morningSlots = GetAvailableSlots(src, i, MainSession.Morning);
-                afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon);
+                morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters);
+                afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters);
 
                 // phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
                 AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots);
@@ -734,13 +733,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
         // method lấy các tiết trống theo buổi
-        private List<int> GetAvailableSlots(TimetableIndividual src, int classIndex, MainSession session)
+        private List<int> GetAvailableSlots(TimetableIndividual src, int classIndex, MainSession session, GenerateTimetableModel parameters)
         {
             List<int> slots = new List<int>();
             int start = session == MainSession.Morning ? 1 : 6;
             int end = session == MainSession.Morning ? 5 : 10;
 
-            for (int j = 0; j < 6; j++)
+            for (int j = 0; j < parameters.DaysInWeek; j++)
             {
                 for (int k = start; k <= end; k++)
                 {
@@ -893,9 +892,9 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 src.Adaptability +=
                  CheckSC01(src)
-                + CheckSC02(src)
-                + CheckSC03(src)
-                + CheckSC04(src)
+                + CheckSC02(src, parameters)
+                + CheckSC03(src, parameters)
+                + CheckSC04(src, parameters)
                 + CheckSC07(src)
                 + CheckSC10(src, parameters)
                 + CheckHC12(src, parameters);
@@ -1425,7 +1424,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 int endSlot = mainSession == MainSession.Morning ? 5 : 10;
 
                 // Kiểm tra từng ngày trong tuần
-                for (int day = 0; day < 6; day++)
+                for (int day = 0; day < parameters.DaysInWeek; day++)
                 {
                     // Lấy danh sách các tiết đã xếp trong buổi chính của ngày hiện tại
                     List<int> filledSlots = periods
@@ -1492,7 +1491,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // Lặp qua mỗi ngày trong tuần (mỗi ngày có 10 tiết: 5 tiết buổi sáng, 5 tiết buổi chiều)
-                for (int day = 0; day < 6; day++)
+                for (int day = 0; day < parameters.DaysInWeek; day++)
                 {
                     // Tính chỉ số bắt đầu và kết thúc của buổi sáng và buổi chiều trong ngày
                     int morningEnd = day * 10 + 5;
@@ -1607,7 +1606,7 @@ namespace SchedulifySystem.Service.Services.Implements
          * SC02: Ràng buộc về số lượng buổi dạy của giáo viên
          * Xếp các phân công sao cho số buổi dạy của giáo viên là ít nhất.
          */
-        private static int CheckSC02(TimetableIndividual src)
+        private static int CheckSC02(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             // tổng số buổi tất cả gv phải đi dạy ( số này càng bé càng tốt )
             var count = 0;
@@ -1618,7 +1617,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var teacherPeriods = src.TimetableUnits
                     .Where(u => u.TeacherId == src.Teachers[i].Id)
                     .ToList();
-                for (var j = 1; j < 60; j += 10)
+                for (var j = 1; j < parameters.GetAvailableSlotsPerWeek() - 1; j += 10)
                 {
                     // nếu gv có tiết dạy 
                     if (teacherPeriods.Any(p => p.StartAt >= j && p.StartAt < j + 10))
@@ -1634,7 +1633,7 @@ namespace SchedulifySystem.Service.Services.Implements
          * SC03: Ràng buộc về tiết trống của giáo viên trong trong một buổi học
          * Hạn chế tối đa tiết trống (gap) của giáo viên trong một buổi học.
          */
-        private static int CheckSC03(TimetableIndividual src)
+        private static int CheckSC03(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             // đếm số vi phạm  
             var count = 0;
@@ -1647,7 +1646,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // loop qua theo buổi trong tuần 
-                for (var j = 1; j < 60; j += 5)
+                for (var j = 1; j < parameters.DaysInWeek - 1; j += 5)
                 {
                     // lấy ra ds tiết trong buổi đó 
                     var periods = teacherPeriods
@@ -1670,7 +1669,7 @@ namespace SchedulifySystem.Service.Services.Implements
          * SC04:  Ràng buộc về thời gian nghỉ giữa hai buổi của giáo viên
          * Đối với giáo viên dạy cả hai buổi trong một ngày, hạn chế việc xếp các phân công vào tiết cuối buổi sáng và tiết đầu buổi chiều.
          */
-        private static int CheckSC04(TimetableIndividual src)
+        private static int CheckSC04(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             // đếm số vi phạm 
             var count = 0;
@@ -1683,7 +1682,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // loop theo ngày 
-                for (var j = 1; j < 60; j += 10)
+                for (var j = 1; j < parameters.DaysInWeek; j += 10)
                 {
                     // kiểm tra gv có dạy cả buổi sáng và buổi chiều trong cùng 1 ngày 
                     if (teacherPeriods.Any(p => p.StartAt >= j && p.StartAt < j + 5) &&
@@ -1851,8 +1850,8 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // Sau khi thực hiện lai tạo, cần đánh dấu lại trạng thái của thời khóa biểu cho các cá thể con
-            RemarkTimetableFlag(children[0]);
-            RemarkTimetableFlag(children[1]);
+            RemarkTimetableFlag(children[0], parameters);
+            RemarkTimetableFlag(children[1], parameters);
 
             // Đây là bước đột biến, nơi một số phần của cá thể con có thể được thay đổi ngẫu nhiên để tăng tính đa dạng cho quần thể
             // và tránh bị mắc kẹt ở các giải pháp tối ưu cục bộ.
@@ -2100,11 +2099,11 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         //cập nhật lại flag dựa trên timetableUnits 
-        private static void RemarkTimetableFlag(TimetableIndividual src)
+        private static void RemarkTimetableFlag(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             // ngoại trừ các tiết k xếp thì mark lại là unfill
             for (var i = 0; i < src.Classes.Count; i++)
-                for (var j = 1; j < AVAILABLE_SLOT_PER_WEEK; j++)
+                for (var j = 1; j < parameters.GetAvailableSlotsPerWeek(); j++)
                     if (src.TimetableFlag[i, j] != ETimetableFlag.None)
                         src.TimetableFlag[i, j] = ETimetableFlag.Unfilled;
 
