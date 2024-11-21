@@ -453,11 +453,11 @@ namespace SchedulifySystem.Service.Services.Implements
                     //    throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
                     //}
 
-                    // kiểm tra xem giáo viên có được phân công không
-                    if (assignment.TeacherId == null || assignment.TeacherId == 0)
-                    {
-                        throw new DefaultException($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
-                    }
+                    //// kiểm tra xem giáo viên có được phân công không
+                    //if (assignment.TeacherId == null || assignment.TeacherId == 0)
+                    //{
+                    //    throw new DefaultException($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
+                    //}
 
                     // cộng số tiết của môn vào tổng số tiết của lớp
                     periodCount += (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek);
