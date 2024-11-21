@@ -664,6 +664,27 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+
+            // đánh dấu những tiết trong lớp gộp
+            int index = 1;
+            foreach (var combination in parameters.ClassCombinations)
+            {
+                var founded = timetableUnits.Where(u => u.SubjectId == combination.SubjectId && combination.ClassIds.Contains((int)u.ClassId));
+                combination.Id = index++;
+                var groupByClasses = founded.GroupBy(u => u.ClassId);
+                foreach (var group in groupByClasses)
+                {
+                    int j = 0;
+                    foreach (var item in group)
+                    {
+                        item.ClassCombinations = combination;
+                        item.TeacherId = combination.TeacherId;
+                        item.RoomId = combination.RoomId;
+                        item.Session = combination.Session;
+                        item.periodsTh = j++;
+                    }
+                }
+            }
             //sắp xếp lại danh sách timetableUnits theo thứ tự tên lớp học và tạo ra một danh sách mới với thứ tự đã được sắp xếp
             timetableUnits = [.. timetableUnits.OrderBy(u => u.ClassName)];
 
@@ -709,6 +730,10 @@ namespace SchedulifySystem.Service.Services.Implements
          */
         private async void RandomlyAssign(TimetableIndividual src, GenerateTimetableModel parameters)
         {
+            // Tạo dictionary để lưu thông tin startAt của mỗi ClassCombination
+            var combinationStartAtMap = new Dictionary<int, Dictionary<int, List<int>>>();
+            var combinationDoublePairsMap = new Dictionary<int, Dictionary<int, (int, int)>>();
+
             for (int i = 0; i < src.TimetableFlag.GetLength(0); i++)
             {
                 //lấy danh sách các tiết trống buổi sáng và buổi chiều
@@ -727,8 +752,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters);
 
                 // phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
-                AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots);
+                AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, combinationStartAtMap);
             }
+            /// check only
+            var check = src.TimetableUnits.Where(u => u.ClassCombinations != null);
+            /// 
+
         }
 
 
@@ -819,7 +848,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         // method phân bổ các tiết đơn liên tục để tránh bị lủng owr cuối buổi
-        private void AssignContinuousSinglePeriods(TimetableIndividual src, int classIndex, List<int> morningSlots, List<int> afternoonSlots)
+        private void AssignContinuousSinglePeriods(TimetableIndividual src, int classIndex, List<int> morningSlots, List<int> afternoonSlots, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap)
         {
             morningSlots.Sort();
             afternoonSlots.Sort();
@@ -834,12 +863,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 .OrderBy(u => u.Priority)
                 .ToList();
 
-            AssignToContinuousSlots(morningSlots, morningPeriods, src, classIndex, MainSession.Morning);
-            AssignToContinuousSlots(afternoonSlots, afternoonPeriods, src, classIndex, MainSession.Afternoon);
+            AssignToContinuousSlots(morningSlots, morningPeriods, src, classIndex, MainSession.Morning, combinationStartAtMap);
+            AssignToContinuousSlots(afternoonSlots, afternoonPeriods, src, classIndex, MainSession.Afternoon, combinationStartAtMap);
         }
 
         // method phân bổ tiết vào các vị trí liên tục để tránh bị lủng
-        private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, MainSession session)
+        private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap)
         {
             foreach (var period in periods)
             {
@@ -854,10 +883,45 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 if (validSlots.Count == 0) continue;
 
-                // phân bổ tiết vào slot đầu tiên hợp lệ
-                period.StartAt = validSlots.First();
-                src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
-                slots.Remove(validSlots.First());
+                if (period.ClassCombinations != null)
+                {
+                    if (combinationStartAtMap.ContainsKey(period.ClassCombinations.Id))
+                    {
+                        var combinationClassMap = combinationStartAtMap[period.ClassCombinations.Id];
+                        if (combinationClassMap.ContainsKey(classIndex))
+                        {
+                            combinationClassMap[classIndex].Add(validSlots.First());
+                            period.StartAt = validSlots.First();
+                            src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
+                            slots.Remove(validSlots.First());
+                        }
+                        else
+                        {
+                            var combinationStarts = combinationClassMap[combinationClassMap.Keys.First()];
+                            var startAt = combinationStarts[period.periodsTh];
+                            period.StartAt = startAt;
+                            src.TimetableFlag[classIndex, startAt] = ETimetableFlag.Filled;
+                            slots.Remove(startAt);
+                        }
+                    }
+                    else
+                    {
+                        var first = new Dictionary<int, List<int>>
+                        {
+                            { classIndex, new List<int>(){validSlots.First() } }
+                        };
+                        combinationStartAtMap.Add(period.ClassCombinations.Id, first);
+                        period.StartAt = validSlots.First();
+                        src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
+                        slots.Remove(validSlots.First());
+                    }
+                }
+                else
+                {
+                    period.StartAt = validSlots.First();
+                    src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
+                    slots.Remove(validSlots.First());
+                }
             }
         }
 
