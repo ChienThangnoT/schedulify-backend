@@ -870,6 +870,7 @@ namespace SchedulifySystem.Service.Services.Implements
         // method phân bổ tiết vào các vị trí liên tục để tránh bị lủng
         private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap)
         {
+            Random random = new Random();
             foreach (var period in periods)
             {
                 if (slots.Count == 0) break;
@@ -890,10 +891,11 @@ namespace SchedulifySystem.Service.Services.Implements
                         var combinationClassMap = combinationStartAtMap[period.ClassCombinations.Id];
                         if (combinationClassMap.ContainsKey(classIndex))
                         {
-                            combinationClassMap[classIndex].Add(validSlots.First());
-                            period.StartAt = validSlots.First();
-                            src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
-                            slots.Remove(validSlots.First());
+                            var slot = validSlots[random.Next(validSlots.Count)];
+                            combinationClassMap[classIndex].Add(slot);
+                            period.StartAt = slot;
+                            src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
+                            slots.Remove(slot);
                         }
                         else
                         {
@@ -906,21 +908,23 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     else
                     {
+                        var slot = validSlots[random.Next(validSlots.Count)];
                         var first = new Dictionary<int, List<int>>
                         {
-                            { classIndex, new List<int>(){validSlots.First() } }
+                            { classIndex, new List<int>(){ slot } }
                         };
                         combinationStartAtMap.Add(period.ClassCombinations.Id, first);
-                        period.StartAt = validSlots.First();
-                        src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
-                        slots.Remove(validSlots.First());
+                        period.StartAt = slot;
+                        src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
+                        slots.Remove(slot);
                     }
                 }
                 else
                 {
-                    period.StartAt = validSlots.First();
-                    src.TimetableFlag[classIndex, validSlots.First()] = ETimetableFlag.Filled;
-                    slots.Remove(validSlots.First());
+                    var slot = validSlots[random.Next(validSlots.Count)];
+                    period.StartAt = slot;
+                    src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
+                    slots.Remove(slot);
                 }
             }
         }
@@ -973,30 +977,43 @@ namespace SchedulifySystem.Service.Services.Implements
          */
         private static int CheckHC01(TimetableIndividual src, GenerateTimetableModel parameters)
         {
-            // đếm số lượng vi phạm
             var count = 0;
 
-            foreach (RoomSubjectScheduleModel roomSubject in parameters.PracticeRoomWithSubjects)
+            // Lặp qua từng phòng học thực hành có ràng buộc
+            foreach (var roomSubject in parameters.PracticeRoomWithSubjects)
             {
-                // lấy ra các tiết học có môn thực hành 
+                // Lấy tất cả các tiết học sử dụng phòng thực hành này
                 var timetableUnits = src.TimetableUnits
                     .Where(u => roomSubject.TeachableSubjectIds.Contains(u.SubjectId ?? 0))
                     .ToList();
-                // nhóm lại theo tiết học 
+
+                // Nhóm các tiết học theo thời điểm
                 var groups = timetableUnits.GroupBy(u => u.StartAt).ToList();
 
                 foreach (var group in groups)
                 {
-                    var units = group.Select(g => g).ToList();
-                    if (units.Count > roomSubject.MaxClassPerTime)
+                    var units = group.ToList();
+
+                    // Với các lớp gộp, chỉ kiểm tra một lần cho mỗi nhóm
+                    var distinctCombinations = units
+                        .Where(u => u.ClassCombinations != null)
+                        .Select(u => u.ClassCombinations.Id)
+                        .Distinct()
+                        .Count();
+
+                    // Tổng số lớp học (kể cả lớp gộp) sử dụng phòng tại thời điểm này
+                    var totalClasses = units.Count(u => u.ClassCombinations == null) + distinctCombinations;
+
+                    if (totalClasses > roomSubject.MaxClassPerTime)
                     {
                         var (day, period) = GetDayAndPeriod(group.Key);
-                        units.ForEach(u => u.ConstraintErrors.Add(new ConstraintErrorModel()
+
+                        units.ForEach(u => u.ConstraintErrors.Add(new ConstraintErrorModel
                         {
                             Code = "HC01",
                             ClassName = u.ClassName,
                             SubjectName = u.SubjectName,
-                            Description = $"Đụng độ phòng thực hành môn {u.SubjectName} tại tiết {period} vào thứ {day}"
+                            Description = $"Đụng độ phòng {roomSubject.Name} tại tiết {period} vào thứ {day}."
                         }));
                         count += units.Count;
                     }
@@ -1004,6 +1021,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             return count;
         }
+
 
         #endregion
 
@@ -1016,40 +1034,51 @@ namespace SchedulifySystem.Service.Services.Implements
          */
         private static int CheckHC02(TimetableIndividual src)
         {
-            // số lượng vi phạm 
             var count = 0;
-            for (var i = 0; i < src.Teachers.Count; i++)
-            {
-                // lấy ra số tiết trong tkb có giáo viên đó 
-                var timetableUnits = src.TimetableUnits.Where(u => u.TeacherId == src.Teachers[i].Id).ToList();
-                var errorMessage = "";
 
-                for (var j = 0; j < timetableUnits.Count; j++)
-                    // kiểm tra đụng độ 
-                    if (timetableUnits.Count(u => u.StartAt == timetableUnits[j].StartAt) > 1)
+            foreach (var teacher in src.Teachers)
+            {
+                // Lấy tất cả các tiết mà giáo viên này dạy
+                var timetableUnits = src.TimetableUnits
+                    .Where(u => u.TeacherId == teacher.Id)
+                    .ToList();
+
+                // Nhóm các tiết theo thời điểm
+                var groups = timetableUnits.GroupBy(u => u.StartAt);
+
+                foreach (var group in groups)
+                {
+                    var units = group.ToList();
+
+                    // Với lớp gộp, chỉ kiểm tra một lần cho mỗi nhóm
+                    var distinctCombinations = units
+                        .Where(u => u.ClassCombinations != null)
+                        .Select(u => u.ClassCombinations.Id)
+                        .Distinct()
+                        .Count();
+
+                    // Tổng số lớp học mà giáo viên tham gia tại thời điểm này
+                    var totalClasses = units.Count(u => u.ClassCombinations == null) + 0;
+
+                    if (totalClasses > 1)
                     {
-                        var units = timetableUnits
-                            .Where(u => u.StartAt == timetableUnits[j].StartAt)
-                            .OrderBy(u => u.SubjectName)
-                            .ToList();
-                        var (day, period) = GetDayAndPeriodString(timetableUnits[j].StartAt);
-                        errorMessage =
-                            $"Giáo viên {timetableUnits[j].TeacherAbbreviation}: " +
-                            $"dạy môn {string.Join(", ", units.Select(u => u.SubjectName))} " +
-                            $"cùng lúc tại tiết {period} vào thứ {day}";
-                        var error = new ConstraintErrorModel()
+                        var (day, period) = GetDayAndPeriod(group.Key);
+                        units.ForEach(u => u.ConstraintErrors.Add(new ConstraintErrorModel
                         {
                             Code = "HC02",
-                            TeacherName = timetableUnits[j].TeacherAbbreviation,
-                            SubjectName = timetableUnits[j].SubjectName,
-                            Description = errorMessage
-                        };
-                        timetableUnits[j].ConstraintErrors.Add(error);
-                        count++;
+                            TeacherName = u.TeacherAbbreviation,
+                            ClassName = u.ClassName,
+                            SubjectName = u.SubjectName,
+                            Description = $"Giáo viên {u.TeacherAbbreviation} đụng độ dạy nhiều lớp tại tiết {period} vào thứ {day}."
+                        }));
+                        count += units.Count;
                     }
+                }
             }
+
             return count;
         }
+
 
         #endregion
 
