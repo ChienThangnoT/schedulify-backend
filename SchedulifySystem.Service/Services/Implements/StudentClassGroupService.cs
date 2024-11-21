@@ -66,16 +66,22 @@ namespace SchedulifySystem.Service.Services.Implements
                     filter: stg => !stg.IsDeleted && stg.SchoolId == schoolId && stg.SchoolYearId == schoolYearId && stg.Id == skip,
                     include: query => query.Include(t => t.StudentClasses));
 
-                var duplicateGrade = classGroups.Any(t => t.StudentClasses.Any(sc => sc.Grade == (int)eGrade.Value));
-                if (duplicateGrade)
+                var existingClassGroup = classGroups.FirstOrDefault();
+
+                if (existingClassGroup != null)
                 {
-                    return new BaseResponseModel
+                    if (existingClassGroup.Grade != (int)eGrade.Value &&
+                        existingClassGroup.StudentClasses.Any(sc => sc.Grade != (int)eGrade.Value))
                     {
-                        Status = StatusCodes.Status400BadRequest,
-                        Message = ConstantResponse.INVALID_UPDATE_GRADE_DIFFERENT_STUDENT_CLASS_GROUP_V1
-                    };
+                        return new BaseResponseModel
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = ConstantResponse.INVALID_UPDATE_GRADE_DIFFERENT_STUDENT_CLASS_GROUP_V1
+                        };
+                    }
                 }
             }
+
 
 
             return new BaseResponseModel
