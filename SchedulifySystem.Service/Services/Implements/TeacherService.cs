@@ -543,7 +543,9 @@ namespace SchedulifySystem.Service.Services.Implements
                     Gender = (Gender)teacher.Gender,
                     Status = teacher.Status,
                     IsDeleted = teacher.IsDeleted,
+                    TeacherRole = (TeacherRole)teacher.TeacherRole,
                     Phone = teacher.Phone,
+                    DateOfBirth = teacher.DateOfBirth,
                     PeriodCount = teacher.PeriodCount,
                     TeachableSubjects = teacher.TeachableSubjects
                     .GroupBy(ts => ts.SubjectId)
