@@ -57,7 +57,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.ADD_TEACHER_ASSIGNMENT_SUCCESS };
         }
 
-        private async Task<Dictionary<string, List<string>>> CheckAssignmentErrors(IEnumerable<StudentClass> classes, SchoolYear schoolYear, IEnumerable<Teacher> teachers, IEnumerable<TeacherAssignment> assignmentsDb)
+        private async Task<Dictionary<string, List<string>>> CheckAssignmentErrors(IEnumerable<StudentClass> classes, SchoolYear schoolYear, IEnumerable<Teacher> teachers, IEnumerable<TeacherAssignment> assignmentsDb, AutoAssignTeacherModel model)
         {
             // Khởi tạo dictionary để lưu lỗi theo từng thực thể
             var errorDictionary = new Dictionary<string, List<string>>()
@@ -65,7 +65,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     { "Giáo viên", new List<string>() },
                     { "Lớp học", new List<string>() },
                     { "Năm học", new List<string>() },
-                    { "Môn học", new List<string>() }
+                    { "Môn học", new List<string>() },
+                    { "Lớp gộp", new List<string>() }
                 };
 
             // Kiểm tra lớp học
@@ -132,14 +133,82 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+
+            var teacherCapabilities = teachers.ToDictionary(
+               teacher => teacher.Id,
+               teacher => teacher.TeachableSubjects.ToList()
+            );
+
+            // Kiểm tra tính hợp lệ của các `fixedAssignments`
+            var invalidAssignments = new List<FixedTeacherAssignmentModel>();
+
+            if (model.fixedAssignment != null)
+            {
+                foreach (var fixedAssignment in model.fixedAssignment)
+                {
+                    var assignment = assignmentsDb.FirstOrDefault(a => a.Id == fixedAssignment.AssignmentId);
+                    var teacher = teachers.FirstOrDefault(t => t.Id == fixedAssignment.TeacherId);
+
+                    if (assignment == null)
+                    {
+                        errorDictionary["Lớp học"].Add("Phân công cố định không tồn tại!.");
+                        continue;
+                    }
+
+                    if (teacher == null)
+                    {
+                        errorDictionary["Giáo viên"].Add("Phân công cố định giáo viên không tồn tại!.");
+                        continue;
+                    }
+
+                    // Kiểm tra giáo viên có khả năng dạy môn học và lớp này không
+                    if (teacherCapabilities.ContainsKey(teacher.Id))
+                    {
+                        var teachableSubjectss = teacherCapabilities[teacher.Id]
+                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
+                            .ToList();
+
+                        if (!teachableSubjectss.Any())
+                        {
+                            var teacherObj = teachers.FirstOrDefault(t => t.Id == teacher.Id);
+                            errorDictionary["Giáo viên"].Add($"Giáo viên {teacher.FirstName} {teacher.LastName} không thể dạy môn {assignmentsDb.First(a => a.SubjectId == assignment.SubjectId).Subject.SubjectName} khối {(int)assignment.StudentClass?.Grade}!.");
+                        }
+                    }
+                    else
+                    {
+                        var teacherObj = teachers.FirstOrDefault(t => t.Id == teacher.Id);
+                        errorDictionary["Giáo viên"].Add($"Giáo viên {teacher.FirstName} {teacher.LastName} không thể dạy môn {assignmentsDb.First(a => a.SubjectId == assignment.SubjectId).Subject.SubjectName} khối {(int)assignment.StudentClass?.Grade}!.");
+                    }
+                }
+            }
+
+            if (model.classCombinations != null)
+            {
+
+                foreach (var combination in model.classCombinations)
+                {
+                    var curriculum = classes.Select(cls => cls.StudentClassGroup.Curriculum)
+                    .Distinct().ToDictionary(c => c.Id, c => c.CurriculumDetails);
+
+                    var clsCombination = classes.Where(s => combination.ClassIds.Contains(s.Id)).ToList();
+                    var result = IsClassCombinationable(curriculum, clsCombination, combination.Session, combination.SubjectId);
+                    if (!result)
+                    {
+                        errorDictionary["Lớp gộp"].Add($"không thể tạo lớp gộp cho lớp {string.Join(", ", clsCombination.Select(s => s.Name))} do số lượng tiết môn {assignmentsDb.First(a => a.SubjectId == combination.SubjectId).Subject.SubjectName} không giống nhau!.");
+                    }
+                }
+
+            }
+
             return errorDictionary;
         }
 
-        public async Task<BaseResponseModel> CheckTeacherAssignment(int schoolId, int yearId)
+        public async Task<BaseResponseModel> CheckTeacherAssignment(int schoolId, int yearId, AutoAssignTeacherModel model)
         {
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: cls => !cls.IsDeleted && cls.SchoolId == schoolId && cls.SchoolYearId == yearId,
-                include: query => query.Include(cls => cls.TeacherAssignments));
+                include: query => query.Include(cls => cls.TeacherAssignments)
+                .Include(cls => cls.StudentClassGroup).ThenInclude(cg => cg.Curriculum).ThenInclude(c => c.CurriculumDetails));
 
             var schoolYear = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId, filter: y => !y.IsDeleted
                 , include: query => query.Include(y => y.Terms));
@@ -156,7 +225,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => t.SubjectId).ToList();
 
             // Kiểm tra lỗi trước khi phân công
-            var errors = await CheckAssignmentErrors(classes, schoolYear, teachers, assignmentsDb);
+            var errors = await CheckAssignmentErrors(classes, schoolYear, teachers, assignmentsDb, model);
             bool hasErrors = errors.Any(kv => kv.Value.Any());
 
             return new BaseResponseModel
@@ -192,7 +261,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => t.SubjectId).ToList();
 
             // Kiểm tra lỗi trước khi phân công
-            var errors = await CheckAssignmentErrors(classes, schoolYear, teachers, assignmentsDb);
+            var errors = await CheckAssignmentErrors(classes, schoolYear, teachers, assignmentsDb, model);
 
             // Nếu có lỗi, trả về danh sách lỗi theo thực thể
             if (errors.Any(kv => kv.Value.Any()))
@@ -215,52 +284,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var terms = schoolYear.Terms.Where(t => !t.IsDeleted);
             var assignmentFirsts = assignmentsDb.Where(a => a.TermId == terms.First().Id).ToList();
-
-            // Kiểm tra tính hợp lệ của các `fixedAssignments`
-            var invalidAssignments = new List<FixedTeacherAssignmentModel>();
-
-            if (model.fixedAssignment != null)
-            {
-                foreach (var fixedAssignment in model.fixedAssignment)
-                {
-                    var assignment = assignmentsDb.FirstOrDefault(a => a.Id == fixedAssignment.AssignmentId);
-                    var teacher = teachers.FirstOrDefault(t => t.Id == fixedAssignment.TeacherId);
-
-                    if (assignment == null || teacher == null)
-                    {
-                        // Nếu không tìm thấy assignment hoặc giáo viên, thêm vào danh sách không hợp lệ
-                        invalidAssignments.Add(fixedAssignment);
-                        continue;
-                    }
-
-                    // Kiểm tra giáo viên có khả năng dạy môn học và lớp này không
-                    if (teacherCapabilities.ContainsKey(teacher.Id))
-                    {
-                        var teachableSubjectss = teacherCapabilities[teacher.Id]
-                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
-                            .ToList();
-
-                        if (!teachableSubjectss.Any())
-                        {
-                            invalidAssignments.Add(fixedAssignment);
-                        }
-                    }
-                    else
-                    {
-                        invalidAssignments.Add(fixedAssignment);
-                    }
-                }
-            }
-
-            if (invalidAssignments.Any())
-            {
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = "Giáo viên hoặc phân công không tồn tại!",
-                    Result = invalidAssignments
-                };
-            }
 
             foreach (var term in terms)
             {
@@ -383,10 +406,10 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            if(classCombinations != null)
+            if (classCombinations != null)
             {
                 var fixedClassCombinations = classCombinations.Where(c => c.TeacherId != null);
-                foreach(var combination in fixedClassCombinations)
+                foreach (var combination in fixedClassCombinations)
                 {
                     var relatedAssignments = assignments
                         .Where(a => combination.ClassIds.Contains(a.StudentClassId) &&
@@ -582,16 +605,16 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var firstClass = sClasses.First();
             var fCurriculumDetails = curriculum[(int)firstClass.StudentClassGroup.CurriculumId];
-            var fcds = fCurriculumDetails.FirstOrDefault();
+            var fcds = fCurriculumDetails.FirstOrDefault(c => c.SubjectId == subjectId);
             if (fcds == null) return false;
-            var fcountPeriod = (int)session == firstClass.MainSession ? fcds.MainSlotPerWeek > 0 : fcds.SubSlotPerWeek > 0;
+            var fcountPeriod = (int)session == firstClass.MainSession ? fcds.MainSlotPerWeek : fcds.SubSlotPerWeek;
             for (int i = 1; i < sClasses.Count; i++)
             {
                 var curriculumDetails = curriculum[(int)firstClass.StudentClassGroup.CurriculumId];
-                var cds = curriculumDetails.FirstOrDefault();
+                var cds = curriculumDetails.FirstOrDefault(c => c.SubjectId == subjectId);
                 if (cds == null) return false;
-                var countPeriod = (int)session == firstClass.MainSession ? cds.MainSlotPerWeek > 0 : cds.SubSlotPerWeek > 0;
-                if (fcountPeriod != countPeriod) return false;
+                var countPeriod = (int)session == firstClass.MainSession ? cds.MainSlotPerWeek : cds.SubSlotPerWeek;
+                if (fcountPeriod != countPeriod && fcountPeriod != 0) return false;
             }
             return true;
         }
