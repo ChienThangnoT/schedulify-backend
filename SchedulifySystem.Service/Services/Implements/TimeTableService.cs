@@ -334,7 +334,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             //get teacher từ assigntmment db
             var teacherIds = parameters.TeacherAssignments.Select(t => t.TeacherId).Distinct().ToList();
-            var teacherTask = _unitOfWork.TeacherRepo.GetAsync(
+            var teacherTask = _unitOfWork.TeacherRepo.GetV2Async(
                 filter: t => teacherIds.Contains(t.Id) && t.Status == (int)TeacherStatus.HoatDong && !t.IsDeleted && t.SchoolId == parameters.SchoolId);
 
             var teachersDb = await teacherTask.ConfigureAwait(false);
@@ -448,26 +448,26 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     //// kiểm tra số tiết học có khớp với yêu cầu không
                     //// không cần kiểm tra nữa
-                    if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
-                    {
-                        throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
-                    }
+                    //if (assignment.PeriodCount != (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek))
+                    //{
+                    //    throw new DefaultException($"Số tiết học cho môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} không khớp.");
+                    //}
 
-                    // kiểm tra xem giáo viên có được phân công không
-                    if (assignment.TeacherId == null || assignment.TeacherId == 0)
-                    {
-                        throw new DefaultException($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
-                    }
+                    //// kiểm tra xem giáo viên có được phân công không
+                    //if (assignment.TeacherId == null || assignment.TeacherId == 0)
+                    //{
+                    //    throw new DefaultException($"Môn {subjects.First(s => s.SubjectId == subjectClass.SubjectId).SubjectName} của lớp {classesDbList[i].Name} chưa được phân công giáo viên.");
+                    //}
 
                     // cộng số tiết của môn vào tổng số tiết của lớp
                     periodCount += (subjectClass.MainSlotPerWeek + subjectClass.SubSlotPerWeek);
                 }
 
                 // kiểm tra tổng số tiết của lớp
-                if (periodCount != classPeriodCount)
-                {
-                    throw new DefaultException($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
-                }
+                //if (periodCount != classPeriodCount)
+                //{
+                //    throw new DefaultException($"Tổng số tiết học cho lớp {classesDbList[i].Name} không khớp với số yêu cầu.");
+                //}
 
                 if (periodCount > parameters.GetAvailableSlotsPerWeek())
                 {
