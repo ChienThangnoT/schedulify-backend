@@ -46,7 +46,8 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
         
         public EPriority Priority { get; set; } = EPriority.None;
         public MainSession Session { get; set; }
-        public List<int>? ClassCombinationIds { get; set; }
+        public ClassCombination? ClassCombinations { get; set; }
+        public int periodsTh { get; set; }
         public List<ConstraintErrorModel> ConstraintErrors { get; set; } = [];
 
         public ClassPeriodScheduleModel()
