@@ -38,7 +38,8 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
             SlotSpecialized = sig.Subject.SlotSpecialized;
             IsSpecialized = sig.IsSpecialized;
             IsDoublePeriod = sig.IsDoublePeriod;
-            IsDoublePeriod = sig.IsDoublePeriod;
+            MainMinimumCouple = sig.MainMinimumCouple;
+            SubMinimumCouple = sig.SubMinimumCouple;
         }
 
     }

@@ -102,7 +102,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
                 Parallel.For(0, timetablePopulation.Count, i =>
                 {
-                    var selectedIndividual = timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First();
+                    var selectedIndividual = timetablePopulation.Shuffle().Take(20).OrderBy(i => i.Adaptability).First();
                     lock (tournamentList)
                     {
                         tournamentList.Add(selectedIndividual);
@@ -1004,7 +1004,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     // Tổng số lớp học (kể cả lớp gộp) sử dụng phòng tại thời điểm này
                     var totalClasses = units.Count(u => u.ClassCombinations == null) + distinctCombinations;
 
-                    if (totalClasses > roomSubject.MaxClassPerTime)
+                    if (totalClasses >1)
                     {
                         var (day, period) = GetDayAndPeriod(group.Key);
 
@@ -1058,7 +1058,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         .Count();
 
                     // Tổng số lớp học mà giáo viên tham gia tại thời điểm này
-                    var totalClasses = units.Count(u => u.ClassCombinations == null) + 0;
+                    var totalClasses = units.Count(u => u.ClassCombinations == null) + distinctCombinations;
 
                     if (totalClasses > 1)
                     {
@@ -1958,7 +1958,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region MyRegion
+        #region Two Point Crossover
         private List<TimetableIndividual> TwoPointCrossover(
            List<TimetableIndividual> parents,
            List<TimetableIndividual> children)
@@ -2000,14 +2000,76 @@ namespace SchedulifySystem.Service.Services.Implements
          * Trong quá trình này, một điểm ngẫu nhiên được chọn trên chuỗi "nhiễm sắc thể" (chromosome), 
          * sau đó các phần trước và sau điểm đó sẽ được trao đổi giữa hai bố mẹ để tạo ra các cá thể con.
          */
+        //private List<TimetableIndividual> SinglePointCrossover(
+        //    List<TimetableIndividual> parents,
+        //    List<TimetableIndividual> children,
+        //    EChromosomeType chromosomeType)
+        //{
+        //    // startIndex và endIndex: Hai biến này sẽ xác định phạm vi của các tiết học (Timetable Units) được lai tạo giữa hai bố mẹ.
+        //    var startIndex = 0;
+        //    var endIndex = 0;
+        //    //xác định cách lai tạo
+        //    switch (chromosomeType)
+        //    {
+        //        // nhiễm sắc thể đại diện cho lớp học
+        //        case EChromosomeType.ClassChromosome:
+        //            SortChromosome(children[0], EChromosomeType.ClassChromosome);
+        //            SortChromosome(children[1], EChromosomeType.ClassChromosome);
+        //            SortChromosome(parents[0], EChromosomeType.ClassChromosome);
+        //            SortChromosome(parents[1], EChromosomeType.ClassChromosome);
+        //            //Chọn ngẫu nhiên một lớp từ cá thể bố mẹ đầu tiên. Tên của lớp này sẽ được dùng để xác định các tiết học liên quan đến lớp đó
+        //            var className = parents[0].Classes[_random.Next(parents[0].Classes.Count)].Name;
+        //            //Vị trí bắt đầu của lớp học được chọn trong danh sách các tiết học
+        //            startIndex = parents[0].TimetableUnits.IndexOf(parents[0].TimetableUnits.First(u => u.ClassName == className));
+        //            //Điểm kết thúc là vị trí bắt đầu cộng với số lượng tiết học mà lớp học đó có trong tuần
+        //            endIndex = startIndex + parents[0].Classes.First(c => c.Name == className).PeriodCount - 1;
+        //            break;
+        //        case EChromosomeType.TeacherChromosome:
+        //            throw new NotImplementedException();
+        //        // break;
+        //        default:
+        //            throw new NotImplementedException();
+        //    }
+
+        //    //Trao đổi dữ liệu giữa cha mẹ và con
+        //    // var randIndex = /*rand.Next(0, parents[0].TimetableUnits.Count)*/ parents[0].TimetableUnits.Count / 2;
+
+        //    for (var i = 0; i < parents[0].TimetableUnits.Count; i++)
+        //    {
+        //        //nếu i nằm ngoài khoảng từ startIndex đến endIndex, nghĩa là phần này sẽ được sao chép trực tiếp từ cha mẹ sang con.
+        //        if (i < startIndex || i > endIndex)
+        //            for (var j = 0; j < children.Count; j++)
+        //            {
+        //                children[j].TimetableUnits[i].StartAt = parents[j].TimetableUnits[i].StartAt;
+        //                children[j].TimetableUnits[i].Priority = parents[j].TimetableUnits[i].Priority;
+        //            }
+        //        //nếu i nằm trong khoảng startIndex đến endIndex, dữ liệu sẽ được trao đổi giữa hai cha mẹ để tạo ra hai cá thể con
+        //        else
+        //            for (var j = 0; j < children.Count; j++)
+        //            {
+        //                children[j].TimetableUnits[i].StartAt = parents[children.Count - 1 - j].TimetableUnits[i].StartAt;
+        //                children[j].TimetableUnits[i].Priority = parents[children.Count - 1 - j].TimetableUnits[i].Priority;
+        //            }
+        //        }
+
+        //    return children;
+        //}
+
         private List<TimetableIndividual> SinglePointCrossover(
             List<TimetableIndividual> parents,
             List<TimetableIndividual> children,
             EChromosomeType chromosomeType)
         {
             // startIndex và endIndex: Hai biến này sẽ xác định phạm vi của các tiết học (Timetable Units) được lai tạo giữa hai bố mẹ.
-            var startIndex = 0;
-            var endIndex = 0;
+            //var startIndex = 0;
+            //var endIndex = 0;
+
+            var startIndexMain = 0;
+            var endIndexMain = 0;
+            var startIndexSub = 0;
+            var endIndexSub = 0;
+
+
             //xác định cách lai tạo
             switch (chromosomeType)
             {
@@ -2020,9 +2082,23 @@ namespace SchedulifySystem.Service.Services.Implements
                     //Chọn ngẫu nhiên một lớp từ cá thể bố mẹ đầu tiên. Tên của lớp này sẽ được dùng để xác định các tiết học liên quan đến lớp đó
                     var className = parents[0].Classes[_random.Next(parents[0].Classes.Count)].Name;
                     //Vị trí bắt đầu của lớp học được chọn trong danh sách các tiết học
-                    startIndex = parents[0].TimetableUnits.IndexOf(parents[0].TimetableUnits.First(u => u.ClassName == className));
-                    //Điểm kết thúc là vị trí bắt đầu cộng với số lượng tiết học mà lớp học đó có trong tuần
-                    endIndex = startIndex + parents[0].Classes.First(c => c.Name == className).PeriodCount - 1;
+                    //startIndex = parents[0].TimetableUnits.IndexOf(parents[0].TimetableUnits.First(u => u.ClassName == className));
+                    ////Điểm kết thúc là vị trí bắt đầu cộng với số lượng tiết học mà lớp học đó có trong tuần
+                    //endIndex = startIndex + parents[0].Classes.First(c => c.Name == className).PeriodCount - 1;
+
+                    var mainSession = parents[0].Classes.First(c => c.Name == className).MainSession;
+                    var subSession = mainSession == (int)MainSession.Morning ? MainSession.Afternoon : MainSession.Morning;
+
+                    // phạm vi của buổi chính
+                    var mainClass = parents[0].Classes.First(c => c.Name == className);
+                    startIndexMain = parents[0].TimetableUnits.IndexOf(parents[0].TimetableUnits.First(u => u.ClassName == mainClass.Name && u.Session == (MainSession)mainSession));
+                    endIndexMain = startIndexMain + mainClass.PeriodCount - 1;
+
+                    //phạm vi buổi phụ
+                    var subClass = parents[0].Classes.First(c => c.Name == className);
+                    startIndexSub = parents[0].TimetableUnits.IndexOf(parents[0].TimetableUnits.First(u => u.ClassName == subClass.Name && u.Session == subSession));
+                    endIndexSub = startIndexSub + subClass.PeriodCount - 1;
+
                     break;
                 case EChromosomeType.TeacherChromosome:
                     throw new NotImplementedException();
@@ -2036,97 +2112,326 @@ namespace SchedulifySystem.Service.Services.Implements
 
             for (var i = 0; i < parents[0].TimetableUnits.Count; i++)
             {
-                //nếu i nằm ngoài khoảng từ startIndex đến endIndex, nghĩa là phần này sẽ được sao chép trực tiếp từ cha mẹ sang con.
-                if (i < startIndex || i > endIndex)
+                // Kiểm tra xem tiết có thuộc lớp gộp không
+                if (parents[0].TimetableUnits[i].ClassCombinations != null ||
+                    parents[1].TimetableUnits[i].ClassCombinations != null)
+                {
+                    // Xác định cha mẹ sẽ được sao chép (ưu tiên cha, nếu không thì mẹ)
+                    var parentToInherit = parents[0].TimetableUnits[i].ClassCombinations != null ? 0 : 1;
+
+                    // Lấy toàn bộ các tiết thuộc lớp gộp từ cha mẹ đã chọn
+                    var combinationId = parents[parentToInherit].TimetableUnits[i].ClassCombinations.Id;
+
+                    foreach (var unit in parents[parentToInherit].TimetableUnits
+                        .Where(u => u.ClassCombinations?.Id == combinationId))
+                    {
+                        var index = parents[parentToInherit].TimetableUnits.IndexOf(unit);
+                        for (var j = 0; j < children.Count; j++)
+                        {
+                            children[j].TimetableUnits[index].StartAt = unit.StartAt;
+                            children[j].TimetableUnits[index].Priority = unit.Priority;
+                        }
+                    }
+                    continue; // Bỏ qua hoán đổi cho các tiết thuộc lớp gộp
+                }
+
+                // Nếu i nằm ngoài khoảng từ startIndex đến endIndex, sao chép trực tiếp từ cha mẹ sang con
+
+                // Nếu i nằm ngoài phạm vi của buổi chính và buổi phụ, sao chép từ cha mẹ sang con
+                if ((i < startIndexMain || i > endIndexMain) && (i < startIndexSub || i > endIndexSub))
+                {
                     for (var j = 0; j < children.Count; j++)
                     {
                         children[j].TimetableUnits[i].StartAt = parents[j].TimetableUnits[i].StartAt;
                         children[j].TimetableUnits[i].Priority = parents[j].TimetableUnits[i].Priority;
                     }
-                //nếu i nằm trong khoảng startIndex đến endIndex, dữ liệu sẽ được trao đổi giữa hai cha mẹ để tạo ra hai cá thể con
-                else
+                }
+                // Nếu i nằm trong phạm vi của buổi chính, trao đổi dữ liệu giữa hai bố mẹ cho buổi chính
+                else if (i >= startIndexMain && i <= endIndexMain)
+                {
                     for (var j = 0; j < children.Count; j++)
                     {
                         children[j].TimetableUnits[i].StartAt = parents[children.Count - 1 - j].TimetableUnits[i].StartAt;
                         children[j].TimetableUnits[i].Priority = parents[children.Count - 1 - j].TimetableUnits[i].Priority;
                     }
+                }
+                // Nếu i nằm trong phạm vi của buổi phụ, trao đổi dữ liệu giữa hai bố mẹ cho buổi phụ
+                else if (i >= startIndexSub && i <= endIndexSub)
+                {
+                    for (var j = 0; j < children.Count; j++)
+                    {
+                        children[j].TimetableUnits[i].StartAt = parents[children.Count - 1 - j].TimetableUnits[i].StartAt;
+                        children[j].TimetableUnits[i].Priority = parents[children.Count - 1 - j].TimetableUnits[i].Priority;
+                    }
+                }
             }
+
 
             return children;
         }
+        /*private List<TimetableIndividual> SinglePointCrossover(
+    List<TimetableIndividual> parents,
+    List<TimetableIndividual> children,
+    EChromosomeType chromosomeType)
+        {
+            // Xác định các biến phạm vi để lai tạo
+            var startIndexMain = 0;
+            var endIndexMain = 0;
+            var startIndexSub = 0;
+            var endIndexSub = 0;
+
+            // Xác định cách lai tạo dựa trên loại nhiễm sắc thể
+            switch (chromosomeType)
+            {
+                // Trường hợp là nhiễm sắc thể của lớp học
+                case EChromosomeType.ClassChromosome:
+                    // Sắp xếp lại các cá thể con và bố mẹ để đảm bảo tính nhất quán trong quá trình lai tạo
+                    SortChromosome(children[0], EChromosomeType.ClassChromosome);
+                    SortChromosome(children[1], EChromosomeType.ClassChromosome);
+                    SortChromosome(parents[0], EChromosomeType.ClassChromosome);
+                    SortChromosome(parents[1], EChromosomeType.ClassChromosome);
+
+                    // Chọn ngẫu nhiên một lớp từ cá thể bố mẹ đầu tiên để xác định phạm vi lai tạo
+                    var className = parents[0].Classes[_random.Next(parents[0].Classes.Count)].Name;
+
+                    // Xác định buổi chính và buổi phụ của lớp được chọn
+                    var mainSession = parents[0].Classes.First(c => c.Name == className).MainSession;
+                    var subSession = mainSession == (int)MainSession.Morning ? MainSession.Afternoon : MainSession.Morning;
+
+                    // Xác định phạm vi của buổi chính
+                    var mainSessionUnits = parents[0].TimetableUnits
+                        .Where(u => u.ClassName == className && u.Session == (MainSession)mainSession)
+                        .ToList();
+
+                    if (mainSessionUnits.Any())
+                    {
+                        startIndexMain = parents[0].TimetableUnits.IndexOf(mainSessionUnits.First());
+                        endIndexMain = startIndexMain + mainSessionUnits.Count - 1;
+                    }
+
+                    // Xác định phạm vi của buổi phụ
+                    var subSessionUnits = parents[0].TimetableUnits
+                        .Where(u => u.ClassName == className && u.Session == subSession)
+                        .ToList();
+
+                    if (subSessionUnits.Any())
+                    {
+                        startIndexSub = parents[0].TimetableUnits.IndexOf(subSessionUnits.First());
+                        endIndexSub = startIndexSub + subSessionUnits.Count - 1;
+                    }
+                    break;
+
+                case EChromosomeType.TeacherChromosome:
+                    throw new NotImplementedException();
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            // Trao đổi dữ liệu giữa cha mẹ và con cho từng buổi
+            for (var i = 0; i < parents[0].TimetableUnits.Count; i++)
+            {
+                // Nếu i nằm ngoài phạm vi của buổi chính và buổi phụ, sao chép từ cha mẹ sang con
+                if ((i < startIndexMain || i > endIndexMain) && (i < startIndexSub || i > endIndexSub))
+                {
+                    for (var j = 0; j < children.Count; j++)
+                    {
+                        children[j].TimetableUnits[i].StartAt = parents[j].TimetableUnits[i].StartAt;
+                        children[j].TimetableUnits[i].Priority = parents[j].TimetableUnits[i].Priority;
+                    }
+                }
+                // Nếu i nằm trong phạm vi của buổi chính, trao đổi dữ liệu giữa hai bố mẹ cho buổi chính
+                else if (i >= startIndexMain && i <= endIndexMain)
+                {
+                    for (var j = 0; j < children.Count; j++)
+                    {
+                        children[j].TimetableUnits[i].StartAt = parents[children.Count - 1 - j].TimetableUnits[i].StartAt;
+                        children[j].TimetableUnits[i].Priority = parents[children.Count - 1 - j].TimetableUnits[i].Priority;
+                    }
+                }
+                // Nếu i nằm trong phạm vi của buổi phụ, trao đổi dữ liệu giữa hai bố mẹ cho buổi phụ
+                else if (i >= startIndexSub && i <= endIndexSub)
+                {
+                    for (var j = 0; j < children.Count; j++)
+                    {
+                        children[j].TimetableUnits[i].StartAt = parents[children.Count - 1 - j].TimetableUnits[i].StartAt;
+                        children[j].TimetableUnits[i].Priority = parents[children.Count - 1 - j].TimetableUnits[i].Priority;
+                    }
+                }
+            }
+
+            return children;
+        }*/
         #endregion
 
         #region Mutation
 
+        //private void Mutate(List<TimetableIndividual> individuals, EChromosomeType type, float mutationRate)
+        //{
+        //    for (var i = 0; i < individuals.Count; i++)
+        //    {
+        //        if (_random.Next(0, 100) > mutationRate * 100)
+        //            continue;
+
+        //        var className = "";
+        //        var teacherAbbre = "";
+        //        List<int> randNumList = null!;
+        //        List<ClassPeriodScheduleModel> timetableUnits = null!;
+
+        //        switch (type)
+        //        {
+        //            case EChromosomeType.ClassChromosome:
+        //                /*chọn ngẫu nhiên một lớp học từ cá thể hiện tại
+        //                lấy danh sách các tiết học của lớp này nhưng không bao gồm các tiết fixed
+        //                Tạo danh sách ngẫu nhiên randNumList để chọn ngẫu nhiên các tiết học.
+        //                 */
+        //                className = individuals[i].Classes[_random.Next(0, individuals[i].Classes.Count)].Name;
+        //                timetableUnits = individuals[i].TimetableUnits
+        //                    .Where(u => u.ClassName == className && u.Priority != EPriority.Fixed).ToList();
+        //                randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
+
+        //                if (timetableUnits[randNumList[0]].Priority != EPriority.Double)
+        //                    TimeTableUtils.Swap(timetableUnits[randNumList[0]], timetableUnits[randNumList[1]]);
+        //                    else
+        //                    {
+        //                        var doublePeriods = new List<ClassPeriodScheduleModel>()
+        //            {
+        //                        timetableUnits[randNumList[0]],
+        //                        timetableUnits.First(
+        //                            u => u.SubjectName == timetableUnits[randNumList[0]].SubjectName &&
+        //                                 u.Priority == timetableUnits[randNumList[0]].Priority)
+        //            };
+        //                    randNumList.Remove(timetableUnits.IndexOf(doublePeriods[0]));
+        //                    randNumList.Remove(timetableUnits.IndexOf(doublePeriods[1]));
+
+        //                    doublePeriods = [.. doublePeriods.OrderBy(p => p.StartAt)];
+
+        //                        var consecs = new List<(int, int)>();
+        //                        randNumList.Sort();
+        //                        for (var index = 0; index < randNumList.Count - 1; index++)
+        //                            if (randNumList[index + 1] - randNumList[index] == 1)
+        //                                consecs.Add((randNumList[index], randNumList[index + 1]));
+
+        //                    var randConsecIndex = consecs.IndexOf(consecs.Shuffle().First());
+
+        //                    TimeTableUtils.Swap(doublePeriods[0], timetableUnits[randConsecIndex]);
+        //                    TimeTableUtils.Swap(doublePeriods[1], timetableUnits[randConsecIndex + 1]);
+        //                }
+
+        //        //        for (var j = 0; j < randNumList.Count - _random.Next(1, randNumList.Count - 1); j++)
+        //        //            TimeTableUtils.Swap(timetableUnits[randNumList[j]], timetableUnits[randNumList[j + 1]]);
+        //        break;
+        //            case EChromosomeType.TeacherChromosome:
+        //                //fix lai ở đây 
+        //                teacherAbbre = individuals[i].Teachers[_random.Next(0, individuals[i].Teachers.Count)].Abbreviation;
+        //                timetableUnits = individuals[i].TimetableUnits
+        //                    .Where(u => u.TeacherAbbreviation == teacherAbbre && u.Priority != EPriority.Fixed).ToList();
+        //                randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
+
+        //                for (var j = 0; j < randNumList.Count - _random.Next(1, randNumList.Count - 1); j++)
+        //                    TimeTableUtils.Swap(timetableUnits[randNumList[j]], timetableUnits[randNumList[j + 1]]);
+        //                break;
+        //        }
+
+
+        //    }
+        //}
+
         private void Mutate(List<TimetableIndividual> individuals, EChromosomeType type, float mutationRate)
+{
+    for (var i = 0; i < individuals.Count; i++)
+    {
+        // Kiểm tra tỉ lệ mutation, nếu không đạt, bỏ qua cá thể hiện tại
+        if (_random.Next(0, 100) > mutationRate * 100)
+            continue;
+
+        var className = "";
+        List<int> randNumList = null!;
+        List<ClassPeriodScheduleModel> timetableUnits = null!;
+
+        if (type == EChromosomeType.ClassChromosome)
         {
-            for (var i = 0; i < individuals.Count; i++)
+            // Chọn ngẫu nhiên một lớp học
+            className = individuals[i].Classes[_random.Next(0, individuals[i].Classes.Count)].Name;
+
+            // Lọc các tiết học không phải cố định (Fixed) của lớp
+            timetableUnits = individuals[i].TimetableUnits
+                .Where(u => u.ClassName == className && u.Priority != EPriority.Fixed).ToList();
+
+            // Phân loại tiết theo buổi (buổi chính và buổi phụ)
+            var mainSession = (MainSession)individuals[i].Classes.First(c => c.Name == className).MainSession;
+            var subSession = mainSession == MainSession.Morning ? MainSession.Afternoon : MainSession.Morning;
+
+            var mainSessionUnits = timetableUnits.Where(u => u.Session == mainSession).ToList();
+            var subSessionUnits = timetableUnits.Where(u => u.Session == subSession).ToList();
+
+            // Hoán đổi trong buổi chính
+            if (mainSessionUnits.Count > 1)
             {
-                if (_random.Next(0, 100) > mutationRate * 100)
-                    continue;
+                randNumList = Enumerable.Range(0, mainSessionUnits.Count).Shuffle().ToList();
+                PerformSwap(mainSessionUnits, randNumList);
+            }
 
-                var className = "";
-                var teacherAbbre = "";
-                List<int> randNumList = null!;
-                List<ClassPeriodScheduleModel> timetableUnits = null!;
-
-                switch (type)
-                {
-                    case EChromosomeType.ClassChromosome:
-                        /*chọn ngẫu nhiên một lớp học từ cá thể hiện tại
-                        lấy danh sách các tiết học của lớp này nhưng không bao gồm các tiết fixed
-                        Tạo danh sách ngẫu nhiên randNumList để chọn ngẫu nhiên các tiết học.
-                         */
-                        className = individuals[i].Classes[_random.Next(0, individuals[i].Classes.Count)].Name;
-                        timetableUnits = individuals[i].TimetableUnits
-                            .Where(u => u.ClassName == className && u.Priority != EPriority.Fixed).ToList();
-                        randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
-
-                        if (timetableUnits[randNumList[0]].Priority != EPriority.Double)
-                            TimeTableUtils.Swap(timetableUnits[randNumList[0]], timetableUnits[randNumList[1]]);
-                        else
-                        {
-                            var doublePeriods = new List<ClassPeriodScheduleModel>()
-                            {
-                                timetableUnits[randNumList[0]],
-                                timetableUnits.First(
-                                    u => u.SubjectName == timetableUnits[randNumList[0]].SubjectName &&
-                                         u.Priority == timetableUnits[randNumList[0]].Priority)
-                            };
-                            randNumList.Remove(timetableUnits.IndexOf(doublePeriods[0]));
-                            randNumList.Remove(timetableUnits.IndexOf(doublePeriods[1]));
-
-                            doublePeriods = [.. doublePeriods.OrderBy(p => p.StartAt)];
-
-                            var consecs = new List<(int, int)>();
-                            randNumList.Sort();
-                            for (var index = 0; index < randNumList.Count - 1; index++)
-                                if (randNumList[index + 1] - randNumList[index] == 1)
-                                    consecs.Add((randNumList[index], randNumList[index + 1]));
-
-                            var randConsecIndex = consecs.IndexOf(consecs.Shuffle().First());
-
-                            TimeTableUtils.Swap(doublePeriods[0], timetableUnits[randConsecIndex]);
-                            TimeTableUtils.Swap(doublePeriods[1], timetableUnits[randConsecIndex + 1]);
-                        }
-                        //for (var j = 0; j < randNumList.Count - rand.Next(1, randNumList.Count - 1); j++)
-                        //    Swap(timetableUnits[randNumList[j]], timetableUnits[randNumList[j + 1]]);
-                        break;
-                    case EChromosomeType.TeacherChromosome:
-                        //fix lai ở đây 
-                        teacherAbbre = individuals[i].Teachers[_random.Next(0, individuals[i].Teachers.Count)].Abbreviation;
-                        timetableUnits = individuals[i].TimetableUnits
-                            .Where(u => u.TeacherAbbreviation == teacherAbbre && u.Priority != EPriority.Fixed).ToList();
-                        randNumList = Enumerable.Range(0, timetableUnits.Count).Shuffle().ToList();
-
-                        for (var j = 0; j < randNumList.Count - _random.Next(1, randNumList.Count - 1); j++)
-                            TimeTableUtils.Swap(timetableUnits[randNumList[j]], timetableUnits[randNumList[j + 1]]);
-                        break;
-                }
-
-
+            // Hoán đổi trong buổi phụ
+            if (subSessionUnits.Count > 1)
+            {
+                randNumList = Enumerable.Range(0, subSessionUnits.Count).Shuffle().ToList();
+                PerformSwap(subSessionUnits, randNumList);
             }
         }
+    }
+}
+
+private void PerformSwap(List<ClassPeriodScheduleModel> sessionUnits, List<int> randNumList)
+{
+    if (randNumList.Count < 2) return;
+
+    // Hoán đổi tiết đơn
+    if (sessionUnits[randNumList[0]].Priority != EPriority.Double)
+    {
+        TimeTableUtils.Swap(sessionUnits[randNumList[0]], sessionUnits[randNumList[1]]);
+    }
+    else
+    {
+        // Xử lý hoán đổi tiết đôi
+        var doublePeriods = new List<ClassPeriodScheduleModel>
+        {
+            sessionUnits[randNumList[0]],
+            sessionUnits.First(
+                u => u.SubjectName == sessionUnits[randNumList[0]].SubjectName &&
+                     u.Priority == sessionUnits[randNumList[0]].Priority)
+        };
+
+        // Loại bỏ các chỉ số của các tiết đôi khỏi danh sách ngẫu nhiên
+        randNumList.Remove(sessionUnits.IndexOf(doublePeriods[0]));
+        randNumList.Remove(sessionUnits.IndexOf(doublePeriods[1]));
+
+        // Sắp xếp các tiết đôi theo thứ tự
+        doublePeriods = doublePeriods.OrderBy(p => p.StartAt).ToList();
+
+        // Tìm các cặp tiết liên tiếp
+        var consecs = new List<(int, int)>();
+        randNumList.Sort();
+        for (var index = 0; index < randNumList.Count - 1; index++)
+        {
+            if (randNumList[index + 1] - randNumList[index] == 1)
+            {
+                consecs.Add((randNumList[index], randNumList[index + 1]));
+            }
+        }
+
+        // Nếu tìm thấy cặp liên tiếp, thực hiện hoán đổi
+        if (consecs.Count != 0)
+        {
+            var randConsecIndex = consecs.Shuffle().First();
+            TimeTableUtils.Swap(doublePeriods[0], sessionUnits[randConsecIndex.Item1]);
+            TimeTableUtils.Swap(doublePeriods[1], sessionUnits[randConsecIndex.Item2]);
+        }
+    }
+}
+
+
+
         #endregion
 
         #region Enhance Solution
@@ -2185,7 +2490,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             src.TimetableUnits = type switch
             {
-                EChromosomeType.ClassChromosome => [.. src.TimetableUnits.OrderBy(u => u.ClassName)],
+                EChromosomeType.ClassChromosome => [.. src.TimetableUnits.OrderBy(u => u.ClassName).ThenBy(u => u.ClassCombinations?.Id ?? int.MaxValue)],
                 EChromosomeType.TeacherChromosome => [.. src.TimetableUnits.OrderBy(u => u.TeacherAbbreviation)],
                 _ => throw new NotImplementedException(),
             };
@@ -2194,23 +2499,57 @@ namespace SchedulifySystem.Service.Services.Implements
         //cập nhật lại flag dựa trên timetableUnits 
         private static void RemarkTimetableFlag(TimetableIndividual src, GenerateTimetableModel parameters)
         {
-            // ngoại trừ các tiết k xếp thì mark lại là unfill
+            // Đặt lại tất cả các vị trí khả dụng là "Unfilled", ngoại trừ các tiết không xếp (None)
             for (var i = 0; i < src.Classes.Count; i++)
-                for (var j = 1; j < parameters.GetAvailableSlotsPerWeek(); j++)
-                    if (src.TimetableFlag[i, j] != ETimetableFlag.None)
-                        src.TimetableFlag[i, j] = ETimetableFlag.Unfilled;
-
-            // mark các tiết khác dựa trên timetable unit 
-            for (var i = 0; i < src.TimetableUnits.Count; i++)
             {
-                var classIndex = src.Classes.IndexOf(src.Classes.First(c => c.Name == src.TimetableUnits[i].ClassName));
-                if (src.TimetableUnits[i].Priority == (int)EPriority.Fixed)
-                    src.TimetableFlag[classIndex, src.TimetableUnits[i].StartAt] = ETimetableFlag.Fixed;
-                else
-                    src.TimetableFlag[classIndex, src.TimetableUnits[i].StartAt] = ETimetableFlag.Filled;
+                for (var j = 1; j < parameters.GetAvailableSlotsPerWeek(); j++)
+                {
+                    if (src.TimetableFlag[i, j] != ETimetableFlag.None)
+                    {
+                        src.TimetableFlag[i, j] = ETimetableFlag.Unfilled;
+                    }
+                }
             }
 
+            // Cập nhật trạng thái dựa trên danh sách các tiết (TimetableUnits)
+            foreach (var unit in src.TimetableUnits)
+            {
+                var classIndex = src.Classes.FindIndex(c => c.Name == unit.ClassName);
+
+                if (classIndex == -1)
+                {
+                    throw new Exception($"Lớp {unit.ClassName} không tồn tại trong danh sách lớp.");
+                }
+
+                // Đánh dấu trạng thái theo ưu tiên của tiết
+                if (unit.Priority == (int)EPriority.Fixed)
+                {
+                    src.TimetableFlag[classIndex, unit.StartAt] = ETimetableFlag.Fixed;
+                }
+                else
+                {
+                    src.TimetableFlag[classIndex, unit.StartAt] = ETimetableFlag.Filled;
+                }
+
+                // Nếu là tiết thuộc lớp gộp, đảm bảo đồng bộ trạng thái giữa các lớp trong tổ hợp
+                if (unit.ClassCombinations != null)
+                {
+                    foreach (var relatedUnit in src.TimetableUnits
+                        .Where(u => u.ClassCombinations?.Id == unit.ClassCombinations.Id))
+                    {
+                        var relatedClassIndex = src.Classes.FindIndex(c => c.Name == relatedUnit.ClassName);
+
+                        if (relatedClassIndex == -1)
+                        {
+                            throw new Exception($"Lớp {relatedUnit.ClassName} không tồn tại trong danh sách lớp.");
+                        }
+
+                        src.TimetableFlag[relatedClassIndex, relatedUnit.StartAt] = ETimetableFlag.Filled;
+                    }
+                }
+            }
         }
+
 
         private static (int day, int period) GetDayAndPeriod(int startAt)
         {
