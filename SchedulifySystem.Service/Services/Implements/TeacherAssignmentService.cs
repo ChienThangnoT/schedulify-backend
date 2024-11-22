@@ -417,11 +417,15 @@ namespace SchedulifySystem.Service.Services.Implements
                                     IsHaveSubjectInSession(curriculums, a.StudentClass, combination.Session, combination.SubjectId))
                         .ToList();
                     var teacher = teachers.FirstOrDefault(t => t.Id == combination.TeacherId);
-                    relatedAssignments.ForEach(a =>
+                    if (teacher != null)
                     {
-                        a.TeacherId = teacher.Id;
-                        a.Teacher = teacher;
-                    });
+                        relatedAssignments.ForEach(a =>
+                        {
+                            a.TeacherId = teacher.Id;
+                            a.Teacher = teacher;
+                        });
+                    }
+
                 }
             }
 

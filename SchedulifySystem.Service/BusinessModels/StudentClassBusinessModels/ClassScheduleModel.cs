@@ -17,6 +17,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public bool IsFullDay { get; set; }
         public int PeriodCount { get; set; }
         public int StudentClassGroupId { get; set; }
+        public int CurriculumId { get; set; }
 
         public ClassScheduleModel(StudentClass studentClass)
         {
@@ -29,6 +30,7 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
             IsFullDay = studentClass.IsFullDay;
             PeriodCount = studentClass.PeriodCount;
             StudentClassGroupId = (int) studentClass.StudentClassGroupId;
+            CurriculumId = (int)studentClass.StudentClassGroup.CurriculumId;
         }
     }
 }

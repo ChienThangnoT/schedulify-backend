@@ -20,7 +20,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int? SlotSpecialized { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
-        public int SubjectGroupId { get; set; }
+        public int CurriculumId { get; set; }
         public int MainMinimumCouple { get; set; }
         public int SubMinimumCouple { get; set; }
 
@@ -40,6 +40,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
             IsDoublePeriod = sig.IsDoublePeriod;
             MainMinimumCouple = sig.MainMinimumCouple;
             SubMinimumCouple = sig.SubMinimumCouple;
+            CurriculumId = (int)sig.CurriculumId;
         }
 
     }
