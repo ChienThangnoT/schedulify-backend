@@ -295,7 +295,8 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<StudentClass>()
             .HasOne(sc => sc.Teacher)
             .WithMany(t => t.StudentClasses)
-            .HasForeignKey(sc => sc.HomeroomTeacherId);
+            .HasForeignKey(sc => sc.HomeroomTeacherId)
+            .OnDelete(DeleteBehavior.SetNull);
         modelBuilder.Entity<StudentClass>()
             .HasOne(sc => sc.StudentClassGroup)
             .WithMany(t => t.StudentClasses)
@@ -303,7 +304,9 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<StudentClass>()
             .HasOne(sc => sc.Room)
             .WithMany(t => t.StudentClasses)
-            .HasForeignKey(sc => sc.RoomId);
+            .HasForeignKey(sc => sc.RoomId)
+            .OnDelete(DeleteBehavior.SetNull);
+
 
         // Subject Entity
         modelBuilder.Entity<Subject>()
@@ -431,7 +434,8 @@ public partial class SchedulifyContext : DbContext
             entity.HasOne(ta => ta.Teacher)
                 .WithMany(t => t.TeacherAssignments)
                 .HasForeignKey(ta => ta.TeacherId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
+
 
             entity.HasOne(ta => ta.Subject)
                .WithMany(t => t.TeacherAssignments)
@@ -441,7 +445,7 @@ public partial class SchedulifyContext : DbContext
             entity.HasOne(ta => ta.StudentClass)
                 .WithMany(sc => sc.TeacherAssignments)
                 .HasForeignKey(ta => ta.StudentClassId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(ta => ta.Term)
                 .WithMany(sc => sc.TeacherAssignments)
@@ -451,7 +455,7 @@ public partial class SchedulifyContext : DbContext
             entity.HasOne(ta => ta.StudentClassRoomSubject)
                 .WithMany(sc => sc.TeacherAssignments)
                 .HasForeignKey(ta => ta.StudentClassRoomSubjectId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
         });
 

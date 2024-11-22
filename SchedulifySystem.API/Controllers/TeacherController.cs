@@ -47,7 +47,7 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _teacherService.UpdateTeacher(id, model));
         }
         
-        [HttpPatch("{id}/teachable-subjects")]
+        [HttpPost("{id}/teachable-subjects")]
         [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateTeachableSubjects(int id, List<SubjectGradeModel> teachableSubjects)
         {

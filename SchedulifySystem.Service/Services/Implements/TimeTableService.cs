@@ -102,7 +102,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
                 Parallel.For(0, timetablePopulation.Count, i =>
                 {
-                    var selectedIndividual = timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First();
+                    var selectedIndividual = timetablePopulation.Shuffle().Take(20).OrderBy(i => i.Adaptability).First();
                     lock (tournamentList)
                     {
                         tournamentList.Add(selectedIndividual);
@@ -2136,8 +2136,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 // Nếu i nằm ngoài khoảng từ startIndex đến endIndex, sao chép trực tiếp từ cha mẹ sang con
-                if (i < startIndex || i > endIndex)
-                {
+
                 // Nếu i nằm ngoài phạm vi của buổi chính và buổi phụ, sao chép từ cha mẹ sang con
                 if ((i < startIndexMain || i > endIndexMain) && (i < startIndexSub || i > endIndexSub))
                 {
@@ -2422,7 +2421,7 @@ private void PerformSwap(List<ClassPeriodScheduleModel> sessionUnits, List<int> 
         }
 
         // Nếu tìm thấy cặp liên tiếp, thực hiện hoán đổi
-        if (consecs.Any())
+        if (consecs.Count != 0)
         {
             var randConsecIndex = consecs.Shuffle().First();
             TimeTableUtils.Swap(doublePeriods[0], sessionUnits[randConsecIndex.Item1]);
