@@ -243,51 +243,51 @@ namespace SchedulifySystem.Service.Services.Implements
             // check subject exist 
             var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted)) ?? new List<Subject>();
             var subjectAbreviations = subjects.Select(s => s.Abbreviation.ToLower()).ToHashSet();
-            var subjectNotExist = models.Select(g => g.MainSubject.SubjectAbreviation)
-                .Where(s => !subjectAbreviations.Contains(s.ToLower())).ToList();
+            //var subjectNotExist = models.Select(g => g.MainSubject.SubjectAbreviation)
+            //    .Where(s => !subjectAbreviations.Contains(s.ToLower())).ToList();
 
-            if (subjectNotExist.Any())
-            {
-                foreach (var model in models)
-                {
-                    if (subjectNotExist.Contains(model.MainSubject.SubjectAbreviation.ToLower()))
-                    {
-                        errorList.Add(model);
-                    }
-                }
+            //if (subjectNotExist.Any())
+            //{
+            //    foreach (var model in models)
+            //    {
+            //        if (subjectNotExist.Contains(model.MainSubject.SubjectAbreviation.ToLower()))
+            //        {
+            //            errorList.Add(model);
+            //        }
+            //    }
 
-                return new BaseResponseModel()
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.SUBJECT_NOT_EXISTED,
-                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)).ToList(), errorList }
-                };
-            }
-            else
-            {
-                var subjectLookup = subjects.ToDictionary(s => s.Abbreviation.ToLower(), s => s.Id);
+            //    return new BaseResponseModel()
+            //    {
+            //        Status = StatusCodes.Status400BadRequest,
+            //        Message = ConstantResponse.SUBJECT_NOT_EXISTED,
+            //        Result = new { ValidList = models.Where(m => !errorList.Contains(m)).ToList(), errorList }
+            //    };
+            //}
+            //else
+            //{
+            //    var subjectLookup = subjects.ToDictionary(s => s.Abbreviation.ToLower(), s => s.Id);
 
-                foreach (var model in models)
-                {
-                    var list = new List<TeachableSubject>();
-                    foreach (var grade in model.MainSubject.ListApproriateLevelByGrades)
-                    {
-                        var teachableSubject = new TeachableSubject
-                        {
-                            CreateDate = DateTime.UtcNow,
-                            SubjectId = subjectLookup[model.MainSubject.SubjectAbreviation.ToLower()],
-                            Grade = (int)grade.Grade,
-                            AppropriateLevel = MAX_APPROVIATE_LEVEL,
-                            IsMain = true
-                        };
-                        list.Add(teachableSubject);
+            //    foreach (var model in models)
+            //    {
+            //        var list = new List<TeachableSubject>();
+            //        foreach (var grade in model.MainSubject.ListApproriateLevelByGrades)
+            //        {
+            //            var teachableSubject = new TeachableSubject
+            //            {
+            //                CreateDate = DateTime.UtcNow,
+            //                SubjectId = subjectLookup[model.MainSubject.SubjectAbreviation.ToLower()],
+            //                Grade = (int)grade.Grade,
+            //                AppropriateLevel = MAX_APPROVIATE_LEVEL,
+            //                IsMain = true
+            //            };
+            //            list.Add(teachableSubject);
 
-                    }
-                    model.TeachableSubjects = list;
+            //        }
+            //        model.TeachableSubjects = list;
 
 
-                }
-            }
+            //    }
+            //}
 
 
             foreach (var model in models)

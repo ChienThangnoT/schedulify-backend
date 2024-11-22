@@ -11,6 +11,7 @@ namespace SchedulifySystem.Service.BusinessModels.CurriculumBusinessModels
     public class CurriculumUpdateModel
     {
         public string? CurriculumName { get; set; }
+        public string? CurriculumCode { get; set; }
         public EGrade Grade { get; set; }
         public List<int> ElectiveSubjectIds { get; set; } = new List<int>();
         public List<int> SpecializedSubjectIds { get; set; } = new List<int>();

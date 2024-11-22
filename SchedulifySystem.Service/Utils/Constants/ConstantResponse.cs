@@ -70,6 +70,8 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //curriiculum 
         public const string CURRICULUM_NAME_EXISTED = "Curriculum name already exist.";
+        public const string CURRICULUM_CODE_EXISTED = "Curriculum code already exist.";
+        public const string CURRICULUM_NAME_OR_CODE_EXISTED = "Curriculum name or code already exist.";
         public const string ADD_CURRICULUM_SUCCESS = "Add curriculum success.";
         public const string UPDATE_CURRICULUM_SUCCESS = "Update curriculum success.";
         public const string DELETE_CURRICULUM_SUCCESS = "Delete curriculum success.";

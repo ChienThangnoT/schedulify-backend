@@ -41,7 +41,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public int? SchoolId { get; set; }
         [JsonIgnore]
         public int? DepartmentId { get; set; }
-        public SubjectGradeModel MainSubject { get; set; }
+        //public SubjectGradeModel MainSubject { get; set; }
 
         [JsonIgnore]
         public ICollection<TeachableSubject> TeachableSubjects { get; set; } = new List<TeachableSubject>();

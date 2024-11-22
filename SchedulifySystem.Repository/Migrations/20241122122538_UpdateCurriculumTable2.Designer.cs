@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SchedulifySystem.Repository.DBContext;
@@ -11,9 +12,11 @@ using SchedulifySystem.Repository.DBContext;
 namespace SchedulifySystem.Repository.Migrations
 {
     [DbContext(typeof(SchedulifyContext))]
-    partial class SchedulifyContextModelSnapshot : ModelSnapshot
+    [Migration("20241122122538_UpdateCurriculumTable2")]
+    partial class UpdateCurriculumTable2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1815,13 +1818,11 @@ namespace SchedulifySystem.Repository.Migrations
                 {
                     b.HasOne("SchedulifySystem.Repository.EntityModels.Teacher", "Teacher")
                         .WithMany("StudentClasses")
-                        .HasForeignKey("HomeroomTeacherId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("HomeroomTeacherId");
 
                     b.HasOne("SchedulifySystem.Repository.EntityModels.Room", "Room")
                         .WithMany("StudentClasses")
-                        .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("RoomId");
 
                     b.HasOne("SchedulifySystem.Repository.EntityModels.School", "School")
                         .WithMany("StudentClasses")
@@ -1990,13 +1991,13 @@ namespace SchedulifySystem.Repository.Migrations
                     b.HasOne("SchedulifySystem.Repository.EntityModels.StudentClass", "StudentClass")
                         .WithMany("TeacherAssignments")
                         .HasForeignKey("StudentClassId")
-                        .OnDelete(DeleteBehavior.SetNull)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SchedulifySystem.Repository.EntityModels.StudentClassRoomSubject", "StudentClassRoomSubject")
                         .WithMany("TeacherAssignments")
                         .HasForeignKey("StudentClassRoomSubjectId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("SchedulifySystem.Repository.EntityModels.Subject", "Subject")
                         .WithMany("TeacherAssignments")
@@ -2007,7 +2008,7 @@ namespace SchedulifySystem.Repository.Migrations
                     b.HasOne("SchedulifySystem.Repository.EntityModels.Teacher", "Teacher")
                         .WithMany("TeacherAssignments")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("SchedulifySystem.Repository.EntityModels.Term", "Term")
                         .WithMany("TeacherAssignments")

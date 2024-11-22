@@ -37,7 +37,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<ClassPeriodScheduleModel> NoAssignTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); //ds tiết không xếp 
         [JsonIgnore]
         public List<ClassPeriodScheduleModel> BusyTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết bận của gv 
-        [JsonIgnore] 
+        [JsonIgnore]
         public List<ClassPeriodScheduleModel> FreeTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // Ds tiết trống - dùng cho kiểm tra tiết lủng // bỏ
         [JsonIgnore]
         public List<RoomSubjectScheduleModel> PracticeRoomWithSubjects { get; set; } = new List<RoomSubjectScheduleModel>(); //
@@ -47,11 +47,11 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int MaxPeriodPerSession { get; set; } = 5;
         public int MinPeriodPerSession { get; set; } = 0;
         public int TermId { get; set; }
-        public int DaysInWeek { get; set; } = 6;
+        public int DaysInWeek { get; set; } = 5;
 
         public int GetAvailableSlotsPerWeek()
         {
-            return DaysInWeek * 10 + 1;
+            return (DaysInWeek + 1) * 10 + 1;
         }
     }
 }

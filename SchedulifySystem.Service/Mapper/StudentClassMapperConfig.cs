@@ -18,8 +18,14 @@ namespace SchedulifySystem.Service.Mapper
                          opt => opt.MapFrom(src => src.Teacher != null ? $"{src.Teacher.FirstName} {src.Teacher.LastName}" : null))
               .ForMember(dest => dest.StudentClassGroupName,
                          opt => opt.MapFrom(src => src.StudentClassGroup != null ? src.StudentClassGroup.GroupName : string.Empty))
+              .ForMember(dest => dest.StudentClassGroupCode,
+                         opt => opt.MapFrom(src => src.StudentClassGroup != null ? src.StudentClassGroup.StudentClassGroupCode : string.Empty))
+              .ForMember(dest => dest.StudentClassGroupId,
+                         opt => opt.MapFrom(src => src.StudentClassGroup != null ? (int?)src.StudentClassGroup.Id : null))
               .ForMember(dest => dest.CurriculumName,
                          opt => opt.MapFrom(src => src.StudentClassGroup.Curriculum != null ? src.StudentClassGroup.Curriculum.CurriculumName : string.Empty))
+               .ForMember(dest => dest.CurriculumCode,
+                         opt => opt.MapFrom(src => src.StudentClassGroup.Curriculum != null ? src.StudentClassGroup.Curriculum.CurriculumCode : string.Empty))
               .ForMember(dest => dest.RoomName,
                          opt => opt.MapFrom(src => src.Room != null ? src.Room.Name : string.Empty))
               .ForMember(dest => dest.MainSessionText,
