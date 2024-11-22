@@ -15,6 +15,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> UpdateAssignment(int assignmentId);
         Task<BaseResponseModel> AssignTeacherForAsignments(List<AssignTeacherAssignmentModel> models);
         Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId, AutoAssignTeacherModel model);
-        Task<BaseResponseModel> CheckTeacherAssignment(int schoolId, int yearId);
+        Task<BaseResponseModel> CheckTeacherAssignment(int schoolId, int yearId, AutoAssignTeacherModel model);
     }
 }

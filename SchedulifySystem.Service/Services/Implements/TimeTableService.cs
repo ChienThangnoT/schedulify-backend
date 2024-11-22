@@ -1004,7 +1004,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     // Tổng số lớp học (kể cả lớp gộp) sử dụng phòng tại thời điểm này
                     var totalClasses = units.Count(u => u.ClassCombinations == null) + distinctCombinations;
 
-                    if (totalClasses > roomSubject.MaxClassPerTime)
+                    if (totalClasses >1)
                     {
                         var (day, period) = GetDayAndPeriod(group.Key);
 
@@ -1058,7 +1058,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         .Count();
 
                     // Tổng số lớp học mà giáo viên tham gia tại thời điểm này
-                    var totalClasses = units.Count(u => u.ClassCombinations == null) + 0;
+                    var totalClasses = units.Count(u => u.ClassCombinations == null) + distinctCombinations;
 
                     if (totalClasses > 1)
                     {
@@ -2112,6 +2112,32 @@ namespace SchedulifySystem.Service.Services.Implements
 
             for (var i = 0; i < parents[0].TimetableUnits.Count; i++)
             {
+                // Kiểm tra xem tiết có thuộc lớp gộp không
+                if (parents[0].TimetableUnits[i].ClassCombinations != null ||
+                    parents[1].TimetableUnits[i].ClassCombinations != null)
+                {
+                    // Xác định cha mẹ sẽ được sao chép (ưu tiên cha, nếu không thì mẹ)
+                    var parentToInherit = parents[0].TimetableUnits[i].ClassCombinations != null ? 0 : 1;
+
+                    // Lấy toàn bộ các tiết thuộc lớp gộp từ cha mẹ đã chọn
+                    var combinationId = parents[parentToInherit].TimetableUnits[i].ClassCombinations.Id;
+
+                    foreach (var unit in parents[parentToInherit].TimetableUnits
+                        .Where(u => u.ClassCombinations?.Id == combinationId))
+                    {
+                        var index = parents[parentToInherit].TimetableUnits.IndexOf(unit);
+                        for (var j = 0; j < children.Count; j++)
+                        {
+                            children[j].TimetableUnits[index].StartAt = unit.StartAt;
+                            children[j].TimetableUnits[index].Priority = unit.Priority;
+                        }
+                    }
+                    continue; // Bỏ qua hoán đổi cho các tiết thuộc lớp gộp
+                }
+
+                // Nếu i nằm ngoài khoảng từ startIndex đến endIndex, sao chép trực tiếp từ cha mẹ sang con
+                if (i < startIndex || i > endIndex)
+                {
                 // Nếu i nằm ngoài phạm vi của buổi chính và buổi phụ, sao chép từ cha mẹ sang con
                 if ((i < startIndexMain || i > endIndexMain) && (i < startIndexSub || i > endIndexSub))
                 {
@@ -2140,6 +2166,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+
 
             return children;
         }
@@ -2464,7 +2491,7 @@ private void PerformSwap(List<ClassPeriodScheduleModel> sessionUnits, List<int> 
         {
             src.TimetableUnits = type switch
             {
-                EChromosomeType.ClassChromosome => [.. src.TimetableUnits.OrderBy(u => u.ClassName)],
+                EChromosomeType.ClassChromosome => [.. src.TimetableUnits.OrderBy(u => u.ClassName).ThenBy(u => u.ClassCombinations?.Id ?? int.MaxValue)],
                 EChromosomeType.TeacherChromosome => [.. src.TimetableUnits.OrderBy(u => u.TeacherAbbreviation)],
                 _ => throw new NotImplementedException(),
             };
@@ -2473,23 +2500,57 @@ private void PerformSwap(List<ClassPeriodScheduleModel> sessionUnits, List<int> 
         //cập nhật lại flag dựa trên timetableUnits 
         private static void RemarkTimetableFlag(TimetableIndividual src, GenerateTimetableModel parameters)
         {
-            // ngoại trừ các tiết k xếp thì mark lại là unfill
+            // Đặt lại tất cả các vị trí khả dụng là "Unfilled", ngoại trừ các tiết không xếp (None)
             for (var i = 0; i < src.Classes.Count; i++)
-                for (var j = 1; j < parameters.GetAvailableSlotsPerWeek(); j++)
-                    if (src.TimetableFlag[i, j] != ETimetableFlag.None)
-                        src.TimetableFlag[i, j] = ETimetableFlag.Unfilled;
-
-            // mark các tiết khác dựa trên timetable unit 
-            for (var i = 0; i < src.TimetableUnits.Count; i++)
             {
-                var classIndex = src.Classes.IndexOf(src.Classes.First(c => c.Name == src.TimetableUnits[i].ClassName));
-                if (src.TimetableUnits[i].Priority == (int)EPriority.Fixed)
-                    src.TimetableFlag[classIndex, src.TimetableUnits[i].StartAt] = ETimetableFlag.Fixed;
-                else
-                    src.TimetableFlag[classIndex, src.TimetableUnits[i].StartAt] = ETimetableFlag.Filled;
+                for (var j = 1; j < parameters.GetAvailableSlotsPerWeek(); j++)
+                {
+                    if (src.TimetableFlag[i, j] != ETimetableFlag.None)
+                    {
+                        src.TimetableFlag[i, j] = ETimetableFlag.Unfilled;
+                    }
+                }
             }
 
+            // Cập nhật trạng thái dựa trên danh sách các tiết (TimetableUnits)
+            foreach (var unit in src.TimetableUnits)
+            {
+                var classIndex = src.Classes.FindIndex(c => c.Name == unit.ClassName);
+
+                if (classIndex == -1)
+                {
+                    throw new Exception($"Lớp {unit.ClassName} không tồn tại trong danh sách lớp.");
+                }
+
+                // Đánh dấu trạng thái theo ưu tiên của tiết
+                if (unit.Priority == (int)EPriority.Fixed)
+                {
+                    src.TimetableFlag[classIndex, unit.StartAt] = ETimetableFlag.Fixed;
+                }
+                else
+                {
+                    src.TimetableFlag[classIndex, unit.StartAt] = ETimetableFlag.Filled;
+                }
+
+                // Nếu là tiết thuộc lớp gộp, đảm bảo đồng bộ trạng thái giữa các lớp trong tổ hợp
+                if (unit.ClassCombinations != null)
+                {
+                    foreach (var relatedUnit in src.TimetableUnits
+                        .Where(u => u.ClassCombinations?.Id == unit.ClassCombinations.Id))
+                    {
+                        var relatedClassIndex = src.Classes.FindIndex(c => c.Name == relatedUnit.ClassName);
+
+                        if (relatedClassIndex == -1)
+                        {
+                            throw new Exception($"Lớp {relatedUnit.ClassName} không tồn tại trong danh sách lớp.");
+                        }
+
+                        src.TimetableFlag[relatedClassIndex, relatedUnit.StartAt] = ETimetableFlag.Filled;
+                    }
+                }
+            }
         }
+
 
         private static (int day, int period) GetDayAndPeriod(int startAt)
         {
