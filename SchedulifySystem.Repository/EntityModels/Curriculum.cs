@@ -9,6 +9,7 @@ namespace SchedulifySystem.Repository.EntityModels
     public class Curriculum : BaseEntity
     {
         public string? CurriculumName { get; set; }
+        public string? CurriculumCode { get; set; }
         public int SchoolId { get; set; }
         public int SchoolYearId { get; set; }
         public int Grade { get; set; }

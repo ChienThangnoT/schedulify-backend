@@ -24,6 +24,7 @@ namespace SchedulifySystem.Service.BusinessModels.CurriculumBusinessModels
     {
         public int Id { get; set; }
         public string? CurriculumName { get; set; }
+        public string? CurriculumCode { get; set; }
         public EGrade Grade { get; set; }
         public List<SubjectViewDetailModel>? SubjectSelectiveViews { get; set; }
         public List<SubjectViewDetailModel>? SubjectSpecializedtViews { get; set; }

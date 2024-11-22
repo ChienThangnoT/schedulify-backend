@@ -49,13 +49,15 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(t => !t.IsDeleted &&
                         t.SchoolId == schoolId && t.Grade == (int)curriculumAddModel.Grade &&
-                        t.CurriculumName.ToLower() == curriculumAddModel.CurriculumName.ToLower());
+                        t.CurriculumName.ToLower() == curriculumAddModel.CurriculumName.ToLower() &&
+                        schoolYearId == t.SchoolYearId && 
+                        t.CurriculumCode.ToLower() == curriculumAddModel.CurriculumCode.ToLower());
 
                     if (checkExistCurriculum.Any())
                         return new BaseResponseModel
                         {
                             Status = StatusCodes.Status400BadRequest,
-                            Message = ConstantResponse.CURRICULUM_NAME_EXISTED
+                            Message = ConstantResponse.CURRICULUM_NAME_OR_CODE_EXISTED
                         };
 
                     // check số lượng môn chuyên đề và tự chọn
@@ -262,6 +264,27 @@ namespace SchedulifySystem.Service.Services.Implements
                             {
                                 Status = StatusCodes.Status400BadRequest,
                                 Message = ConstantResponse.CURRICULUM_NAME_EXISTED
+                            };
+                        }
+                    }
+
+                    bool isCodeChanged = !string.Equals(CurriculumDb.CurriculumCode, curriculumUpdateModel.CurriculumCode, StringComparison.OrdinalIgnoreCase);
+
+                    if (isNameChanged)
+                    {
+                        var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(
+                            filter: t => (t.CurriculumCode.ToLower() == curriculumUpdateModel.CurriculumCode.ToLower()
+                                          &&
+                                          t.Id != curriculumId && !t.IsDeleted && t.SchoolId == schoolId
+                                          && schoolYearId == t.SchoolYearId
+                        ));
+
+                        if (checkExistCurriculum.Any())
+                        {
+                            return new BaseResponseModel()
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = ConstantResponse.CURRICULUM_CODE_EXISTED
                             };
                         }
                     }

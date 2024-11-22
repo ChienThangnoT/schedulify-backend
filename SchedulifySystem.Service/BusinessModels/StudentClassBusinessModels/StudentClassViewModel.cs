@@ -19,10 +19,12 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public EGrade Grade { get; set; }
         public bool IsFullDay { get; set; }
         public int PeriodCount { get; set; }
-        public int? SubjectGroupId { get; set; }
+        public int? StudentClassGroupId { get; set; }
         public string? StudentClassGroupName { get; set; }
+        public string? StudentClassGroupCode { get; set; }
         public int? CurriculumId { get; set; }
         public string? CurriculumName { get; set; }
+        public string? CurriculumCode { get; set; }
         public int? SchoolYearId { get; set; }
         public int RoomId { get; set; }
         public string? RoomName { get; set; }
