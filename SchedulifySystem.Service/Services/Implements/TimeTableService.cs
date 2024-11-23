@@ -622,7 +622,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Danh sách các môn có tiết đôi 
             var subjectGroups = subjects.Where(s => s.IsDoublePeriod)
-                            .GroupBy(g => g.SubjectGroupId)
+                            .GroupBy(g => g.CurriculumId)
                             .ToList();
 
             var subjectByGroup = new Dictionary<int, List<SubjectScheduleModel>>();
@@ -645,16 +645,16 @@ namespace SchedulifySystem.Service.Services.Implements
                 //lấy ra ds tiết học của lớp đó trong timetableUnits
                 var classTimetableUnits = timetableUnits.Where(u => u.ClassId == classes[i].Id).ToList();
                 var mainSession = classes[i].MainSession;
-                var doubleSubjects = subjectByGroup.ContainsKey(classes[i].StudentClassGroupId) ? subjectByGroup[classes[i].StudentClassGroupId] : [];
+                var doubleSubjects = subjectByGroup.ContainsKey(classes[i].CurriculumId) ? subjectByGroup[classes[i].CurriculumId] : [];
                 for (var j = 0; j < doubleSubjects.Count; j++)
                 {
                     //lấy ra ds tiết học đôi  theo chính khóa 
 
                     var mainPeriods = classTimetableUnits
-                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session == mainSession).Take(doubleSubjects[j].MainMinimumCouple).ToList();
+                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session == mainSession).Take(doubleSubjects[j].MainMinimumCouple * 2).ToList();
 
                     var subPeriods = classTimetableUnits
-                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session != mainSession).Take(doubleSubjects[j].SubMinimumCouple).ToList();
+                        .Where(u => doubleSubjects[j].SubjectId == u.SubjectId && (int)u.Session != mainSession).Take(doubleSubjects[j].SubMinimumCouple * 2).ToList();
 
                     mainPeriods.AddRange(subPeriods);
                     //đặt ưu tiên là tiết đôi 
@@ -678,7 +678,6 @@ namespace SchedulifySystem.Service.Services.Implements
                     foreach (var item in group)
                     {
                         item.ClassCombinations = combination;
-                        item.TeacherId = combination.TeacherId;
                         item.RoomId = combination.RoomId;
                         item.Session = combination.Session;
                         item.periodsTh = j++;
@@ -754,9 +753,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 // phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
                 AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, combinationStartAtMap);
             }
-            /// check only
-            var check = src.TimetableUnits.Where(u => u.ClassCombinations != null);
-            /// 
+
 
         }
 
@@ -799,7 +796,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var fClass = src.Classes[classIndex];
             var mainSession = fClass.MainSession;
-            var doubleSubjects = src.DoubleSubjectsByGroup.ContainsKey(fClass.StudentClassGroupId) ? src.DoubleSubjectsByGroup[fClass.StudentClassGroupId] : [];
+            var doubleSubjects = src.DoubleSubjectsByGroup.ContainsKey(fClass.CurriculumId) ? src.DoubleSubjectsByGroup[fClass.CurriculumId] : [];
 
             foreach (var subject in doubleSubjects)
             {
@@ -828,22 +825,24 @@ namespace SchedulifySystem.Service.Services.Implements
         // method phân bổ các tiết đôi vào các vị trí liên tiếp
         private void AssignToConsecutiveSlots(List<(int, int)> pairs, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex)
         {
-            foreach (var period in periods)
+            for (int i = 0;i< periods.Count;i+=2)
             {
                 if (pairs.Count == 0) break;
 
                 var randomIndex = new Random().Next(pairs.Count);
                 var (slot1, slot2) = pairs[randomIndex];
 
-                period.StartAt = slot1;
+                periods[i].StartAt = slot1;
                 src.TimetableFlag[classIndex, slot1] = ETimetableFlag.Filled;
 
-                if (periods.IndexOf(period) + 1 < periods.Count)
+                if (i + 1 < periods.Count)
                 {
-                    periods[periods.IndexOf(period) + 1].StartAt = slot2;
+                    periods[i + 1].StartAt = slot2;
                     src.TimetableFlag[classIndex, slot2] = ETimetableFlag.Filled;
                 }
-                pairs.RemoveAt(randomIndex);
+                var usedIndex = new List<int>() { slot1, slot2 };
+                var duplicateIndexs = pairs.Where(p => usedIndex.Contains(p.Item1) || usedIndex.Contains(p.Item2));
+                duplicateIndexs.ToList().ForEach(p => pairs.Remove(p));
             }
         }
 
@@ -1136,13 +1135,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 var classTimetableUnits = src.TimetableUnits.Where(u => u.ClassId == sClass.Id).ToList();
 
                 // Kiểm tra xem có nhóm tiết đôi không trước khi duyệt qua từng môn học
-                if (!src.DoubleSubjectsByGroup.ContainsKey(sClass.StudentClassGroupId))
+                if (!src.DoubleSubjectsByGroup.ContainsKey(sClass.CurriculumId))
                 {
                     continue; // Nếu không có nhóm tiết đôi nào cho lớp này, tiếp tục sang lớp khác
                 }
 
                 // loop qua ds tiết đôi 
-                var doubleSubjects = src.DoubleSubjectsByGroup[sClass.StudentClassGroupId];
+                var doubleSubjects = src.DoubleSubjectsByGroup[sClass.CurriculumId];
                 for (var subjectIndex = 0; subjectIndex < doubleSubjects.Count; subjectIndex++)
                 {
                     // lấy ra ds tiết tiết đôi của môn có trong class đó 

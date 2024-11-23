@@ -290,7 +290,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (term.Id == terms.First().Id)
                 {
                     // Phân công giáo viên cho kỳ đầu tiên
-                    await AssignTeachers(assignmentFirsts,
+                    await AssignTeachers(model,assignmentFirsts,
                         teachers.ToList(), teacherCapabilities,
                         homeroomTeachers, model.fixedAssignment,
                         model.classCombinations,
@@ -386,6 +386,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         public async Task AssignTeachers(
+            AutoAssignTeacherModel para,
     List<TeacherAssignment> assignments,
     List<Teacher> teachers,
     Dictionary<int, List<TeachableSubject>> teacherCapabilities,
@@ -417,11 +418,15 @@ namespace SchedulifySystem.Service.Services.Implements
                                     IsHaveSubjectInSession(curriculums, a.StudentClass, combination.Session, combination.SubjectId))
                         .ToList();
                     var teacher = teachers.FirstOrDefault(t => t.Id == combination.TeacherId);
-                    relatedAssignments.ForEach(a =>
+                    if (teacher != null)
                     {
-                        a.TeacherId = teacher.Id;
-                        a.Teacher = teacher;
-                    });
+                        relatedAssignments.ForEach(a =>
+                        {
+                            a.TeacherId = teacher.Id;
+                            a.Teacher = teacher;
+                        });
+                    }
+
                 }
             }
 
@@ -486,14 +491,27 @@ namespace SchedulifySystem.Service.Services.Implements
             // Bước 6: Khởi tạo từ điển để lưu tổng số tiết của mỗi giáo viên
             Dictionary<int, IntVar> totalLoadDict = new Dictionary<int, IntVar>();
             List<IntVar> overloadList = new List<IntVar>();
+            var fixedAssgm = assignments.Where(a => a.TeacherId != null).ToList();
 
             // Ràng buộc số tiết tối đa là 17 cho mỗi giáo viên
             foreach (var teacher in teachers)
             {
                 int teacherIndex = teachers.IndexOf(teacher);
+
+                // Tính tổng số tiết cố định cho giáo viên hiện tại (nếu có)
+                int fixedLoad = fixedAssgm.Where(a => a.TeacherId == teacher.Id).Sum(a => a.PeriodCount);
+
+                // Danh sách để lưu các biến tổng số tiết của giáo viên (cả cố định và mới)
                 List<IntVar> teacherLoad = new List<IntVar>();
 
-                // Tính tổng số tiết mà giáo viên được phân công
+                // Thêm số tiết cố định (fixedLoad) dưới dạng một giá trị cố định
+                if (fixedLoad > 0)
+                {
+                    IntVar fixedLoadVar = model.NewConstant(fixedLoad);
+                    teacherLoad.Add(fixedLoadVar);
+                }
+
+                // Tính tổng số tiết mà giáo viên được phân công mới (nhiệm vụ chưa phân công)
                 for (int i = 0; i < numRemainingAssignments; i++)
                 {
                     IntVar assignedLoad = model.NewIntVar(0, remainingAssignments[i].PeriodCount, $"load_{i}_{teacherIndex}");
@@ -501,23 +519,14 @@ namespace SchedulifySystem.Service.Services.Implements
                     teacherLoad.Add(assignedLoad);
                 }
 
-                // Tính tổng số tiết cho giáo viên hiện tại
+                // Tính tổng số tiết cho giáo viên hiện tại, bao gồm cả phân công cố định và phân công mới
                 IntVar totalLoad = model.NewIntVar(0, 100, $"totalLoad_{teacherIndex}");
                 model.Add(totalLoad == LinearExpr.Sum(teacherLoad));
                 totalLoadDict[teacherIndex] = totalLoad;
 
-                // Tạo biến Boolean để kiểm tra nếu giáo viên có thể dạy không vượt quá 17 tiết
-                BoolVar canAssignWithinLimit = model.NewBoolVar($"canAssignWithinLimit_{teacherIndex}");
-                model.Add(totalLoad <= 17).OnlyEnforceIf(canAssignWithinLimit);
-
-                // Tạo biến cho số tiết vượt quá giới hạn 17 tiết
-                IntVar overload = model.NewIntVar(0, 100, $"overload_{teacherIndex}");
-                model.Add(overload >= totalLoad - 17);
-                model.Add(overload >= 0);
-                overloadList.Add(overload);
-
-                // Chỉ cho phép vượt quá 17 tiết nếu không còn lựa chọn nào khác
-                model.Add(overload == 0).OnlyEnforceIf(canAssignWithinLimit.Not());
+                // Đặt giới hạn cho tổng số tiết của mỗi giáo viên
+                model.Add(totalLoad <= para.MaxPeriodsPerWeek);
+                model.Add(totalLoad >= para.MinPeriodsPerWeek);
             }
 
             // Bước 7: Thiết lập hàm mục tiêu để tối ưu hóa việc phân công giáo viên
