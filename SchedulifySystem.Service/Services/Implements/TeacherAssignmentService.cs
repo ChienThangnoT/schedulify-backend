@@ -565,11 +565,6 @@ namespace SchedulifySystem.Service.Services.Implements
                             {
                                 objectiveExpr += assignmentMatrix[i, j] * 200;
                             }
-
-                            if (isMain)
-                            {
-                                objectiveExpr += assignmentMatrix[i, j] * 10;
-                            }
                             objectiveExpr += assignmentMatrix[i, j] * maxAppropriateLevel;
                         }
                     }

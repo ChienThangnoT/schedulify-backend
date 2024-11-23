@@ -165,7 +165,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (timetableIdBacklog == best.Id)
                 {
                     backlogCount++;
-                    if (backlogCount > 500)
+                    if (backlogCount > 100)
                     {
                         timetablePopulation = CreateInitialPopulation(root, parameters);
                         backlogCountMax = backlogCount;
@@ -898,7 +898,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         var combinationClassMap = combinationStartAtMap[period.ClassCombinations.Id];
                         if (combinationClassMap.ContainsKey(classIndex))
                         {
-                            var slot = validSlots[random.Next(validSlots.Count)];
+                            var slot = TakeAvailableSlot(random,validSlots, src, period);
                             combinationClassMap[classIndex].Add(slot);
                             period.StartAt = slot;
                             src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
@@ -915,7 +915,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     else
                     {
-                        var slot = validSlots[random.Next(validSlots.Count)];
+                        var slot = TakeAvailableSlot(random,validSlots, src, period);
                         var first = new Dictionary<int, List<int>>
                         {
                             { classIndex, new List<int>(){ slot } }
@@ -928,12 +928,26 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
                 else
                 {
-                    var slot = validSlots[random.Next(validSlots.Count)];
+                    var slot = TakeAvailableSlot(random,validSlots, src,period);
                     period.StartAt = slot;
                     src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
                     slots.Remove(slot);
                 }
             }
+        }
+
+        private int TakeAvailableSlot(Random random, List<int> slots, TimetableIndividual src, ClassPeriodScheduleModel period)
+        {
+            var TeachedSlots = src.TimetableUnits.Where(u => u.TeacherId == period.TeacherId && u.StartAt != 0).Select(u => u.StartAt).ToList();
+            
+            int i = 0;
+            var availableSlots = slots.Except(TeachedSlots).ToList();
+            int slot = slots.First();
+            if (availableSlots.Any())
+            {
+                slot = availableSlots[random.Next(availableSlots.Count)];
+            }
+            return slot;
         }
 
 
@@ -953,13 +967,13 @@ namespace SchedulifySystem.Service.Services.Implements
             src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
             src.Adaptability =
                 CheckHC01(src, parameters) * 10000
-                + CheckHC02(src) * 1000
+                + CheckHC02(src) * 10000
                 + CheckHC03(src, parameters) * 1000
                 + CheckHC05(src) * 5000
                 + CheckHC07(src, parameters) * 1000
                 + CheckHC08(src) * 1000
                 + CheckHC09(src, parameters) * 1000
-                + CheckHC11(src, parameters) * 100000;
+                + CheckHC11(src, parameters) * 10000;
 
 
 
