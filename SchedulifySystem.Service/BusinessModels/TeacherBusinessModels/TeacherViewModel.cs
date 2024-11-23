@@ -15,6 +15,9 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public string? Abbreviation { get; set; }
         public string? Email { get; set; }
         public Gender Gender { get; set; }
+        public bool? IsHomeRoomTeacher { get; set; }
+        public int? StudentClassId { get; set; }
+        public string? HomeRoomTeacherOfClass { get; set; }
         public int DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
         public DateOnly DateOfBirth { get; set; }

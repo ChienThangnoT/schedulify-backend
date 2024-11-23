@@ -346,7 +346,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 pageIndex: pageIndex,
                 filter: t => t.SchoolId == schoolId && (includeDeleted || !t.IsDeleted)
                             && (departmentId == null || departmentId == t.DepartmentId),
-                include: query => query.Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject)
+                include: query => query.Include(q => q.Department).Include(o => o.StudentClasses).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject)
             );
 
             var teacherViewModels = teachers.Items.Select(teacher => new TeacherViewModel
@@ -358,6 +358,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 Email = teacher.Email,
                 DepartmentId = teacher.DepartmentId,
                 DepartmentName = teacher.Department?.Name,
+                DateOfBirth = teacher.DateOfBirth,
+                TeacherRole = (TeacherRole)teacher.TeacherRole,
+                IsHomeRoomTeacher = teacher.StudentClasses?.Any(a => a.HomeroomTeacherId == teacher.Id && a.IsDeleted == false),
+                StudentClassId = teacher.StudentClasses?.Where(a => a.IsDeleted == false).Select(a => (int?)a.Id).FirstOrDefault(),
+                HomeRoomTeacherOfClass = teacher.StudentClasses?.Where(a => a.IsDeleted == false).Select(a => a.Name).FirstOrDefault(),
                 Gender = (Gender)teacher.Gender,
                 Status = teacher.Status,
                 IsDeleted = teacher.IsDeleted,
@@ -435,12 +440,30 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Update Teacherable Subeject
         public async Task<BaseResponseModel> UpdateTeachableSubjects(int id, List<SubjectGradeModel> teachableSubjects)
         {
+            foreach (var subject in teachableSubjects)
+            {
+                var duplicateGrades = subject.ListApproriateLevelByGrades
+                    .GroupBy(g => g.Grade)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                if (duplicateGrades.Any())
+                {
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Subject contains duplicate grades"
+                    };
+                }
+            }
+
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, include: query => query.Include(t => t.TeachableSubjects));
                 if (existedTeacher == null)
                 {
-                    return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
+                    return new BaseResponseModel { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
                 }
 
                 var subjects = await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted);
@@ -457,35 +480,38 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 var subjectObjectPara = subjects.Where(s => teachableSubjectAbbreviationPara.Contains(s.Abbreviation.ToLower()));
+
+                // Xóa các bản ghi không còn phù hợp
                 var subjectIds = subjectObjectPara.Select(s => s.Id).ToList();
+                var gradesToKeep = teachableSubjects.SelectMany(ts => ts.ListApproriateLevelByGrades.Select(g => (int)g.Grade)).Distinct().ToList();
 
                 var subjectsToRemove = existedTeacher.TeachableSubjects
-                    .Where(rs => !subjectIds.Contains(rs.SubjectId))
+                    .Where(ts => !subjectIds.Contains(ts.SubjectId) || !gradesToKeep.Contains(ts.Grade))
                     .ToList();
-                _unitOfWork.TeachableSubjectRepo.RemoveRange(subjectsToRemove);
+
+                if (subjectsToRemove.Any())
+                {
+                    _unitOfWork.TeachableSubjectRepo.RemoveRange(subjectsToRemove);
+                }
 
                 int countMainSubjects = teachableSubjects.Count(s => s.IsMain);
-
                 if (countMainSubjects > 1)
                 {
                     throw new DefaultException(ConstantResponse.INVALID_NUMBER_MAIN_SUBJECR_OF_TEACHER);
                 }
 
-                var newTeachableSubjects = new List<TeachableSubject>();
                 foreach (var item in subjectObjectPara)
                 {
                     var model = teachableSubjects.FirstOrDefault(s => s.SubjectAbreviation.ToLower() == item.Abbreviation.ToLower());
 
-                    var existingTeachableSubjects = existedTeacher.TeachableSubjects
-                        .Where(ts => ts.SubjectId == item.Id)
-                        .ToList();
-
                     foreach (var grade in model.ListApproriateLevelByGrades)
                     {
-                        var existingSubject = existingTeachableSubjects.FirstOrDefault(ts => ts.Grade == (int)grade.Grade);
+                        var existingSubject = existedTeacher.TeachableSubjects
+                            .FirstOrDefault(ts => ts.SubjectId == item.Id && ts.Grade == (int)grade.Grade);
+
                         if (existingSubject != null)
                         {
-                            // Update nếu có sự thay đổi
+                            // Cập nhật nếu cần
                             if (existingSubject.AppropriateLevel != (int)grade.AppropriateLevel || existingSubject.IsMain != model.IsMain)
                             {
                                 existingSubject.AppropriateLevel = (int)grade.AppropriateLevel;
@@ -495,24 +521,18 @@ namespace SchedulifySystem.Service.Services.Implements
                         }
                         else
                         {
-                            // Thêm mới nếu không tồn tại
-                            newTeachableSubjects.Add(new TeachableSubject()
+                            // Thêm mới
+                            existedTeacher.TeachableSubjects.Add(new TeachableSubject
                             {
                                 TeacherId = existedTeacher.Id,
                                 SubjectId = item.Id,
-                                CreateDate = DateTime.UtcNow,
                                 Grade = (int)grade.Grade,
                                 AppropriateLevel = (int)grade.AppropriateLevel,
                                 IsMain = model.IsMain,
+                                CreateDate = DateTime.UtcNow
                             });
                         }
                     }
-                }
-
-                // Thêm vào DB
-                if (newTeachableSubjects.Count != 0)
-                {
-                    await _unitOfWork.TeachableSubjectRepo.AddRangeAsync(newTeachableSubjects);
                 }
 
                 await _unitOfWork.SaveChangesAsync();
@@ -521,6 +541,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 return new BaseResponseModel { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_TEACHER_SUCCESS };
             }
         }
+
         #endregion
 
         #region GetTeacherById
@@ -528,7 +549,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             try
             {
-                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, 
+                var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id,
                     include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
 
                 var teacherViewModels = new TeacherViewModel
