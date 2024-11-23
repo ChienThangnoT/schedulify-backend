@@ -165,7 +165,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (timetableIdBacklog == best.Id)
                 {
                     backlogCount++;
-                    if (backlogCount > 100)
+                    if (backlogCount > 500)
                     {
                         timetablePopulation = CreateInitialPopulation(root, parameters);
                         backlogCountMax = backlogCount;
@@ -288,9 +288,9 @@ namespace SchedulifySystem.Service.Services.Implements
             var groupIds = classesDb.Select(c => c.StudentClassGroup.Curriculum.Id).ToList();// get list curri
 
             // fix here ------------------------------------------------------------------------------------------------------------------
-            var subjectsDb = (await _unitOfWork.CurriculumDetailRepo.GetV2Async(
-                filter: t => t.IsDeleted == false && groupIds.Contains((int)t.CurriculumId) && t.TermId == parameters.TermId,
-                            include: query => query.Include(sig => sig.Subject))).ToList();
+            //var subjectsDb = (await _unitOfWork.CurriculumDetailRepo.GetV2Async(
+            //    filter: t => t.IsDeleted == false && groupIds.Contains((int)t.CurriculumId) && t.TermId == parameters.TermId,
+            //                include: query => query.Include(sig => sig.Subject))).ToList();
 
             //run parallel
             //await Task.WhenAll(classTask, subjectTask).ConfigureAwait(false);
@@ -330,7 +330,7 @@ namespace SchedulifySystem.Service.Services.Implements
             timetableFlags = new ETimetableFlag[classes.Count, parameters.GetAvailableSlotsPerWeek()];
 
             //// fix here ------------------------------------------------------------------------------------------------------------------
-            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectsDb);
+            subjects = _mapper.Map<List<SubjectScheduleModel>>(subjectInClassesDb.Where(cd => cd.TermId == parameters.TermId));
 
             //get teacher từ assigntmment db
             var teacherIds = parameters.TeacherAssignments.Select(t => t.TeacherId).Distinct().ToList();
@@ -392,7 +392,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < assignmentsDbList.Count; i++)
             {
                 var studentClass = classes.FirstOrDefault(c => c.Id == assignmentsDbList[i].StudentClassId);
-                var subject = subjects.FirstOrDefault(s => s.SubjectId == assignmentsDbList[i].SubjectId);
+                
                 var teacher = teachers.FirstOrDefault(t => t.Id == assignmentsDbList[i].TeacherId);
 
                 // Check if any of the elements are null and handle accordingly
@@ -400,6 +400,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     throw new DefaultException($"Class with Id {assignmentsDbList[i].StudentClassId} not found.");
                 }
+                var subject = subjects.FirstOrDefault(s => s.SubjectId == assignmentsDbList[i].SubjectId && studentClass.CurriculumId == s.CurriculumId);
                 if (subject == null)
                 {
                     throw new DefaultException($"Subject with Id {assignmentsDbList[i].SubjectId} not found.");
@@ -607,11 +608,16 @@ namespace SchedulifySystem.Service.Services.Implements
                 for (var j = 0; j < assignments[i].Subject.MainSlotPerWeek - fixedMainCount; j++)
                 {
                     var period = new ClassPeriodScheduleModel(assignments[i]);
+                    if (assignments[i].StudentClass.Id == 145 && assignments[i].Subject.SubjectId == 2)
+                    {
+                        var periddod = new ClassPeriodScheduleModel(assignments[i]);
+                        var ss = assignments[i];
+                    }
                     period.Session = (MainSession)assignments[i].StudentClass.MainSession;
                     timetableUnits.Add(period);
                 }
 
-                for (var j = 0; j < assignments[i].Subject.SubSlotPerWeek - fixedAfternoonCount; j++)
+                for (var j = 0; j < assignments[i].Subject.SubSlotPerWeek - fixedSubCount; j++)
                 {
                     var period = new ClassPeriodScheduleModel(assignments[i]);
                     period.Session = assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? MainSession.Afternoon : MainSession.Morning;
@@ -754,7 +760,9 @@ namespace SchedulifySystem.Service.Services.Implements
                 AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, combinationStartAtMap);
             }
 
-
+            // check
+            var c = src.TimetableUnits.Where(s => s.ClassCombinations != null);
+            var d = src.TimetableUnits.Where(d => d.Priority == EPriority.Double);
         }
 
 
