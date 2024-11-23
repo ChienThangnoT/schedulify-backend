@@ -453,7 +453,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     return new BaseResponseModel
                     {
                         Status = StatusCodes.Status400BadRequest,
-                        Message = $"Subject '{subject.SubjectAbreviation}' contains duplicate grades: {string.Join(", ", duplicateGrades)}"
+                        Message = "Subject contains duplicate grades"
                     };
                 }
             }
