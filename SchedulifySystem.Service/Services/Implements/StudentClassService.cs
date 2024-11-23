@@ -58,6 +58,13 @@ namespace SchedulifySystem.Service.Services.Implements
              .Where(g => g.Count() > 1)
              .SelectMany(g => g)
              .ToList();
+            
+            //check duplicate teacher abb in list
+            var duplicateTeacherAbb = models
+             .GroupBy(b => b.HomeroomTeacherAbbreviation, StringComparer.OrdinalIgnoreCase)
+             .Where(g => g.Count() > 1)
+             .SelectMany(g => g)
+             .ToList();
 
             if (duplicateNameRooms.Count != 0)
             {
@@ -66,21 +73,34 @@ namespace SchedulifySystem.Service.Services.Implements
 
 
             //check have teacher in db
-            foreach (CreateListStudentClassModel model in models)
+            foreach (var model in models)
             {
-                var found = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(filter: t => t.SchoolId == schoolId && !t.IsDeleted && t.Abbreviation.ToLower().Equals(model.HomeroomTeacherAbbreviation.ToLower()));
-                if (found.Items.Count == 0)
+                // Gán giá trị SchoolId và SchoolYearId mặc định
+                model.SchoolId = schoolId;
+                model.SchoolYearId = schoolYearId;
+
+                // Kiểm tra và xử lý nếu HomeroomTeacherAbbreviation không phải null hoặc rỗng
+                if (!string.IsNullOrEmpty(model.HomeroomTeacherAbbreviation))
                 {
-                    errorList.Add(model);
-                }
-                else
-                {
+                    // Kiểm tra giáo viên có tồn tại trong DB không
+                    var found = await _unitOfWork.TeacherRepo.ToPaginationIncludeAsync(
+                        filter: t => t.SchoolId == schoolId &&
+                                     !t.IsDeleted &&
+                                     t.Abbreviation.ToLower().Equals(model.HomeroomTeacherAbbreviation.ToLower())
+                    );
+
+                    if (found.Items.Count == 0)
+                    {
+                        errorList.Add(model);
+                        continue;
+                    }
+
+                    // Gán thông tin giáo viên chủ nhiệm nếu tìm thấy
                     model.HomeroomTeacherId = found.Items.FirstOrDefault()?.Id;
-                    model.SchoolId = schoolId;
-                    model.SchoolYearId = schoolYearId;
                 }
             }
 
+            // Nếu có lỗi trong danh sách, trả về lỗi
             if (errorList.Count != 0)
             {
                 return new BaseResponseModel()
@@ -91,19 +111,19 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-
-            //check teacher is assigned other class
-            foreach (CreateListStudentClassModel model in models)
+            // Kiểm tra giáo viên đã được gán lớp khác
+            foreach (var model in models.Where(m => m.HomeroomTeacherId != null))
             {
                 if (await _unitOfWork.StudentClassesRepo.ExistsAsync(
-                    filter: c => !c.IsDeleted && c.SchoolId == schoolId &&
-                    c.HomeroomTeacherId == model.HomeroomTeacherId)
-                    )
+                    filter: c => !c.IsDeleted &&
+                                 c.SchoolId == schoolId &&
+                                 c.HomeroomTeacherId == model.HomeroomTeacherId))
                 {
                     errorList.Add(model);
                 }
             }
 
+            // Nếu giáo viên đã được gán lớp khác, trả về lỗi
             if (errorList.Count != 0)
             {
                 return new BaseResponseModel()
@@ -114,25 +134,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            // Check duplicate RoomCode in the list
-            var roomGroups = models
-                .Where(m => !string.IsNullOrEmpty(m.RoomCode))
-                .GroupBy(m => m.RoomCode.ToLower())
-                .Where(g => g.Count() > 1)
-                .ToList();
-
-            if (roomGroups.Any())
-            {
-                var errorRooms = roomGroups.SelectMany(g => g).ToList();
-                return new BaseResponseModel
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.ROOM_CODE_DUPLICATED,
-                    Result = errorRooms
-                };
-            }
-
             // Check rooms in the database
+            // Tải danh sách phòng học từ DB
             var roomCodes = models
                 .Where(m => !string.IsNullOrEmpty(m.RoomCode))
                 .Select(m => m.RoomCode.ToLower())
@@ -141,26 +144,77 @@ namespace SchedulifySystem.Service.Services.Implements
             var roomsInDb = await _unitOfWork.RoomRepo.GetV2Async(
                 filter: r => r.Building.SchoolId == schoolId &&
                              !r.IsDeleted &&
-                             roomCodes.Contains(r.RoomCode.ToLower()),
-                include: query => query.Include(r => r.StudentClasses)
+                             roomCodes.Contains(r.RoomCode.ToLower())
             );
 
-            foreach (var model in models.Where(m => !string.IsNullOrEmpty(m.RoomCode)))
+            // Lấy danh sách StudentClasses từ DB dựa trên RoomId
+            var roomIds = roomsInDb.Select(r => r.Id).ToList();
+            var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: sc => !sc.IsDeleted && roomIds.Contains(sc.RoomId.Value));
+
+            // Tạo ánh xạ RoomId -> StudentClasses
+            var studentClassesByRoom = studentClassesInDb
+                .GroupBy(sc => sc.RoomId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Kiểm tra RoomCode
+            foreach (var roomGroup in models.GroupBy(m => m.RoomCode?.ToLower()))
             {
-                var matchingRoom = roomsInDb.FirstOrDefault(r => r.RoomCode.ToLower() == model.RoomCode.ToLower())
-                    ?? throw new NotExistsException($"Không tìm thấy phòng mã {model.RoomCode}");
-                model.RoomId = matchingRoom.Id;
+                if (string.IsNullOrEmpty(roomGroup.Key))
+                    continue;
 
-                var currentCountInList = models
-                    .Count(m => m.RoomCode.Equals(model.RoomCode, StringComparison.OrdinalIgnoreCase));
+                var roomCode = roomGroup.Key;
+                var fullDayClasses = roomGroup.Where(c => c.IsFullDay).ToList();
+                var morningClasses = roomGroup.Where(c => c.MainSession == (int)MainSession.Morning).ToList();
+                var afternoonClasses = roomGroup.Where(c => c.MainSession == (int)MainSession.Afternoon).ToList();
 
-                var currentCountInDb = matchingRoom.StudentClasses.Count(c => !c.IsDeleted);
+                var matchingRoom = roomsInDb.FirstOrDefault(r => r.RoomCode.ToLower() == roomCode)
+                    ?? throw new NotExistsException($"Không tìm thấy phòng mã {roomCode}");
 
-                if (currentCountInList + currentCountInDb > matchingRoom.MaxClassPerTime)
+                foreach (var model in roomGroup)
                 {
-                    throw new DefaultException($"Phòng {model.RoomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}).");
+                    model.RoomId = matchingRoom.Id;
+                }
+
+                // Lấy danh sách lớp hiện có trong phòng
+                var existingClasses = studentClassesByRoom.ContainsKey(matchingRoom.Id)
+                    ? studentClassesByRoom[matchingRoom.Id]
+                    : new List<StudentClass>();
+
+                var existingMorningClasses = existingClasses
+                    .Where(c => c.MainSession == (int)MainSession.Morning)
+                    .ToList();
+
+                var existingAfternoonClasses = existingClasses
+                    .Where(c => c.MainSession == (int)MainSession.Afternoon)
+                    .ToList();
+
+                // Kiểm tra số lượng lớp tối đa cho buổi sáng
+                if (morningClasses.Count + existingMorningClasses.Count > matchingRoom.MaxClassPerTime)
+                {
+                    throw new DefaultException($"Phòng {roomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}) vào buổi sáng.");
+                }
+
+                // Kiểm tra số lượng lớp tối đa cho buổi chiều
+                if (afternoonClasses.Count + existingAfternoonClasses.Count > matchingRoom.MaxClassPerTime)
+                {
+                    throw new DefaultException($"Phòng {roomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}) vào buổi chiều.");
+                }
+
+                // Kiểm tra lớp học 2 buổi không trùng phòng
+                if (fullDayClasses.Count > 1)
+                {
+                    throw new DefaultException($"Phòng {roomCode} không thể được sử dụng bởi nhiều lớp học 2 buổi trong cùng một danh sách.");
+                }
+
+                // Kiểm tra xung đột lớp học 2 buổi với các lớp khác
+                if (fullDayClasses.Any() && (morningClasses.Any() || afternoonClasses.Any() || existingMorningClasses.Any() || existingAfternoonClasses.Any()))
+                {
+                    throw new DefaultException($"Phòng {roomCode} đã được lớp 2 buổi sử dụng và không thể gán thêm lớp khác trong cùng ngày.");
                 }
             }
+
+
 
 
             // List of class names to check in the database

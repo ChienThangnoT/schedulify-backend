@@ -582,11 +582,20 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             try
             {
-                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id);
+                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, filter: t => !t.IsDeleted);
                 if (existedTeacher == null)
                 {
                     return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
                 }
+
+                var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: sc => !sc.IsDeleted && existedTeacher.Id == sc.HomeroomTeacherId);
+
+                if (studentClassesInDb != null)
+                {
+                    throw new DefaultException(ConstantResponse.DELETE_TEACHER_FAILED);
+                }
+
                 existedTeacher.IsDeleted = true;
                 _unitOfWork.TeacherRepo.Update(existedTeacher);
                 await _unitOfWork.SaveChangesAsync();

@@ -48,6 +48,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string ADD_ROOM_SUCCESS = "Add room success.";
         public const string UPDATE_ROOM_SUCCESS = "Update room success.";
         public const string DELETE_ROOM_SUCCESS = "Delete room success.";
+        public const string DELETE_ROOM_FAILED = "Xóa phòng thất bại vì đang có lớp học sử dụng.";
         public const string GET_ROOM_SUCCESS = "Get rooms success.";
         public const string ROOM_TYPE_BAD_REQUEST = "Each pactical room require at least one subjects abreviation and it exists in database.";
         public const string ROOM_ALREADY_IN_USE = "The room already in use by another class.";
@@ -63,6 +64,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string ADD_BUILDING_SUCCESS = "Add building success.";
         public const string UPDATE_BUILDING_SUCCESS = "Update building success.";
         public const string DELETE_BUILDING_SUCCESS = "Delete building success.";
+        public const string DELETE_BUILDING_FAILED = "Xóa cơ sở thất bại vì đang có phòng học sử dụng.";
         public const string GET_BUILDING_SUCCESS = "Get buildings success.";
 
         //subject group type
@@ -135,6 +137,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string ADD_TEACHER_SUCCESS = "Add teacher success.";
         public const string UPDATE_TEACHER_SUCCESS = "Update teacher success.";
         public const string DELETE_TEACHER_SUCCESS = "Delete teacher success.";
+        public const string DELETE_TEACHER_FAILED = "Xóa giáo viên thất bại vì giáo viên đang chủ nhiệm.";
         public const string GET_TEACHER_SUCCESS = "Get teachers success.";
         public const string GENERATE_TEACHER_HAS_EXISTED = "Teacher already existed with teacher account.";
         public const string GENERATE_TEACHER_SUCCESS = "Generate teacher account success.";
@@ -200,6 +203,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string GET_STUDENT_CLASS_GROUP_SUCCESS = "Get student class group success.";
         public const string UPDATE_STUDENT_CLASS_GROUP_SUCCESS = "Update student class group success.";
         public const string DELETE_STUDENT_CLASS_GROUP_SUCCESS = "Delete student class group success.";
+        public const string DELETE_STUDENT_CLASS_GROUP_FAILED = "Xóa nhóm lớp thất bại do đang có lớp học bên trong.";
         public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_EXISTED = "Student class group name or code does existed.";
         public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_DUPLICATED = "Student class group name or code does douplicated.";
         public const string STUDENT_CLASS_GROUP_NOT_FOUND = "Student class group does not found.";

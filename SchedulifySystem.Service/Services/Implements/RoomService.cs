@@ -190,6 +190,17 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, filter: t=> t.IsDeleted == false) 
                 ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+
+
+            // Lấy danh sách StudentClasses từ DB dựa trên RoomId
+            var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: sc => !sc.IsDeleted && room.Id == sc.RoomId);
+
+            if(studentClassesInDb != null)
+            {
+                throw new DefaultException(ConstantResponse.DELETE_ROOM_FAILED);
+            }
+
             room.IsDeleted = true;
             _unitOfWork.RoomRepo.Update(room);
             await _unitOfWork.SaveChangesAsync();
