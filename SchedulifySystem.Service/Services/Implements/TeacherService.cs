@@ -346,7 +346,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 pageIndex: pageIndex,
                 filter: t => t.SchoolId == schoolId && (includeDeleted || !t.IsDeleted)
                             && (departmentId == null || departmentId == t.DepartmentId),
-                include: query => query.Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject)
+                include: query => query.Include(q => q.Department).Include(o => o.StudentClasses).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject)
             );
 
             var teacherViewModels = teachers.Items.Select(teacher => new TeacherViewModel
@@ -358,6 +358,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 Email = teacher.Email,
                 DepartmentId = teacher.DepartmentId,
                 DepartmentName = teacher.Department?.Name,
+                DateOfBirth = teacher.DateOfBirth,
+                TeacherRole = (TeacherRole)teacher.TeacherRole,
+                IsHomeRoomTeacher = teacher.StudentClasses?.Any(a => a.HomeroomTeacherId == teacher.Id && a.IsDeleted == false),
+                StudentClassId = teacher.StudentClasses?.Where(a => a.IsDeleted == false).Select(a => (int?)a.Id).FirstOrDefault(),
+                HomeRoomTeacherOfClass = teacher.StudentClasses?.Where(a => a.IsDeleted == false).Select(a => a.Name).FirstOrDefault(),
                 Gender = (Gender)teacher.Gender,
                 Status = teacher.Status,
                 IsDeleted = teacher.IsDeleted,

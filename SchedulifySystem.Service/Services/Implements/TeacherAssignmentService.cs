@@ -364,6 +364,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     ?? throw new NotExistsException(ConstantResponse.TERM_NOT_FOUND);
             }
 
+            var getHomeRoomTeacher = await _unitOfWork.StudentClassesRepo.GetByIdAsync(classId, filter: t => !t.IsDeleted && t.HomeroomTeacherId != null);
 
             var assignments = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
                 filter: t => t.StudentClassId == classId && t.IsDeleted == false && (termId == null || t.TermId == termId)
@@ -371,13 +372,14 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var teacherNotAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(assignments.Where(a => a.TeacherId == null));
             var teacherAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(assignments.Where(a => a.TeacherId != null));
-
+            HomeRoomTeacherView teacherHomeRoom = new HomeRoomTeacherView { TeacherId = getHomeRoomTeacher?.HomeroomTeacherId, Abbreviation = getHomeRoomTeacher?.Teacher?.Abbreviation};
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
                 Message = ConstantResponse.GET_TEACHER_ASSIGNTMENT_SUCCESS,
                 Result = new
                 {
+                    HomeRoomTeacherOfClass = teacherHomeRoom,
                     TeacherAssigntView = teacherAssigntView,
                     TeacherNotAssigntView = teacherNotAssigntView
                 }
