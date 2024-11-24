@@ -19,5 +19,10 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();
         public ICollection<RoomSubject> RoomSubjects { get; set; } = new List<RoomSubject>();
+
+        public static explicit operator int(Room v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

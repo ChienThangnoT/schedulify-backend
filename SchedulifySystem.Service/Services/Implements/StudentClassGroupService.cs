@@ -127,7 +127,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Delete Student ClassGroup
         public async Task<BaseResponseModel> DeleteStudentClassGroup(int classGroupId)
         {
-            var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(classGroupId);
+            var classGroup = await _unitOfWork.StudentClassGroupRepo.GetByIdAsync(classGroupId, filter: t => t.IsDeleted == false);
             if (classGroup == null || classGroup.IsDeleted)
             {
                 return new BaseResponseModel
@@ -135,6 +135,14 @@ namespace SchedulifySystem.Service.Services.Implements
                     Status = StatusCodes.Status404NotFound,
                     Message = ConstantResponse.STUDENT_CLASS_GROUP_NOT_FOUND
                 };
+            }
+
+            var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+               filter: sc => !sc.IsDeleted && classGroup.Id == sc.StudentClassGroupId);
+
+            if (studentClassesInDb != null)
+            {
+                throw new DefaultException(ConstantResponse.DELETE_STUDENT_CLASS_GROUP_FAILED);
             }
 
             classGroup.IsDeleted = true;

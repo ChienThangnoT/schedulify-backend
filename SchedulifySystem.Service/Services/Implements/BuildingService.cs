@@ -106,7 +106,16 @@ namespace SchedulifySystem.Service.Services.Implements
         #region DeleteBuildings
         public async Task<BaseResponseModel> DeleteBuildings(int buildingId)
         {
-            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
+            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId, filter: t => !t.IsDeleted) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
+
+            var roomInDB = await _unitOfWork.RoomRepo.GetV2Async(
+               filter: sc => !sc.IsDeleted && existed.Id == sc.BuildingId);
+
+            if (roomInDB != null)
+            {
+                throw new DefaultException(ConstantResponse.DELETE_BUILDING_FAILED);
+            }
+
             existed.IsDeleted = true;
             _unitOfWork.BuildingRepo.Update(existed);
             await _unitOfWork.SaveChangesAsync();
