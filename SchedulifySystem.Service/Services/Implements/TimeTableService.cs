@@ -243,7 +243,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 Status = StatusCodes.Status200OK,
                 Message = "Tạo thời khóa biểu thành công!",
-                Result = timetableFirst.ConstraintErrors,
+                Result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetableFirst),
             };
         }
         #endregion

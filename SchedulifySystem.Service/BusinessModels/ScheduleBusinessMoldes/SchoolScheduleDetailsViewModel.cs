@@ -16,12 +16,9 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int SchoolId { get; set; }
         public int TermId { get; set; }
         public string TermName { get; set; }
-        public DateTime ApplyDate { get; set; }
-        public DateTime ExpiredDate { get; set; }
-        public int WeeklyRange { get; set; }
         public string? Name { get; set; }
         public int FitnessPoint { get; set; }
-        
+
         public ICollection<ClassScheduleViewModel> ClassSchedules { get; set; }
     }
 }
