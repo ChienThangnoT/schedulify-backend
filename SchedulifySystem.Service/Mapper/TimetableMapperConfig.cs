@@ -44,8 +44,8 @@ namespace SchedulifySystem.Service.Mapper
 
             CreateMap<SchoolSchedule, SchoolScheduleDetailsViewModel>()
                 .ForMember(dest => dest.TermName, otp => otp.MapFrom(src => src.Term.Name))
-                .ForMember(dest => dest.StartYear, otp => otp.MapFrom(src => src.SchoolYear.StartYear))
-                .ForMember(dest => dest.EndYear, otp => otp.MapFrom(src => src.SchoolYear.EndYear))
+                .ForMember(dest => dest.StartWeek, otp => otp.MapFrom(src => src.StartWeek))
+                .ForMember(dest => dest.EndWeek, otp => otp.MapFrom(src => src.EndWeek))
                 .ForMember(dest => dest.ClassSchedules, otp => otp.MapFrom(src => src.ClassSchedules));
 
             CreateMap<ClassSchedule, ClassScheduleViewModel>()
