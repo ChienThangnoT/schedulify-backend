@@ -207,7 +207,11 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_EXISTED = "Student class group name or code does existed.";
         public const string STUDENT_CLASS_GROUP_NAME_OR_CODE_DUPLICATED = "Student class group name or code does douplicated.";
         public const string STUDENT_CLASS_GROUP_NOT_FOUND = "Student class group does not found.";
-        
+
+        //Room subject
+        public const string ADD_ROOM_SUBJECT_SUCCESS = "Thêm lớp ghép thành công.";
+        public const string ROOM_SUBJECT_NAME_OR_CODE_EXIST = "Tên hoặc mã lớp gộp đã tồn tại trong hệ thống.";
+        public const string ROOM_CAPILITY_NOT_ENOUGH = "Số lượng lớp vượt quá sức chứa của phòng.";
 
     }
 }

@@ -10,11 +10,8 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public int StudentClassId { get; set; }
         public int RoomSubjectId { get; set; }
-        public int Model { get; set; }
 
         public RoomSubject? RoomSubject { get; set; }
         public StudentClass? StudentClass { get; set; }
-
-        public ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
     }
 }
