@@ -44,8 +44,6 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
 
         public int RequiredBreakPeriods { get; set; } = 1;
         public int MinimumDaysOff { get; set; } = 0;
-        public int MaxPeriodPerSession { get; set; } = 5;
-        public int MinPeriodPerSession { get; set; } = 0;
         public int TermId { get; set; }
         public int DaysInWeek { get; set; } = 5;
 
