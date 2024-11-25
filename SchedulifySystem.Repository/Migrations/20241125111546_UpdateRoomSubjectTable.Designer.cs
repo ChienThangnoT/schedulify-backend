@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SchedulifySystem.Repository.DBContext;
@@ -11,9 +12,11 @@ using SchedulifySystem.Repository.DBContext;
 namespace SchedulifySystem.Repository.Migrations
 {
     [DbContext(typeof(SchedulifyContext))]
-    partial class SchedulifyContextModelSnapshot : ModelSnapshot
+    [Migration("20241125111546_UpdateRoomSubjectTable")]
+    partial class UpdateRoomSubjectTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1076,8 +1079,6 @@ namespace SchedulifySystem.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoomSubjectId");
-
                     b.HasIndex("StudentClassId");
 
                     b.ToTable("StudentClassRoomSubject");
@@ -1905,7 +1906,7 @@ namespace SchedulifySystem.Repository.Migrations
                 {
                     b.HasOne("SchedulifySystem.Repository.EntityModels.RoomSubject", "RoomSubject")
                         .WithMany("StudentClassRoomSubjects")
-                        .HasForeignKey("RoomSubjectId")
+                        .HasForeignKey("StudentClassId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

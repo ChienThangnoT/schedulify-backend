@@ -452,9 +452,9 @@ public partial class SchedulifyContext : DbContext
                 .HasForeignKey(ta => ta.TermId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(ta => ta.StudentClassRoomSubject)
+            entity.HasOne(ta => ta.RoomSubject)
                 .WithMany(sc => sc.TeacherAssignments)
-                .HasForeignKey(ta => ta.StudentClassRoomSubjectId)
+                .HasForeignKey(ta => ta.RoomSubjectId)
                 .OnDelete(DeleteBehavior.Cascade);
 
         });
@@ -559,6 +559,14 @@ public partial class SchedulifyContext : DbContext
            .HasOne(rs => rs.Room)
            .WithMany(r => r.RoomSubjects)
            .HasForeignKey(rs => rs.RoomId);
+        modelBuilder.Entity<RoomSubject>()
+           .HasOne(rs => rs.School)
+           .WithMany(r => r.RoomSubjects)
+           .HasForeignKey(rs => rs.SchoolId);
+        modelBuilder.Entity<RoomSubject>()
+           .HasOne(rs => rs.Term)
+           .WithMany(r => r.RoomSubjects)
+           .HasForeignKey(rs => rs.TermId);
 
         //Curriculum
         modelBuilder.Entity<Curriculum>()
@@ -579,10 +587,12 @@ public partial class SchedulifyContext : DbContext
             .HasOne(rs => rs.StudentClass)
             .WithMany(s => s.StudentClassRoomSubjects)
             .HasForeignKey(rs => rs.StudentClassId);
+
         modelBuilder.Entity<StudentClassRoomSubject>()
             .HasOne(rs => rs.RoomSubject)
             .WithMany(s => s.StudentClassRoomSubjects)
-            .HasForeignKey(rs => rs.StudentClassId);
+            .HasForeignKey(rs => rs.RoomSubjectId);
+
     }
 }
 

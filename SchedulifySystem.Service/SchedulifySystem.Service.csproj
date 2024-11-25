@@ -15,8 +15,4 @@
     <ProjectReference Include="..\SchedulifySystem.Repository\SchedulifySystem.Repository.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="BusinessModels\SubjectGroupBusinessModels\" />
-  </ItemGroup>
-
 </Project>
