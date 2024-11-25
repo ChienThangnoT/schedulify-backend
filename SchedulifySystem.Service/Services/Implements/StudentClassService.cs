@@ -190,27 +190,33 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // Kiểm tra số lượng lớp tối đa cho buổi sáng
-                if (morningClasses.Count + existingMorningClasses.Count > matchingRoom.MaxClassPerTime)
-                {
-                    throw new DefaultException($"Phòng {roomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}) vào buổi sáng.");
-                }
-
-                // Kiểm tra số lượng lớp tối đa cho buổi chiều
-                if (afternoonClasses.Count + existingAfternoonClasses.Count > matchingRoom.MaxClassPerTime)
-                {
-                    throw new DefaultException($"Phòng {roomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}) vào buổi chiều.");
-                }
-
-                // Kiểm tra lớp học 2 buổi không trùng phòng
                 if (fullDayClasses.Count > 1)
                 {
                     throw new DefaultException($"Phòng {roomCode} không thể được sử dụng bởi nhiều lớp học 2 buổi trong cùng một danh sách.");
                 }
 
-                // Kiểm tra xung đột lớp học 2 buổi với các lớp khác
-                if (fullDayClasses.Any() && (morningClasses.Any() || afternoonClasses.Any() || existingMorningClasses.Any() || existingAfternoonClasses.Any()))
+                // Kiểm tra trùng với lớp học đã tồn tại trong DB
+                if (fullDayClasses.Any())
                 {
-                    throw new DefaultException($"Phòng {roomCode} đã được lớp 2 buổi sử dụng và không thể gán thêm lớp khác trong cùng ngày.");
+                    // Lớp học cả ngày không được xung đột với bất kỳ lớp nào trong database
+                    if (existingMorningClasses.Any() || existingAfternoonClasses.Any())
+                    {
+                        throw new DefaultException($"Phòng {roomCode} đã được sử dụng bởi lớp học khác, không thể gán thêm lớp 2 buổi.");
+                    }
+                }
+                else
+                {
+                    // Kiểm tra lớp buổi sáng
+                    if (morningClasses.Count + existingMorningClasses.Count > matchingRoom.MaxClassPerTime)
+                    {
+                        throw new DefaultException($"Phòng {roomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}) vào buổi sáng.");
+                    }
+
+                    // Kiểm tra lớp buổi chiều
+                    if (afternoonClasses.Count + existingAfternoonClasses.Count > matchingRoom.MaxClassPerTime)
+                    {
+                        throw new DefaultException($"Phòng {roomCode} đã vượt quá giới hạn số lớp tối đa ({matchingRoom.MaxClassPerTime}) vào buổi chiều.");
+                    }
                 }
             }
 
