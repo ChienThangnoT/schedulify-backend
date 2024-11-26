@@ -481,18 +481,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 var subjectObjectPara = subjects.Where(s => teachableSubjectAbbreviationPara.Contains(s.Abbreviation.ToLower()));
 
-                // Xóa các bản ghi không còn phù hợp
-                var subjectIds = subjectObjectPara.Select(s => s.Id).ToList();
-                var gradesToKeep = teachableSubjects.SelectMany(ts => ts.ListApproriateLevelByGrades.Select(g => (int)g.Grade)).Distinct().ToList();
-
-                var subjectsToRemove = existedTeacher.TeachableSubjects
-                    .Where(ts => !subjectIds.Contains(ts.SubjectId) || !gradesToKeep.Contains(ts.Grade))
-                    .ToList();
-
-                if (subjectsToRemove.Any())
-                {
-                    _unitOfWork.TeachableSubjectRepo.RemoveRange(subjectsToRemove);
-                }
 
                 int countMainSubjects = teachableSubjects.Count(s => s.IsMain);
                 if (countMainSubjects > 1)
@@ -511,27 +499,22 @@ namespace SchedulifySystem.Service.Services.Implements
 
                         if (existingSubject != null)
                         {
-                            // Cập nhật nếu cần
-                            if (existingSubject.AppropriateLevel != (int)grade.AppropriateLevel || existingSubject.IsMain != model.IsMain)
+                            return new BaseResponseModel
                             {
-                                existingSubject.AppropriateLevel = (int)grade.AppropriateLevel;
-                                existingSubject.IsMain = model.IsMain;
-                                existingSubject.UpdateDate = DateTime.UtcNow;
-                            }
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = $"Môn học mã {item.Abbreviation} của khối {grade.Grade} đã được dạy bởi giáo viên, không thể thêm mới."
+                            };
                         }
-                        else
+                        // Thêm mới
+                        existedTeacher.TeachableSubjects.Add(new TeachableSubject
                         {
-                            // Thêm mới
-                            existedTeacher.TeachableSubjects.Add(new TeachableSubject
-                            {
-                                TeacherId = existedTeacher.Id,
-                                SubjectId = item.Id,
-                                Grade = (int)grade.Grade,
-                                AppropriateLevel = (int)grade.AppropriateLevel,
-                                IsMain = model.IsMain,
-                                CreateDate = DateTime.UtcNow
-                            });
-                        }
+                            TeacherId = existedTeacher.Id,
+                            SubjectId = item.Id,
+                            Grade = (int)grade.Grade,
+                            AppropriateLevel = (int)grade.AppropriateLevel,
+                            IsMain = model.IsMain,
+                            CreateDate = DateTime.UtcNow
+                        });
                     }
                 }
 
@@ -542,6 +525,21 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
 
+        #endregion
+
+        #region Delete teachable subject
+        public async Task<BaseResponseModel> DeleteTeachableSubjeect(int teachableSubjectId)
+        {
+            var existTeacherSubject = await _unitOfWork.TeachableSubjectRepo.GetByIdAsync(teachableSubjectId, filter: t => !t.IsDeleted) 
+                ?? throw new NotExistsException(ConstantResponse.TEACHABLE_SUBJECT_NOT_EXIST);
+            _unitOfWork.TeachableSubjectRepo.Remove(existTeacherSubject);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.DELETE_TEACHABLE_SUBJECT_SUCCESS
+            };
+        }
         #endregion
 
         #region GetTeacherById
