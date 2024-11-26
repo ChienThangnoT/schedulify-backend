@@ -116,7 +116,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // Kiểm tra nhiệm vụ giảng dạy
-            var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => t.SubjectId).ToList();
+            var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => new { t.SubjectId , t.Grade}).ToList();
             if (!assignmentsDb.Any())
             {
                 errorDictionary["Lớp học"].Add("Không có nhiệm vụ giảng dạy nào tồn tại cho các lớp học được chọn.");
@@ -124,12 +124,12 @@ namespace SchedulifySystem.Service.Services.Implements
             else
             {
                 // Kiểm tra giáo viên có thể dạy các môn yêu cầu
-                var subjectsInAssignment = assignmentsDb.Where(s => !s.Subject.IsTeachedByHomeroomTeacher).Select(t => t.SubjectId).Distinct().ToList();
+                var subjectsInAssignment = assignmentsDb.Where(s => !s.Subject.IsTeachedByHomeroomTeacher).Select(t => new { t.SubjectId, t.StudentClass.Grade }).Distinct().ToList();
                 foreach (var sia in subjectsInAssignment)
                 {
-                    if (!teachableSubjects.Contains(sia))
+                    if (!teachableSubjects.Any(t => t.SubjectId == sia.SubjectId && t.Grade == sia.Grade))
                     {
-                        errorDictionary["Giáo viên"].Add($"Môn học {assignmentsDb.First(a => a.SubjectId == sia).Subject.SubjectName} chưa có giáo viên nào đảm nhiệm.");
+                        errorDictionary["Giáo viên"].Add($"Môn học {assignmentsDb.First(a => a.SubjectId == sia.SubjectId).Subject.SubjectName} khối {sia.Grade} chưa có giáo viên nào đảm nhiệm.");
                     }
                 }
             }
