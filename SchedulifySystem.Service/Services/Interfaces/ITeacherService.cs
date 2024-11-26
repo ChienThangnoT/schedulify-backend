@@ -17,6 +17,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> UpdateTeachableSubjects(int id, List<SubjectGradeModel> teachableSubjects);
         Task<BaseResponseModel> GetTeacherById(int id);
         Task<BaseResponseModel> DeleteTeacher(int id);
+        Task<BaseResponseModel> DeleteTeachableSubjeect(int teachableSubjectId);
         Task<BaseResponseModel> GenerateTeacherAccount(TeacherGenerateAccount teacherGenerateAccount);
         Task<BaseResponseModel> AssignTeacherDepartmentHead(int schoolId, List<AssignTeacherDepartmentHeadModel> models);
         Task<BaseResponseModel> GetTeacherAssignmentDetail(int teacherId, int schoolYearId);

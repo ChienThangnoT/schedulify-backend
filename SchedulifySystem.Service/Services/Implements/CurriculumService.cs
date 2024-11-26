@@ -270,7 +270,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     bool isCodeChanged = !string.Equals(CurriculumDb.CurriculumCode, curriculumUpdateModel.CurriculumCode, StringComparison.OrdinalIgnoreCase);
 
-                    if (isNameChanged)
+                    if (isCodeChanged)
                     {
                         var checkExistCurriculum = await _unitOfWork.CurriculumRepo.GetAsync(
                             filter: t => (t.CurriculumCode.ToLower() == curriculumUpdateModel.CurriculumCode.ToLower()
@@ -287,6 +287,11 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Message = ConstantResponse.CURRICULUM_CODE_EXISTED
                             };
                         }
+                    }
+
+                    if (!string.IsNullOrEmpty(curriculumUpdateModel.CurriculumCode))
+                    {
+                        CurriculumDb.CurriculumCode = curriculumUpdateModel.CurriculumCode.Trim();
                     }
 
 
