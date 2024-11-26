@@ -74,7 +74,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 errorDictionary["Lớp học"].Add("Không có lớp học nào tồn tại.");
             }
-
+            var subjects = await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted);
             var missingAssignment = classes.Where(cls => cls.TeacherAssignments.IsNullOrEmpty())
                 .Select(cls => cls.Name).ToList();
             if (missingAssignment.Any())
@@ -192,9 +192,15 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     var clsCombination = classes.Where(s => combination.ClassIds.Contains(s.Id)).ToList();
                     var result = IsClassCombinationable(curriculum, clsCombination, combination.Session, combination.SubjectId);
+                    var assignments = assignmentsDb.Where(a => a.SubjectId == combination.SubjectId);
+                    var assignmentsClassId = assignments.Select(a => a.StudentClassId).Distinct();
+                    if (assignments == null || !combination.ClassIds.All(assignmentsClassId.Contains))
+                    {
+                        errorDictionary["Lớp gộp"].Add($"không thể tạo lớp gộp cho lớp {string.Join(", ", clsCombination.Select(s => s.Name))} do môn {subjects.FirstOrDefault(f => f.Id == combination.SubjectId).SubjectName} không có trong trương trình học của một số lớp");
+                    }else
                     if (!result)
                     {
-                        errorDictionary["Lớp gộp"].Add($"không thể tạo lớp gộp cho lớp {string.Join(", ", clsCombination.Select(s => s.Name))} do số lượng tiết môn {assignmentsDb.First(a => a.SubjectId == combination.SubjectId).Subject.SubjectName} không giống nhau!.");
+                        errorDictionary["Lớp gộp"].Add($"không thể tạo lớp gộp cho lớp {string.Join(", ", clsCombination.Select(s => s.Name))} do số lượng tiết môn {assignmentsDb.FirstOrDefault(a => a.SubjectId == combination.SubjectId).Subject.SubjectName} không giống nhau!.");
                     }
                 }
 
