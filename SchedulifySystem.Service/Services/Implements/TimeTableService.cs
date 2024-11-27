@@ -594,14 +594,14 @@ namespace SchedulifySystem.Service.Services.Implements
                     fixedMainCount = fixedAfternoonCount;
                     fixedSubCount = fixedMorningCount;
                 }
-                if (assignments[i].Subject.MainSlotPerWeek < fixedMainCount)
-                {
-                    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.MainSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều")}");
-                }
-                if (assignments[i].Subject.SubSlotPerWeek < fixedSubCount)
-                {
-                    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.SubSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Chiều" : "Sáng")}");
-                }
+                //if (assignments[i].Subject.MainSlotPerWeek < fixedMainCount)
+                //{
+                //    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.MainSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều")}");
+                //}
+                //if (assignments[i].Subject.SubSlotPerWeek < fixedSubCount)
+                //{
+                //    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.SubSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Chiều" : "Sáng")}");
+                //}
                 // phân công các tiết còn lại chưa đc xắp cố định vào tkb 
                 for (var j = 0; j < assignments[i].Subject.MainSlotPerWeek - fixedMainCount; j++)
                 {
@@ -1036,8 +1036,8 @@ namespace SchedulifySystem.Service.Services.Implements
             src.TimetableUnits.ForEach(u => u.ConstraintErrors.Clear());//Xóa các lỗi vi phạm cũ của từng tiết học (timetable unit).
             src.ConstraintErrors.Clear();//Xóa các lỗi vi phạm cũ của toàn bộ thời khóa biểu.
             src.Adaptability =
-                CheckHC01(src, parameters) * 10000
-                + CheckHC02(src) * 10000
+                //CheckHC01(src, parameters) * 10000
+                CheckHC02(src) * 10000
                 + CheckHC03(src, parameters) * 1000
                 + CheckHC05(src) * 5000
                 // CheckHC07(src, parameters) * 1000
