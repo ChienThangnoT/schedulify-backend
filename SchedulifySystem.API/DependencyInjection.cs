@@ -206,11 +206,11 @@ namespace SchedulifySystem.API
 
             //config district service and repo
             services.AddTransient<IDistrictRepository, DistrictRepository>();
-            //services.AddTransient<IDistrictService, IDistrictService>();
+            services.AddTransient<IDistrictService, DistrictService>();
 
             //config province service and repo
             services.AddTransient<IProvinceRepository, ProvinceRepository>();
-            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
+            services.AddTransient<IProvinceService, ProvinceService>();
 
             //config otp service and repo
             services.AddTransient<IOtpRepository, OtpRepository>();

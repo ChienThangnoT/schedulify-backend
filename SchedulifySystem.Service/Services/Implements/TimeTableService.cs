@@ -347,7 +347,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //         && t.TermId == parameters.TermId,
             //    include: query => query.Include(a => a.Teacher));
             var assignmentTask = _unitOfWork.TeacherAssignmentRepo.GetV2Async(
-                filter: t => assigmentIds.Contains(t.Id) && !t.IsDeleted);
+                filter: t => assigmentIds.Contains(t.Id) && !t.IsDeleted && t.TermId == parameters.TermId);
             //await assignmentTask;
 
             var assignmentsDb = await assignmentTask.ConfigureAwait(false);
@@ -359,7 +359,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 assignment.TeacherId = assignmentPara.TeacherId;
                 assignment.Teacher = teachersDbList.FirstOrDefault(t => t.Id == assignmentPara.TeacherId) ??
                     throw new NotExistsException($"Không tìm thấy giáo viên id {assignmentPara.TeacherId}");
-            }
+                }
             var assignmentsDbList = assignmentsDb.ToList();
 
 
@@ -594,14 +594,14 @@ namespace SchedulifySystem.Service.Services.Implements
                     fixedMainCount = fixedAfternoonCount;
                     fixedSubCount = fixedMorningCount;
                 }
-                //if (assignments[i].Subject.MainSlotPerWeek < fixedMainCount)
-                //{
-                //    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.MainSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều")}");
-                //}
-                //if (assignments[i].Subject.SubSlotPerWeek < fixedSubCount)
-                //{
-                //    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.SubSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Chiều" : "Sáng")}");
-                //}
+                if (assignments[i].Subject.MainSlotPerWeek < fixedMainCount)
+                {
+                    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.MainSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Sáng" : "Chiều")}");
+                }
+                if (assignments[i].Subject.SubSlotPerWeek < fixedSubCount)
+                {
+                    throw new DefaultException($"Tiết cố định không hợp lệ!, lớp {assignments[i].StudentClass.Name} có {assignments[i].Subject.SubSlotPerWeek} tiết {assignments[i].Subject.SubjectName} học vào buổi {(assignments[i].StudentClass.MainSession == (int)MainSession.Morning ? "Chiều" : "Sáng")}");
+                }
                 // phân công các tiết còn lại chưa đc xắp cố định vào tkb 
                 for (var j = 0; j < assignments[i].Subject.MainSlotPerWeek - fixedMainCount; j++)
                 {
@@ -884,7 +884,6 @@ namespace SchedulifySystem.Service.Services.Implements
             var slot = pairs[_random.Next(pairs.Count)];
             if (availableSlots.Any())
             {
-                var slotWithMostFree = availableSlots.GroupBy(s => s.Item1 % 10).OrderByDescending(s => s.Count()).First();
                 var groupedSlots = availableSlots
                     .GroupBy(s => (s.Item1 - 1) / 10)
                     .Select(g => new { Day = g.Key, Count = g.Count(), Slots = g.ToList() })
@@ -893,9 +892,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 int maxCount = groupedSlots.Max(g => g.Count);
                 var maxFreeDays = groupedSlots
                     .Where(g => g.Count == maxCount);
-                var startAtPriority = maxFreeDays
-                    .FirstOrDefault(g => g.Slots.Any(s => s.Item1 % 10 == slotWithMostFree.Key))
-                    ?.Slots.FirstOrDefault(s => s.Item1 % 10 == slotWithMostFree.Key) ?? maxFreeDays.First().Slots.Shuffle().First();
+                var startAtPriority = maxFreeDays.Shuffle().First().Slots.Shuffle().First();
 
                 slot = startAtPriority;
             }
@@ -1013,7 +1010,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var maxFreeDays = groupedSlots
                     .Where(g => g.Count == maxCount);
                 // ưu tiên phân công vô start at nhỏ của ngày 
-                var startAtPriority = maxFreeDays.Shuffle().First().Slots.First();
+                var startAtPriority = maxFreeDays.Shuffle().First().Slots.Shuffle().First();
                 
                 slot = startAtPriority;
             }

@@ -214,5 +214,12 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string ROOM_SUBJECT_NAME_OR_CODE_EXIST = "Tên hoặc mã lớp gộp đã tồn tại trong hệ thống.";
         public const string ROOM_CAPILITY_NOT_ENOUGH = "Số lượng lớp vượt quá sức chứa của phòng.";
 
+        // District
+        public const string DISTRICT_NOT_EXIST = "Quận/huyện không tồn tại.";
+        public const string GET_DISTRICT_SUCCESS = "Lấy danh sách quận/huyện thành công.";
+
+        // Province
+        public const string PROVINCE_NOT_EXIST = "Tỉnh không tồn tại.";
+        public const string GET_PROVINCE_SUCCESS = "Lấy danh sách quận/huyện thành công.";
     }
 }
