@@ -48,12 +48,22 @@ namespace SchedulifySystem.API
                 options.AddPolicy("app-cors",
                     builder =>
                     {
-                        builder.AllowAnyOrigin()
+                        builder.AllowAnyOrigin()    
                         .AllowAnyHeader()
+                        .AllowCredentials()
                         .WithExposedHeaders("X-Pagination")
                         .AllowAnyMethod();
                     });
             });
+            #endregion
+
+            #region signal R
+            services.AddSignalR(options =>
+            {
+                options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+                options.ClientTimeoutInterval = TimeSpan.FromMinutes(2);
+            });
+
             #endregion
 
             #region config authen swagger
