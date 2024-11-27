@@ -50,7 +50,6 @@ namespace SchedulifySystem.API
                     {
                         builder.AllowAnyOrigin()    
                         .AllowAnyHeader()
-                        .AllowCredentials()
                         .WithExposedHeaders("X-Pagination")
                         .AllowAnyMethod();
                     });
