@@ -731,7 +731,13 @@ namespace SchedulifySystem.Service.Services.Implements
             // Tạo dictionary để lưu thông tin startAt của mỗi ClassCombination
             var combinationStartAtMap = new Dictionary<int, Dictionary<int, List<int>>>();
             var combinationDoublePairsMap = new Dictionary<int, Dictionary<int, (int, int)>>();
+            var teacherUnavailable = new Dictionary<int, List<int>>();
 
+            // danh sách không assign vào 
+            foreach (var noAssignTeacher in parameters.NoAssignTimetablePeriods.Where(t => t.ClassId == null && t.TeacherId!=null).GroupBy(t => t.TeacherId))
+            {
+                teacherUnavailable.Add((int)noAssignTeacher.Key, noAssignTeacher.Select(t => t.StartAt).ToList());
+            }
             for (int i = 0; i < src.TimetableFlag.GetLength(0); i++)
             {
                 //lấy danh sách các tiết trống buổi sáng và buổi chiều
@@ -743,14 +749,14 @@ namespace SchedulifySystem.Service.Services.Implements
                 List<(int, int)> afternoonPairs = FindConsecutivePairs(afternoonSlots);
 
                 // phân bổ các tiết đôi trước
-                AssignDoublePeriods(src, i, morningPairs, afternoonPairs);
+                AssignDoublePeriods(src, i, morningPairs, afternoonPairs, teacherUnavailable);
 
                 // update lại danh sách slot trống sau khi phân bổ tiết đôi
                 morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters, true);
                 afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters, true);
 
                 // phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
-                AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, combinationStartAtMap);
+                AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, combinationStartAtMap,teacherUnavailable);
             }
 
         }
@@ -812,7 +818,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         // method phân bổ tiết đôi vào các cặp tiết liên tiếp
-        private void AssignDoublePeriods(TimetableIndividual src, int classIndex, List<(int, int)> morningPairs, List<(int, int)> afternoonPairs)
+        private void AssignDoublePeriods(TimetableIndividual src, int classIndex, List<(int, int)> morningPairs, List<(int, int)> afternoonPairs, Dictionary<int, List<int>> teacherUnavailable)
         {
             var fClass = src.Classes[classIndex];
             var mainSession = fClass.MainSession;
@@ -831,25 +837,25 @@ namespace SchedulifySystem.Service.Services.Implements
                 // phân bổ tiết đôi buổi chính và buổi phụ dựa trên session
                 if (mainSession == (int)MainSession.Morning)
                 {
-                    AssignToConsecutiveSlots(morningPairs, mainPeriods, src, classIndex);
-                    AssignToConsecutiveSlots(afternoonPairs, subPeriods, src, classIndex);
+                    AssignToConsecutiveSlots(morningPairs, mainPeriods, src, classIndex, teacherUnavailable);
+                    AssignToConsecutiveSlots(afternoonPairs, subPeriods, src, classIndex, teacherUnavailable);
                 }
                 else
                 {
-                    AssignToConsecutiveSlots(afternoonPairs, mainPeriods, src, classIndex);
-                    AssignToConsecutiveSlots(morningPairs, subPeriods, src, classIndex);
+                    AssignToConsecutiveSlots(afternoonPairs, mainPeriods, src, classIndex, teacherUnavailable);
+                    AssignToConsecutiveSlots(morningPairs, subPeriods, src, classIndex, teacherUnavailable);
                 }
             }
         }
 
         // method phân bổ các tiết đôi vào các vị trí liên tiếp
-        private void AssignToConsecutiveSlots(List<(int, int)> pairs, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex)
+        private void AssignToConsecutiveSlots(List<(int, int)> pairs, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, Dictionary<int, List<int>> teacherUnavailable)
         {
             for (int i = 0; i < periods.Count; i += 2)
             {
                 if (pairs.Count == 0) break;
 
-                var (slot1, slot2) = TakeAvailableSlot(pairs,src, periods[i]);
+                var (slot1, slot2) = TakeAvailableSlot(pairs,src, periods[i],teacherUnavailable);
 
                 periods[i].StartAt = slot1;
                 src.TimetableFlag[classIndex, slot1] = ETimetableFlag.Filled;
@@ -868,11 +874,13 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
 
-        private (int, int) TakeAvailableSlot(List<(int, int)> pairs, TimetableIndividual src, ClassPeriodScheduleModel period)
+        private (int, int) TakeAvailableSlot(List<(int, int)> pairs, TimetableIndividual src, ClassPeriodScheduleModel period, Dictionary<int, List<int>> teacherUnavailable)
         {
             var TeachedSlots = src.TimetableUnits.Where(u => u.TeacherId == period.TeacherId && u.StartAt != 0 && u.ClassId != period.ClassId).Select(u => u.StartAt).ToList();
             // handle phân công rải 
-            var availableSlots = pairs.Where(p => !TeachedSlots.Contains(p.Item1) && !TeachedSlots.Contains(p.Item2)).ToList();
+            var availableSlots = pairs.Where(p => !TeachedSlots.Contains(p.Item1) && !TeachedSlots.Contains(p.Item2) 
+            && !IsUnavailablePeriod(p.Item1,(int)period.TeacherId,teacherUnavailable) 
+            && !IsUnavailablePeriod(p.Item2, (int)period.TeacherId, teacherUnavailable)).ToList();
             var slot = pairs[_random.Next(pairs.Count)];
             if (availableSlots.Any())
             {
@@ -894,8 +902,17 @@ namespace SchedulifySystem.Service.Services.Implements
             return slot;
         }
 
+        private bool IsUnavailablePeriod(int startAt, int teacherId, Dictionary<int, List<int>> teacherUnavailable)
+        {
+            if(teacherUnavailable.ContainsKey(teacherId))
+            {
+                return teacherUnavailable[teacherId].Contains(startAt);
+            }
+            return false;
+        }
+
         // method phân bổ các tiết đơn liên tục để tránh bị lủng owr cuối buổi
-        private void AssignContinuousSinglePeriods(TimetableIndividual src, int classIndex, List<int> morningSlots, List<int> afternoonSlots, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap)
+        private void AssignContinuousSinglePeriods(TimetableIndividual src, int classIndex, List<int> morningSlots, List<int> afternoonSlots, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap, Dictionary<int, List<int>> teacherUnavailable)
         {
             morningSlots.Sort();
             afternoonSlots.Sort();
@@ -910,12 +927,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 .OrderBy(u => u.Priority)
                 .ToList();
 
-            AssignToContinuousSlots(morningSlots, morningPeriods, src, classIndex, MainSession.Morning, combinationStartAtMap);
-            AssignToContinuousSlots(afternoonSlots, afternoonPeriods, src, classIndex, MainSession.Afternoon, combinationStartAtMap);
+            AssignToContinuousSlots(morningSlots, morningPeriods, src, classIndex, MainSession.Morning, combinationStartAtMap, teacherUnavailable);
+            AssignToContinuousSlots(afternoonSlots, afternoonPeriods, src, classIndex, MainSession.Afternoon, combinationStartAtMap, teacherUnavailable);
         }
 
         // method phân bổ tiết vào các vị trí liên tục để tránh bị lủng
-        private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap)
+        private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap, Dictionary<int, List<int>> teacherUnavailable)
         {
             foreach (var period in periods)
             {
@@ -941,7 +958,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         var combinationClassMap = combinationStartAtMap[period.ClassCombinations.Id];
                         if (combinationClassMap.ContainsKey(classIndex))
                         {
-                            var slot = TakeAvailableSlot(validSlots, src, period);
+                            var slot = TakeAvailableSlot(validSlots, src, period, teacherUnavailable);
                             combinationClassMap[classIndex].Add(slot);
                             period.StartAt = slot;
                             src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
@@ -958,7 +975,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     else
                     {
-                        var slot = TakeAvailableSlot(validSlots, src, period);
+                        var slot = TakeAvailableSlot(validSlots, src, period, teacherUnavailable);
                         var first = new Dictionary<int, List<int>>
                         {
                             { classIndex, new List<int>(){ slot } }
@@ -971,7 +988,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
                 else
                 {
-                    var slot = TakeAvailableSlot(validSlots, src, period);
+                    var slot = TakeAvailableSlot(validSlots, src, period, teacherUnavailable);
                     period.StartAt = slot;
                     src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
                     slots.Remove(slot);
@@ -979,11 +996,10 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
 
-        private int TakeAvailableSlot(List<int> slots, TimetableIndividual src, ClassPeriodScheduleModel period)
+        private int TakeAvailableSlot(List<int> slots, TimetableIndividual src, ClassPeriodScheduleModel period, Dictionary<int, List<int>> teacherUnavailable)
         {
             var TeachedSlots = src.TimetableUnits.Where(u => u.TeacherId == period.TeacherId && u.StartAt != 0 && u.ClassId != period.ClassId ).Select(u => u.StartAt).ToList();
-
-            var availableSlots = slots.Except(TeachedSlots).ToList();
+            var availableSlots = slots.Except(TeachedSlots).Where(t => !IsUnavailablePeriod(t, (int)period.TeacherId,teacherUnavailable)).ToList();
             int slot = slots[_random.Next(slots.Count)];
             if (availableSlots.Any())
             {
@@ -1360,7 +1376,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var classObj = src.Classes[classIndex];
                 // lấy ra các tiết học của lớp đó 
                 var classSingleTimetableUnits = src.TimetableUnits
-                    .Where(u => u.ClassId == classObj.Id)
+                    .Where(u => u.ClassId == classObj.Id && u.Priority != EPriority.Fixed)
                     .OrderBy(u => u.StartAt)
                     .ToList();
 
