@@ -81,9 +81,9 @@ namespace SchedulifySystem.API.Controllers
         [HttpGet]
         [Route("class-combination")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> GetClassCombination(int schoolId, int yearId, int subjectId, EGrade grade, MainSession session)
+        public Task<IActionResult> GetClassCombination(int schoolId, int yearId, int subjectId, int termId, EGrade grade, MainSession session)
         {
-            return ValidateAndExecute(() => _studentClassService.GetClassCombination(schoolId, yearId, subjectId, grade, session));
+            return ValidateAndExecute(() => _studentClassService.GetClassCombination(schoolId, yearId, subjectId, termId, grade, session));
         }
 
     }

@@ -58,7 +58,7 @@ namespace SchedulifySystem.Service.Services.Implements
              .Where(g => g.Count() > 1)
              .SelectMany(g => g)
              .ToList();
-            
+
             //check duplicate teacher abb in list
             var duplicateTeacherAbb = models
              .GroupBy(b => b.HomeroomTeacherAbbreviation, StringComparer.OrdinalIgnoreCase)
@@ -478,27 +478,41 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region GetClassCombination
-        public async Task<BaseResponseModel> GetClassCombination(int schoolId, int yearId, int subjectId, EGrade grade, MainSession mainSession)
+        public async Task<BaseResponseModel> GetClassCombination(int schoolId, int yearId, int subjectId,int termId, EGrade grade, MainSession mainSession)
         {
             var curriculums = await _unitOfWork.CurriculumRepo.GetV2Async(
                 filter: c => c.CurriculumDetails.Any(c => c.SubjectId == subjectId) &&
-                !c.IsDeleted && c.SchoolId == schoolId && c.SchoolYearId == yearId,
-                include: query => query.Include(c => c.CurriculumDetails)
+                !c.IsDeleted && c.SchoolId == schoolId && c.SchoolYearId == yearId && c.Grade == (int)grade,
+                include: query => query
                 .Include(c => c.StudentClassGroups));
 
-            var classgroupIds = curriculums.SelectMany(c => c.StudentClassGroups).Where(cg => !cg.IsDeleted && cg.Grade == (int) grade).Select(cg => cg.Id);
+            var classgroupIds = curriculums.SelectMany(c => c.StudentClassGroups).Where(cg => !cg.IsDeleted && cg.Grade == (int)grade).Select(cg => cg.Id);
 
             var classes = await _unitOfWork.StudentClassesRepo.GetV2Async(
-                filter: c =>c.StudentClassGroupId != null && classgroupIds.Contains((int)c.StudentClassGroupId) && !c.IsDeleted && c.SchoolId == schoolId && c.SchoolYearId == yearId && (int) grade == c.Grade,
-                include: query => query.Include(c => c.StudentClassGroup).ThenInclude(c => c.Curriculum).ThenInclude(c => c.CurriculumDetails));
+                filter: c => c.StudentClassGroupId != null && classgroupIds.Contains((int)c.StudentClassGroupId) && !c.IsDeleted && c.SchoolId == schoolId && c.SchoolYearId == yearId && (int)grade == c.Grade,
+                include: query => query.Include(c => c.StudentClassGroup).ThenInclude(c => c.Curriculum).ThenInclude(c => c.CurriculumDetails.Where(cd => cd.SubjectId == subjectId && cd.TermId == termId)));
 
             var classesBySesion = classes.GroupBy(c => c.MainSession);
             var result = new List<StudentClassViewName>();
             foreach (var g in classesBySesion)
             {
-                var filtered = g.Where(c => c.StudentClassGroup.Curriculum.CurriculumDetails
-                .Any(c => c.SubjectId == subjectId &&
-                ((c.MainSlotPerWeek > 0 && g.Key == (int)mainSession) || (c.SubSlotPerWeek > 0 && g.Key != (int)mainSession))));
+                var curriculumDetails = g.Where(c => c.StudentClassGroup.Curriculum.CurriculumDetails
+                .Any(c => c.SubjectId == subjectId));
+
+                var filtered = new List<StudentClass>();
+                foreach (var c in curriculumDetails)
+                {
+                    if (c.MainSession == (int)mainSession)
+                    {
+                        if (c.StudentClassGroup.Curriculum.CurriculumDetails.Any(c => c.SubjectId == subjectId && c.MainSlotPerWeek > 0))
+                            filtered.Add(c);
+                    }
+                    else
+                    {
+                        if (c.StudentClassGroup.Curriculum.CurriculumDetails.Any(c => c.SubjectId == subjectId && c.SubSlotPerWeek > 0))
+                            filtered.Add(c);
+                    }
+                }
 
                 result.AddRange(filtered.Select(c => new StudentClassViewName
                 {
