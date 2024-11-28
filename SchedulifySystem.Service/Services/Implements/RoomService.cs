@@ -220,7 +220,7 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
-        public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, ERoomType? roomType, int pageIndex = 1, int pageSize = 20)
+        public async Task<BaseResponseModel> GetRooms(int schoolId, int? capicity, int? buildingId, ERoomType? roomType, int pageIndex = 1, int pageSize = 20)
         {
             var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active) 
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
@@ -232,7 +232,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var found = await _unitOfWork.RoomRepo
                 .ToPaginationIncludeAsync(
                     pageIndex, pageSize,
-                    filter: r => r.Building.SchoolId == schoolId && (buildingId == null ? true : r.Building.Id == buildingId) && (roomType == null || roomType == (ERoomType) r.RoomType) && !r.IsDeleted
+                    filter: r => r.Building.SchoolId == schoolId && (capicity == null || r.MaxClassPerTime >= capicity) &&(buildingId == null || r.Building.Id == buildingId) && (roomType == null || roomType == (ERoomType) r.RoomType) && !r.IsDeleted
                     , include: query => query.Include(r => r.RoomSubjects).ThenInclude(rs => rs.Subject)
                 );
             if (found.Items.Count == 0)
