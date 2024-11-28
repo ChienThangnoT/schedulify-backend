@@ -52,7 +52,7 @@ namespace SchedulifySystem.API.Controllers
         [HttpPatch()]
         [Route("{id}/assign-curriculum/{curriculumId}")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AssignSubjectGroupToClasses(int schoolId, int yearId, int id, int curriculumId)
+        public Task<IActionResult> AssignCurriculumToClassGroup(int schoolId, int yearId, int id, int curriculumId)
         {
             return ValidateAndExecute(() => _studentClassGroupService.AssignCurriculumToClassGroup(schoolId,yearId,id,curriculumId));
         }
@@ -60,7 +60,7 @@ namespace SchedulifySystem.API.Controllers
         [HttpPatch()]
         [Route("{id}/assign-class-to-class-group")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AssignSubjectGroupToClasses(int schoolId, int yearId, int id, AssignClassToClassGroup model)
+        public Task<IActionResult> AssignClassToClassGroup(int schoolId, int yearId, int id, AssignClassToClassGroup model)
         {
             return ValidateAndExecute(() => _studentClassGroupService.AssignClassToClassGroup(schoolId, yearId, id, model));
         }
