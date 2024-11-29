@@ -27,7 +27,7 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize]
-        public Task<IActionResult> GetSubjectListWithSchoolId(int schoolYearIdint, int? id, string? subjectName, bool? isRequired,bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetSubjectListWithSchoolYearId(int schoolYearIdint, int? id, string? subjectName, bool? isRequired,bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
             return ValidateAndExecute(()=> _subjectService.GetSubjectById(schoolYearIdint, id, subjectName, isRequired, includeDeleted, pageSize, pageIndex));
         }

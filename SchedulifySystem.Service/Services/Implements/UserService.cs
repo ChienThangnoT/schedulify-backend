@@ -253,13 +253,21 @@ namespace SchedulifySystem.Service.Services.Implements
                     if (verifyUser)
                     {
                         if (existUser.Status == (int)AccountStatus.Inactive
-                            || existUser.Status == (int)AccountStatus.Pending
                             || existUser.IsDeleted == true)
                         {
                             return new AuthenticationResponseModel
                             {
                                 Status = StatusCodes.Status401Unauthorized,
                                 Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
+                            };
+                        }
+                        else if (existUser.Status == (int)AccountStatus.Pending 
+                            || existUser.IsDeleted == true)
+                        {
+                            return new AuthenticationResponseModel
+                            {
+                                Status = StatusCodes.Status401Unauthorized,
+                                Message = ConstantResponse.ACCOUNT_PENDING
                             };
                         }
 
