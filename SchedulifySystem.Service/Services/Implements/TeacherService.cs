@@ -438,7 +438,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region Update Teacherable Subeject
-        public async Task<BaseResponseModel> UpdateTeachableSubjects(int id, List<SubjectGradeModel> teachableSubjects)
+        public async Task<BaseResponseModel> AddTeachableSubjects(int id, List<SubjectGradeModel> teachableSubjects)
         {
             foreach (var subject in teachableSubjects)
             {
