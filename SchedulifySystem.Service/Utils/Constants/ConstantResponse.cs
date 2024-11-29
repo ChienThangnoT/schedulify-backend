@@ -13,6 +13,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SCHOOL_ACCOUNT_NOT_EXIST = "Not found school manager!";
         public const string ACCOUNT_CAN_NOT_ACCESS = "Tài khoản bị từ chối.";
         public const string ACCOUNT_PENDING = "Tài khoản đang chờ duyệt. Thông báo sẽ được gửi qua email.";
+        public const string ACCOUNT_NOT_CHANGE_DEFAULT_PASSWORD = "Tài khoản chưa thay đổi mật khẩu mặc định.";
         public const string PASSWORD_INCORRECT = "Password incorrect.";
         public const string SCHOOL_NOT_FOUND = "School Not found.";
         public const string SCHOOL_ALREADY_ASSIGNED = "School has been assigned to another account.";

@@ -261,13 +261,20 @@ namespace SchedulifySystem.Service.Services.Implements
                                 Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
                             };
                         }
-                        else if (existUser.Status == (int)AccountStatus.Pending 
-                            || existUser.IsDeleted == true)
+                        else if (existUser.Status == (int)AccountStatus.Pending)
                         {
                             return new AuthenticationResponseModel
                             {
                                 Status = StatusCodes.Status401Unauthorized,
                                 Message = ConstantResponse.ACCOUNT_PENDING
+                            };
+                        }
+                        else if (existUser.IsChangeDefaultPassword == false)
+                        {
+                            return new AuthenticationResponseModel
+                            {
+                                Status = StatusCodes.Status401Unauthorized,
+                                Message = ConstantResponse.ACCOUNT_NOT_CHANGE_DEFAULT_PASSWORD
                             };
                         }
 
