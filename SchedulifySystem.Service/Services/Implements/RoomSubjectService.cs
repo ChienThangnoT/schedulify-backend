@@ -125,6 +125,120 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
+        #region
+        public async Task<BaseResponseModel> UpdateRoomSubject(int schoolId, int id, RoomSubjectUpdateModel model)
+        {
+            var subjectExists = await _unitOfWork.SubjectRepo.ExistsAsync(s => s.Id == model.SubjectId && !s.IsDeleted);
+            if (!subjectExists)
+            {
+                throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
+            }
+
+            var schoolExist = await _unitOfWork.SchoolRepo.ExistsAsync(s => s.Id == schoolId && !s.IsDeleted);
+            if (!schoolExist)
+            {
+                throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            }
+
+            var termExist = await _unitOfWork.TermRepo.ExistsAsync(s => s.Id == model.TermId && !s.IsDeleted);
+            if (!termExist)
+            {
+                throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+            }
+            var roomExists = (await _unitOfWork.RoomRepo.GetAsync(r => r.Id == model.RoomId && !r.IsDeleted)).FirstOrDefault();
+            if (roomExists == null)
+            {
+                throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+            }
+            if (roomExists.MaxClassPerTime < model.StudentClassIds.Distinct().Count())
+            {
+                throw new NotExistsException(ConstantResponse.ROOM_CAPILITY_NOT_ENOUGH);
+            }
+            var validStudentClassIds = await _unitOfWork.StudentClassesRepo
+                        .GetAsync(s => model.StudentClassIds.Contains(s.Id) && !s.IsDeleted);
+
+            var validStudentClassIdList = validStudentClassIds.Select(s => s.Id).ToList();
+
+            var invalidStudentClassIds = model.StudentClassIds
+                .Except(validStudentClassIdList)
+                .ToList();
+
+            if (invalidStudentClassIds.Count != 0)
+            {
+                throw new NotExistsException($"Các StudentClassId không hợp lệ: {string.Join(", ", invalidStudentClassIds)}");
+            }
+            var roomSubjectExisted = await _unitOfWork.RoomSubjectRepo.GetByIdAsync(id, filter: f => !f.IsDeleted && f.SchoolId == schoolId, 
+                include: query => query.Include(rs => rs.StudentClassRoomSubjects)) ??
+                throw new NotExistsException(ConstantResponse.ROOM_SUBJECT_NOT_EXIST);
+            if (!model.RoomSubjectName.Equals(roomSubjectExisted.RoomSubjectName, StringComparison.OrdinalIgnoreCase) || !model.RoomSubjectCode.Equals(roomSubjectExisted.RoomSubjectCode, StringComparison.OrdinalIgnoreCase))
+            {
+                var roomSubjectCodeExists = await _unitOfWork.RoomSubjectRepo.ExistsAsync(rs => rs.Id != id &&
+                                       (!string.IsNullOrEmpty(rs.RoomSubjectCode) && rs.RoomSubjectCode.ToLower() == model.RoomSubjectCode.ToLower())
+                                       || (!string.IsNullOrEmpty(rs.RoomSubjectName) && rs.RoomSubjectName.ToLower() == model.RoomSubjectName.ToLower())
+                                       && !rs.IsDeleted);
+
+                if (roomSubjectCodeExists)
+                {
+                    throw new DefaultException(ConstantResponse.ROOM_SUBJECT_NAME_OR_CODE_EXIST);
+                }
+            }
+            var scrs = roomSubjectExisted.StudentClassRoomSubjects.Where(s => !s.IsDeleted);
+            var newClasses = model.StudentClassIds.Except(scrs.Select(s => s.Id));
+            var newClassesRoomSubjects = newClasses
+                       .Select(studentClassId => new StudentClassRoomSubject
+                       {
+                           RoomSubjectId = id,
+                           StudentClassId = studentClassId
+                       }).ToList();
+            var oldIds = scrs.Select(c => c.Id).Except(model.StudentClassIds);
+            var oldClassRomSubjects = scrs.Where(s => oldIds.Contains(s.Id));
+            if(oldClassRomSubjects.Any())
+            {
+                foreach(var item in oldClassRomSubjects)
+                {
+                    _unitOfWork.StudentClassRoomSubjectRepo.Remove(item);
+                }
+            }
+            await _unitOfWork.StudentClassRoomSubjectRepo.AddRangeAsync(newClassesRoomSubjects);
+            _mapper.Map(model, roomSubjectExisted);
+            _unitOfWork.RoomSubjectRepo.Update(roomSubjectExisted);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.UPDATE_ROOM_SUBJECT_SUCCESS
+            };
+
+        }
+        #endregion
+
+        #region
+        public async Task<BaseResponseModel> DeleteRoomSubject(int schoolId, int id)
+        {
+            var schoolExist = await _unitOfWork.SchoolRepo.ExistsAsync(s => s.Id == schoolId && !s.IsDeleted);
+            if (!schoolExist)
+            {
+                throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            }
+            var roomSubjectExisted = await _unitOfWork.RoomSubjectRepo.GetByIdAsync(id, filter: f => !f.IsDeleted && f.SchoolId == schoolId,
+                include: query => query.Include(rs => rs.StudentClassRoomSubjects)) ??
+                throw new NotExistsException(ConstantResponse.ROOM_SUBJECT_NOT_EXIST);
+            roomSubjectExisted.IsDeleted = true;
+            var scrs = roomSubjectExisted.StudentClassRoomSubjects.Where(s => !s.IsDeleted);
+            foreach (var item in scrs)
+            {
+                _unitOfWork.StudentClassRoomSubjectRepo.Remove(item);
+            }
+            _unitOfWork.RoomSubjectRepo.Update(roomSubjectExisted);
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.DELETE_ROOM_SUBJECT_SUCCESS
+            };
+        }
+        #endregion
+
         #region View Room Subject List
         public async Task<BaseResponseModel> ViewRoomSubjectList(int schoolId, int? roomSubjectId, int? termId, int pageIndex, int pageSize)
         {

@@ -11,6 +11,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface IRoomSubjectService
     {
         public Task<BaseResponseModel> AddRoomSubject(RoomSubjectAddModel roomSubjectAddModel);
+        public Task<BaseResponseModel> DeleteRoomSubject(int schoolId, int id);
+        public Task<BaseResponseModel> UpdateRoomSubject(int schoolId, int id, RoomSubjectUpdateModel model);
         public Task<BaseResponseModel> ViewRoomSubjectList(int schoolId, int? roomSubjectId,int? termId, int pageIndex, int pageSize);
     }
 }

@@ -13,6 +13,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SCHOOL_ACCOUNT_NOT_EXIST = "Not found school manager!";
         public const string ACCOUNT_CAN_NOT_ACCESS = "Tài khoản bị từ chối.";
         public const string ACCOUNT_PENDING = "Tài khoản đang chờ duyệt. Thông báo sẽ được gửi qua email.";
+        public const string ACCOUNT_NOT_CHANGE_DEFAULT_PASSWORD = "Tài khoản chưa thay đổi mật khẩu mặc định.";
         public const string PASSWORD_INCORRECT = "Password incorrect.";
         public const string SCHOOL_NOT_FOUND = "School Not found.";
         public const string SCHOOL_ALREADY_ASSIGNED = "School has been assigned to another account.";
@@ -212,8 +213,12 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Room subject
         public const string ADD_ROOM_SUBJECT_SUCCESS = "Thêm lớp ghép thành công.";
+        public const string UPDATE_ROOM_SUBJECT_SUCCESS = "Cập nhật thông tin lớp ghép thành công.";
+        public const string DELETE_ROOM_SUBJECT_SUCCESS = "Xóa lớp ghép thành công.";
         public const string ROOM_SUBJECT_NAME_OR_CODE_EXIST = "Tên hoặc mã lớp gộp đã tồn tại trong hệ thống.";
         public const string ROOM_CAPILITY_NOT_ENOUGH = "Số lượng lớp vượt quá sức chứa của phòng.";
+        public const string ROOM_SUBJECT_NOT_EXIST = "Lớp ghép không tồn tại!.";
+
 
         // District
         public const string DISTRICT_NOT_EXIST = "Quận/huyện không tồn tại.";
