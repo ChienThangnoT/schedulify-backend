@@ -213,8 +213,12 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Room subject
         public const string ADD_ROOM_SUBJECT_SUCCESS = "Thêm lớp ghép thành công.";
+        public const string UPDATE_ROOM_SUBJECT_SUCCESS = "Cập nhật thông tin lớp ghép thành công.";
+        public const string DELETE_ROOM_SUBJECT_SUCCESS = "Xóa lớp ghép thành công.";
         public const string ROOM_SUBJECT_NAME_OR_CODE_EXIST = "Tên hoặc mã lớp gộp đã tồn tại trong hệ thống.";
         public const string ROOM_CAPILITY_NOT_ENOUGH = "Số lượng lớp vượt quá sức chứa của phòng.";
+        public const string ROOM_SUBJECT_NOT_EXIST = "Lớp ghép không tồn tại!.";
+
 
         // District
         public const string DISTRICT_NOT_EXIST = "Quận/huyện không tồn tại.";

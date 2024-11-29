@@ -20,6 +20,10 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<RoomSubjectAddModel, RoomSubject>()
                  .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ReverseMap();
+
+            CreateMap<RoomSubjectUpdateModel, RoomSubject>()
+                 .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ReverseMap();
         }
     }
 }
