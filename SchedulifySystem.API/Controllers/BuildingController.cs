@@ -25,6 +25,13 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _buildingService.GetBuildings(schoolId, includeRoom, pageIndex, pageSize));
         }
 
+        [HttpGet("{id}")]
+        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
+        public Task<IActionResult> GetBuildingById(int id)
+        {
+            return ValidateAndExecute(() => _buildingService.GetBuildingById(id));
+        }
+
         [HttpPost]
         [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> AddBuildings(int schoolId, List<AddBuildingModel> buildings)

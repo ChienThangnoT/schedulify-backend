@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.BusinessModels.BuildingBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,7 @@ namespace SchedulifySystem.Service.Mapper
                    Abbreviation = rs.Subject.Abbreviation
 
                })));
+            CreateMap<Room, RoomInBuilding>().ReverseMap();
 
         }
 

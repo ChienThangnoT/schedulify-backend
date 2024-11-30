@@ -29,6 +29,15 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
+        #region get building by id
+        public async Task<BaseResponseModel> GetBuildingById(int id)
+        {
+            var buildings = await _unitOfWork.BuildingRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false, include: t=> t.Include(query => query.Rooms));
+            var response = _mapper.Map<BuildingViewModel>(buildings);
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_BUILDING_SUCCESS, Result = response };
+        }
+        #endregion
+
         #region AddBuildings
         public async Task<BaseResponseModel> AddBuildings(int schoolId, List<AddBuildingModel> models)
         {
@@ -133,7 +142,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
         }
         #endregion
-
 
         #region UpdateBuildings
         public async Task<BaseResponseModel> UpdateBuildings(int buildingId, UpdateBuildingModel model)

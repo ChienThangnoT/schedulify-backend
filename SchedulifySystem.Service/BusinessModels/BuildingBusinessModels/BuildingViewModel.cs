@@ -9,10 +9,21 @@ namespace SchedulifySystem.Service.BusinessModels.BuildingBusinessModels
 {
     public class BuildingViewModel : BaseEntity
     {
+        public int Id { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
         public int Floor { get; set; }
         public string? BuildingCode { get; set; }
-        public ICollection<Room> Rooms { get; set; } = new List<Room>();
+        public List<RoomInBuilding> Rooms { get; set; } = new List<RoomInBuilding>();
+    }
+
+    public class RoomInBuilding
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public int MaxClassPerTime { get; set; }
+        public int AvailabilityeStatus { get; set; }
+        public string? RoomCode { get; set; }
+        public int RoomType { get; set; }
     }
 }
