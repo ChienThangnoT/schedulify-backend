@@ -233,7 +233,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (parameters.CurrentUserEmail != null)
             {
-                var _ = await _unitOfWork.UserRepo.GetAsync(filter: t => t.Email == parameters.CurrentUserEmail && t.Status == (int)AccountStatus.Active)
+                var user = await _unitOfWork.UserRepo.GetAsync(filter: t => t.Email == parameters.CurrentUserEmail && t.Status == (int)AccountStatus.Active)
                                ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
 
                 NotificationModel noti = new NotificationModel
@@ -243,7 +243,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     Type = ENotificationType.HeThong,
                     Link = ""
                 };
-                await _notificationService.SendNotificationToUser(_.FirstOrDefault().Id, noti);
+                await _notificationService.SendNotificationToUser(user.FirstOrDefault().Id, noti);
             }
 
 

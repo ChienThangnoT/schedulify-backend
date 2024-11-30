@@ -125,7 +125,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
-        #region
+        #region Update Room Subject
         public async Task<BaseResponseModel> UpdateRoomSubject(int schoolId, int id, RoomSubjectUpdateModel model)
         {
             var subjectExists = await _unitOfWork.SubjectRepo.ExistsAsync(s => s.Id == model.SubjectId && !s.IsDeleted);
@@ -212,7 +212,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region
+        #region Delete Room Subject
         public async Task<BaseResponseModel> DeleteRoomSubject(int schoolId, int id)
         {
             var schoolExist = await _unitOfWork.SchoolRepo.ExistsAsync(s => s.Id == schoolId && !s.IsDeleted);
@@ -297,7 +297,5 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
         #endregion
-
-
     }
 }
