@@ -46,6 +46,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int MinimumDaysOff { get; set; } = 0;
         public int TermId { get; set; }
         public int DaysInWeek { get; set; } = 5;
+        public int MaxExecutionTimeInSeconds { get; set; } = 600;
 
         public int GetAvailableSlotsPerWeek()
         {

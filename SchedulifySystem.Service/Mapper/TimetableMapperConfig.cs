@@ -52,6 +52,7 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.ClassPeriods, otp => otp.MapFrom(src => src.ClassPeriods));
 
             CreateMap<ClassPeriod, ClassPeriodViewModel>();
+            CreateMap<TimetableIndividual, TimetableIndividual>();
 
             CreateMap<SchoolSchedule, SchoolScheduleViewModel>()
                 .ForMember(dest => dest.TermName, otp => otp.MapFrom(src => src.Term.Name))
