@@ -1177,7 +1177,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 // Lấy tất cả các tiết mà giáo viên này dạy
                 var timetableUnits = src.TimetableUnits
-                    .Where(u => u.TeacherId == teacher.Id)
+                    .Where(u => u.TeacherId == teacher.Id && u.Priority != EPriority.Fixed)
                     .ToList();
 
                 // Nhóm các tiết theo thời điểm
