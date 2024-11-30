@@ -17,6 +17,7 @@ namespace SchedulifySystem.Service.BusinessModels.RoomSubjectBusinessModels
         public required string RoomSubjectCode { get; set; }
         public required string RoomSubjectName { get; set; }
         public required ERoomSubjectModel Model { get; set; }
+        public MainSession? Session { get; set; }
         public required List<int> StudentClassId { get; set; }
     }
 
@@ -29,6 +30,7 @@ namespace SchedulifySystem.Service.BusinessModels.RoomSubjectBusinessModels
         public string? RoomSubjectCode { get; set; }
         public string? RoomSubjectName { get; set; }
         public ERoomSubjectModel Model { get; set; }
+        public MainSession? Session { get; set; }
         public List<StudentClassList>? StudentClass { get; set; }
     }
     public class StudentClassList
