@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Protobuf.Compiler;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -23,6 +24,7 @@ using SchedulifySystem.Service.Utils.Constants;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -76,6 +78,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var backlogCount = 0;
             var backlogCountMax = 0;
             var currentId = 1;
+            var stopwatch = Stopwatch.StartNew();
             /*timetableIdBacklog, backlogCount, và backlogCountMax: Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh 
              * việc mắc kẹt trong tối ưu cục bộ.timetableIdBacklog, backlogCount, và backlogCountMax: 
               Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh việc mắc kẹt trong tối ưu cục bộ.*/
@@ -83,6 +86,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
             for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
             {
+                // Kiểm tra thời gian thực thi
+                if (stopwatch.Elapsed.TotalSeconds >= parameters.MaxExecutionTimeInSeconds)
+                {
+                    Console.WriteLine("Đã đạt thời gian tối đa thực thi. Kết thúc sớm.");
+                    break;
+                }
+
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
                 if (timetablePopulation.First().Adaptability < 1000 && step > 0)
                     break;
@@ -183,7 +193,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 Console.WriteLine($"backlog count:  {backlogCount}\t max: {backlogCountMax}");
                 //Console.WriteLine("time: " + sw.Elapsed.ToString());
             }
-
+            stopwatch.Stop();
             var timetableFirst = timetablePopulation.OrderBy(i => i.Adaptability).First();
 
             //var timetableDb = _mapper.Map<Timetable>(timetableFirst);
@@ -535,16 +545,44 @@ namespace SchedulifySystem.Service.Services.Implements
            ETimetableFlag[,] timetableFlags,
            GenerateTimetableModel parameters)
         {
+            // khởi tạo ds gap break point 
+            var mainSessions = new List<MainSession> { MainSession.Morning, MainSession.Afternoon };
+            var StartAtAvoid = new Dictionary<MainSession, List<int>>();
+            foreach (var session in mainSessions)
+            {
+                var daysInWeek = parameters.DaysInWeek;
+
+                for (int j = 0; j < parameters.RequiredBreakPeriods; j++)
+                {
+                    var start = session == MainSession.Morning ? 5 - j : 6 + j;
+
+                    for (int i = start; i < daysInWeek * 10 + start; i += 10)
+                    {
+                        if (!StartAtAvoid.ContainsKey(session))
+                        {
+                            StartAtAvoid[session] = new List<int>();
+                        }
+
+                        StartAtAvoid[session].Add(i);
+                    }
+                }
+            }
+
+
             for (var i = 0; i < classes.Count; i++)
             {
                 // ca sáng thì a sẽ bắt đầu từ 0 (tương ứng tiết 1 trong ngày) còn ca chiều bắt đầu từ 5 (tương ứng tiết 6 trong ngày)
                 var a = classes[i].IsFullDay ? 0 : classes[i].MainSession == (int)MainSession.Morning ? 0 : 5;
+                var subSession = classes[i].MainSession == (int)MainSession.Morning ? MainSession.Afternoon : MainSession.Morning;
                 // j sẽ là index cho mỗi ngày, (max một tuần 60 tiết), mỗi vòng tăng 10 tức sang ngày mới
                 int maxSlot = classes[i].IsFullDay ? 10 : 5;
                 for (var j = 1; j < parameters.GetAvailableSlotsPerWeek(); j += 10)
                     // trong ngày j đánh dấu tiết khả dụng để xếp 
                     for (var k = j; k < j + maxSlot; k++)
-                        timetableFlags[i, k + a] = ETimetableFlag.Unfilled;
+                    {
+                        timetableFlags[i, k + a] = StartAtAvoid[subSession].Contains(k + a) ? ETimetableFlag .None: ETimetableFlag.Unfilled;
+                    }
+                        
 
                 var list = parameters.FreeTimetablePeriods.Where(u => u.ClassId == classes[i].Id).ToList();
                 //Đánh dấu các tiết trong FreeTimetable vs trạng thái none là các tiết k xếp 
@@ -560,7 +598,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 throw new DefaultException("Tiết cố định và tiết trống cố định trùng nhau! " +
                     $"Tiết cố định {string.Join(", ", fixedPeriodsInvalid.Select(p => $"[{p.SubjectName} - {GetDayAndPeriodString(p.StartAt)}]"))}");
             }
-
+    
 
             // Tạo danh sách tiết được xếp sẵn trước
             var timetableUnits = new List<ClassPeriodScheduleModel>();
@@ -738,22 +776,27 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 teacherUnavailable.Add((int)noAssignTeacher.Key, noAssignTeacher.Select(t => t.StartAt).ToList());
             }
+
             for (int i = 0; i < src.TimetableFlag.GetLength(0); i++)
             {
+                var fClass = src.Classes[i];
+                var mainSession = fClass.MainSession;
+                var startAtRemove = GetStartAtRedutance(fClass.Id, mainSession, src, parameters.DaysInWeek);
+
                 //lấy danh sách các tiết trống buổi sáng và buổi chiều
-                List<int> morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters);
-                List<int> afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters);
+                List<int> morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters).Except(startAtRemove).ToList();
+                List<int> afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters).Except(startAtRemove).ToList();
 
                 // tìm các cặp tiết liên tiếp (consecutive slots)
                 List<(int, int)> morningPairs = FindConsecutivePairs(morningSlots);
                 List<(int, int)> afternoonPairs = FindConsecutivePairs(afternoonSlots);
 
                 // phân bổ các tiết đôi trước
-                AssignDoublePeriods(src, i, morningPairs, afternoonPairs, teacherUnavailable);
+                AssignDoublePeriods(src,i, morningPairs, afternoonPairs, teacherUnavailable, fClass,mainSession);
 
                 // update lại danh sách slot trống sau khi phân bổ tiết đôi
-                morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters, true);
-                afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters, true);
+                morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters).Except(startAtRemove).ToList();
+                afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters).Except(startAtRemove).ToList();
 
                 // phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
                 AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, combinationStartAtMap,teacherUnavailable);
@@ -761,13 +804,35 @@ namespace SchedulifySystem.Service.Services.Implements
 
         }
 
+        // loại bỏ các tiết ở cuối buổi để đỡ lủng tiết
+        private List<int> GetStartAtRedutance(int classId, int mainSession, TimetableIndividual src, int daysInWeek)
+        {
+            var startAtRemove = new List<int>();
+            var mainClassPeriods = src.TimetableUnits.Where(u => (int)u.Session == mainSession && u.ClassId == classId);
+            var nToRemove = (daysInWeek * 5) - mainClassPeriods.Count();
+            var nToRandom = MathF.Ceiling(nToRemove / (float)daysInWeek);
+            for (int j = 0; j < nToRandom / daysInWeek; j++)
+            {
+                var spaceRandom = new List<int>();
+                var start = mainSession == (int)MainSession.Morning ? 5 - j : 10 + j;
+                for (int k = start; k < daysInWeek * 10 + start; k += 10)
+                {
+                    spaceRandom.Add(k);
+                }
+                var nTake = daysInWeek == nToRemove ? nToRemove : nToRemove % daysInWeek;
+                startAtRemove.AddRange(spaceRandom.Shuffle().Take(nTake));
+                nToRemove -= nTake;
+            }
+            return startAtRemove;
+        }
+
 
         // method lấy các tiết trống theo buổi
-        private List<int> GetAvailableSlots(TimetableIndividual src, int classIndex, MainSession session, GenerateTimetableModel parameters, bool isDouble = false)
+        private List<int> GetAvailableSlots(TimetableIndividual src, int classIndex, MainSession session, GenerateTimetableModel parameters)
         {
             List<int> slots = new List<int>();
             int start = session == MainSession.Morning ? 1 : 6;
-            int end = session == MainSession.Morning ? !isDouble ? 4 : 5 : !isDouble ? 9 : 10;
+            int end = session == MainSession.Morning ?  5 : 10;
 
             for (int j = 0; j < parameters.DaysInWeek; j++)
             {
@@ -778,28 +843,6 @@ namespace SchedulifySystem.Service.Services.Implements
                         slots.Add(slotIndex);
                 }
             }
-            
-            // để handle lủng tiết 
-            var cls = src.Classes[classIndex];
-            if (cls.MainSession == (int)session && isDouble)
-            {
-                var nPost = src.TimetableUnits.Where(u => u.ClassId == cls.MainSession && u.Session == session && u.Priority != EPriority.Double && u.Priority != EPriority.Fixed).Count();
-                var nRemove = slots.Count - nPost;
-                
-                var slotsRemove = new List<int>();
-                for (int i = 1; i <= nRemove;i++)
-                {
-                    var nTake = nRemove == parameters.DaysInWeek ? parameters.DaysInWeek : nRemove % parameters.DaysInWeek;
-                    var groupByDate = slots.GroupBy(s => (s - 1) / 10)
-                    .Select(g => new { Slot = g.Key, Count = g.Count(), StartAts = g.ToList() })
-                   .ToList();
-                    int maxCountx = groupByDate.Max(g => g.Count);
-                    var groupByDateSelected = groupByDate
-                    .Where(g => g.Count == maxCountx).Shuffle().First();
-                    slots.Remove(groupByDateSelected.StartAts.Last());
-                }
-            }
-
             return slots;
         }
 
@@ -818,10 +861,10 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         // method phân bổ tiết đôi vào các cặp tiết liên tiếp
-        private void AssignDoublePeriods(TimetableIndividual src, int classIndex, List<(int, int)> morningPairs, List<(int, int)> afternoonPairs, Dictionary<int, List<int>> teacherUnavailable)
+        private void AssignDoublePeriods(TimetableIndividual src, int classIndex, List<(int, int)> morningPairs, 
+            List<(int, int)> afternoonPairs, Dictionary<int, List<int>> teacherUnavailable, ClassScheduleModel fClass, int mainSession)
         {
-            var fClass = src.Classes[classIndex];
-            var mainSession = fClass.MainSession;
+            
             var doubleSubjects = src.DoubleSubjectsByGroup.ContainsKey(fClass.CurriculumId) ? src.DoubleSubjectsByGroup[fClass.CurriculumId] : [];
 
             foreach (var subject in doubleSubjects)
@@ -876,7 +919,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private (int, int) TakeAvailableSlot(List<(int, int)> pairs, TimetableIndividual src, ClassPeriodScheduleModel period, Dictionary<int, List<int>> teacherUnavailable)
         {
-            var TeachedSlots = src.TimetableUnits.Where(u => u.TeacherId == period.TeacherId && u.StartAt != 0 && u.ClassId != period.ClassId).Select(u => u.StartAt).ToList();
+            var TeachedSlots = src.TimetableUnits.Where(u => u.TeacherId == period.TeacherId && u.StartAt != 0).Select(u => u.StartAt).ToList();
             // handle phân công rải 
             var availableSlots = pairs.Where(p => !TeachedSlots.Contains(p.Item1) && !TeachedSlots.Contains(p.Item2) 
             && !IsUnavailablePeriod(p.Item1,(int)period.TeacherId,teacherUnavailable) 
@@ -916,12 +959,16 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var morningPeriods = src.TimetableUnits
                 .Where(u => u.ClassId == src.Classes[classIndex].Id && u.StartAt == 0 && u.Session == MainSession.Morning)
-                .OrderBy(u => u.Priority)
+                .GroupBy(u => u.SubjectId)
+                .OrderByDescending(g => g.Count())
+                .SelectMany(g => g)
                 .ToList();
 
             var afternoonPeriods = src.TimetableUnits
                 .Where(u => u.ClassId == src.Classes[classIndex].Id && u.StartAt == 0 && u.Session == MainSession.Afternoon)
-                .OrderBy(u => u.Priority)
+                .GroupBy(u => u.SubjectId) 
+                .OrderByDescending(g => g.Count()) 
+                .SelectMany(g => g) 
                 .ToList();
 
             AssignToContinuousSlots(morningSlots, morningPeriods, src, classIndex, MainSession.Morning, combinationStartAtMap, teacherUnavailable);
@@ -929,7 +976,9 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         // method phân bổ tiết vào các vị trí liên tục để tránh bị lủng
-        private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap, Dictionary<int, List<int>> teacherUnavailable)
+        private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods, 
+            TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, Dictionary<int, 
+                List<int>>> combinationStartAtMap, Dictionary<int, List<int>> teacherUnavailable)
         {
             foreach (var period in periods)
             {
@@ -1008,9 +1057,9 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 int maxCount = groupedSlots.Max(g => g.Count);
                 var maxFreeDays = groupedSlots
-                    .Where(g => g.Count == maxCount);
-                // ưu tiên phân công vô start at nhỏ của ngày 
-                var startAtPriority = maxFreeDays.Shuffle().First().Slots.Shuffle().First();
+                    .Where(g => g.Count == maxCount).ToList();
+
+                var startAtPriority = maxFreeDays[_random.Next(maxFreeDays.Count)].Slots.First();
                 
                 slot = startAtPriority;
             }
