@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.OrTools.ConstraintSolver;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
@@ -85,14 +86,27 @@ namespace SchedulifySystem.Service.Services.Implements
                         && !rs.IsDeleted);
 
 
-
                     if (roomSubjectCodeExists)
                     {
                         throw new DefaultException(ConstantResponse.ROOM_SUBJECT_NAME_OR_CODE_EXIST);
                     }
 
-                    var newRoomSubject = _mapper.Map<RoomSubject>(roomSubjectAddModel);
+                    var curriDetail = await _unitOfWork.StudentClassesRepo.GetV2Async(filter: t=> t.Id == roomSubjectAddModel.StudentClassId.First(),
+                        include: query => query.Include(t => t.StudentClassGroup).ThenInclude(u => u.Curriculum).ThenInclude(p => p.CurriculumDetails));
 
+                    var slot = curriDetail.FirstOrDefault().StudentClassGroup.Curriculum.CurriculumDetails;
+                   
+                    var newRoomSubject = _mapper.Map<RoomSubject>(roomSubjectAddModel);
+                    if (curriDetail.First().MainSession == (int)roomSubjectAddModel.Session)
+                    {
+                        if (slot.Any(c => c.SubjectId == roomSubjectAddModel.SubjectId && c.MainSlotPerWeek > 0))
+                            newRoomSubject.SlotPerWeek = slot.First().MainSlotPerWeek;
+                    }
+                    else
+                    {
+                        if (slot.Any(c => c.SubjectId == roomSubjectAddModel.SubjectId && c.SubSlotPerWeek > 0))
+                            newRoomSubject.SlotPerWeek = slot.First().SubSlotPerWeek;
+                    }
                     await _unitOfWork.RoomSubjectRepo.AddAsync(newRoomSubject);
                     await _unitOfWork.SaveChangesAsync();
 
@@ -105,6 +119,18 @@ namespace SchedulifySystem.Service.Services.Implements
                         }).ToList();
 
                     await _unitOfWork.StudentClassRoomSubjectRepo.AddRangeAsync(studentClassRoomSubjects);
+
+                    var teacherAssignment = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+                        filter: t => roomSubjectAddModel.StudentClassId.Contains(t.StudentClassId) 
+                        && t.SubjectId == roomSubjectAddModel.SubjectId 
+                        && t.TermId == roomSubjectAddModel.TermId 
+                        && !t.IsDeleted);
+
+                    foreach ( var assignment in teacherAssignment)
+                    {
+                        assignment.TeacherId = roomSubjectAddModel.TeacherId;
+                        _unitOfWork.TeacherAssignmentRepo.Update(assignment);
+                    }
 
                     await _unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -183,6 +209,35 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
             var scrs = roomSubjectExisted.StudentClassRoomSubjects.Where(s => !s.IsDeleted);
+            var studentClassId = scrs.Select(s => s.StudentClassId);
+            var teacherAssignment = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+                        filter: t => studentClassId.Distinct().Contains(t.StudentClassId) 
+                        && t.SubjectId == roomSubjectExisted.SubjectId  
+                        && t.TermId == roomSubjectExisted.TermId
+                        && !t.IsDeleted);
+
+            if (model.TeacherId != null && model.TeacherId != teacherAssignment.First().TeacherId)
+            {
+                foreach( var oldAssignment in teacherAssignment)
+                {
+                    oldAssignment.TeacherId = null;
+                    _unitOfWork.TeacherAssignmentRepo.Update(oldAssignment);
+                }
+
+                var newTeacherAssignment = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+                        filter: t => model.StudentClassIds.Contains(t.StudentClassId) 
+                        && t.SubjectId == model.SubjectId
+                        && t.TermId == model.TermId
+                        && !t.IsDeleted);
+
+                foreach (var newAssignment in newTeacherAssignment)
+                {
+                    newAssignment.TeacherId = model.TeacherId;
+                    _unitOfWork.TeacherAssignmentRepo.Update(newAssignment);
+                }
+                await _unitOfWork.SaveChangesAsync();
+            }
+
             var newClasses = model.StudentClassIds.Except(scrs.Select(s => s.Id));
             var newClassesRoomSubjects = newClasses
                        .Select(studentClassId => new StudentClassRoomSubject
@@ -199,7 +254,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     _unitOfWork.StudentClassRoomSubjectRepo.Remove(item);
                 }
             }
-            await _unitOfWork.StudentClassRoomSubjectRepo.AddRangeAsync(newClassesRoomSubjects);
+
+            
+
+                await _unitOfWork.StudentClassRoomSubjectRepo.AddRangeAsync(newClassesRoomSubjects);
             _mapper.Map(model, roomSubjectExisted);
             _unitOfWork.RoomSubjectRepo.Update(roomSubjectExisted);
             await _unitOfWork.SaveChangesAsync();

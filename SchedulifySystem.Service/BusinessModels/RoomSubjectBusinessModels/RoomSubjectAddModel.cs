@@ -18,6 +18,7 @@ namespace SchedulifySystem.Service.BusinessModels.RoomSubjectBusinessModels
         public required string RoomSubjectName { get; set; }
         public required ERoomSubjectModel Model { get; set; }
         public MainSession? Session { get; set; }
+        public required int TeacherId { get; set; }
         public required List<int> StudentClassId { get; set; }
     }
 
