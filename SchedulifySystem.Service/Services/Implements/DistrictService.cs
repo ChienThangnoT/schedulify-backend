@@ -26,9 +26,15 @@ namespace SchedulifySystem.Service.Services.Implements
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
-        public async Task<BaseResponseModel> GetDistrictByProvinceId(int? provinceId)
+
+        public async Task<BaseResponseModel> GetDistrictByProvinceId(int? provinceId, int pageIndex, int pageSize)
         {
-            var districts = await _unitOfWork.DistrictRepo.GetPaginationAsync(filter: t => (provinceId == null || t.ProvinceId == provinceId) && !t.IsDeleted);
+            var districts = await _unitOfWork.DistrictRepo.GetPaginationAsync(
+                filter: t => (provinceId == null || t.ProvinceId == provinceId) && !t.IsDeleted,
+                orderBy: t => t.OrderBy(a => a.Id),
+                pageIndex: pageIndex,
+                pageSize: pageSize);
+
             if (districts.Items.Count == 0)
             {
                 throw new NotExistsException(ConstantResponse.DISTRICT_NOT_EXIST);

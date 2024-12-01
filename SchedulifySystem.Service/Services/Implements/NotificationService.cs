@@ -35,14 +35,16 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #region Get All Notifications By Account Id
-        public async Task<BaseResponseModel> GetAllNotificationsByAccountIdAsync(int accountId, bool? isRead)
+        public async Task<BaseResponseModel> GetAllNotificationsByAccountIdAsync(int accountId, bool? isRead, int pageIndex, int pageSize)
         {
             var user = await _unitOfWork.UserRepo.GetByIdAsync(accountId, filter: t => t.Status == (int)AccountStatus.Active)
                 ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
 
             var notification = await _unitOfWork.NotificationRepo.GetPaginationAsync(
                 filter: t => t.AccountId == accountId && (isRead == null || t.IsRead == isRead) && t.IsDeleted == false,
-                orderBy: query => query.OrderByDescending(t => t.CreateDate));
+                orderBy: query => query.OrderByDescending(t => t.CreateDate),
+                pageIndex: pageIndex,
+                pageSize: pageSize);
 
             if (notification == null || notification.Items.Count == 0)
             {

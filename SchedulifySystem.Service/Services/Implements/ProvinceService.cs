@@ -26,9 +26,14 @@ namespace SchedulifySystem.Service.Services.Implements
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
-        public async Task<BaseResponseModel> GetProvinces(int? provinceId)
+        public async Task<BaseResponseModel> GetProvinces(int? provinceId, int pageIndex = 1, int pageSize = 20)
         {
-            var provinces = await _unitOfWork.ProvinceRepo.GetPaginationAsync(filter: t => (provinceId == null || t.Id == provinceId) && !t.IsDeleted);
+            var provinces = await _unitOfWork.ProvinceRepo.GetPaginationAsync(
+                filter: t => (provinceId == null || t.Id == provinceId) && !t.IsDeleted,
+                orderBy: t => t.OrderBy(a => a.Id),
+                pageIndex: pageIndex,
+                pageSize: pageSize);
+
             if (provinces.Items.Count == 0)
             {
                 throw new NotExistsException(ConstantResponse.PROVINCE_NOT_EXIST);

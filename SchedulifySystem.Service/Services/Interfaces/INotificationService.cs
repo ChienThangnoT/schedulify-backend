@@ -11,7 +11,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface INotificationService
     {
-        Task<BaseResponseModel> GetAllNotificationsByAccountIdAsync(int accountId, bool? isRead);
+        Task<BaseResponseModel> GetAllNotificationsByAccountIdAsync(int accountId, bool? isRead, int pageIndex, int pageSize);
         Task<BaseResponseModel> GetNumbersOfUnReadNotification(int accountId);
         Task<BaseResponseModel> MakeNotificationsIsReadAsync(int id);
         Task<BaseResponseModel> MakeAllNotificationsIsReadAsync(int accountId);
