@@ -555,6 +555,19 @@ namespace SchedulifySystem.Service.Services.Implements
                 })
                 .ToList();
             parameters.PracticeRoomWithSubjects = groupByRoom;
+            // lấy ds lớp gộp
+            var combinations = await _unitOfWork.RoomSubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == parameters.SchoolId, 
+                include: query => query.Include(r => r.StudentClassRoomSubjects.Where(s => !s.IsDeleted)));
+            var combinationPara = new List<ClassCombination>();
+            combinationPara.AddRange(combinations.Select(s => new ClassCombination()
+            {
+                ClassIds = s.StudentClassRoomSubjects.Select(c => c.Id).ToList(),
+                RoomId = (int)s.RoomId,
+                Session = (MainSession)s.Session,
+                SubjectId = (int)s.SubjectId,
+                TeacherId = s.TeacherId,
+            })) ;
+            parameters.ClassCombinations = combinationPara;
 
             return (classes, teachers, subjects, assignments.OrderBy(a => a.PeriodCount).ToList(), timetableFlags);
         }
@@ -732,7 +745,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
-
+            
             // đánh dấu những tiết trong lớp gộp
             int index = 1;
             foreach (var combination in parameters.ClassCombinations)

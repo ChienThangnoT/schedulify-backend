@@ -29,6 +29,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<NoAssignPeriodScheduleModel>? NoAssignPeriodsPara { get; set; }
         public List<FreeTimetablePeriodScheduleModel>? FreeTimetablePeriodsPara { get; set; }
         public required List<TeacherAssignmentMinimalData> TeacherAssignments { get; set; }
+        [JsonIgnore]
         public List<ClassCombination>? ClassCombinations { get; set; }
 
         [JsonIgnore]
