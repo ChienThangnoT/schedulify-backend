@@ -9,6 +9,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface IDistrictService
     {
-        Task<BaseResponseModel> GetDistrictByProvinceId(int? provinceId);
+        Task<BaseResponseModel> GetDistrictByProvinceId(int? provinceId, int pageIndex, int pageSize);
     }
 }

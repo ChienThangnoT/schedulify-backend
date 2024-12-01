@@ -17,9 +17,9 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet]
-        public Task<IActionResult> GetDistrictByProvinceId(int? id)
+        public Task<IActionResult> GetDistrictByProvinceId(int? id, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _provinceService.GetProvinces(id));
+            return ValidateAndExecute(() => _provinceService.GetProvinces(id, pageIndex, pageSize));
         }
     }
 }
