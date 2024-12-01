@@ -33,5 +33,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<TeacherUnavailability> TeacherUnavailabilities { get; set; } = new List<TeacherUnavailability>();
         public ICollection<SubmitRequest> SubmitRequests { get; set; } = new List<SubmitRequest>();
         public ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
+        public ICollection<RoomSubject> RoomSubjects { get; set; } = new List<RoomSubject>();
     }
 }

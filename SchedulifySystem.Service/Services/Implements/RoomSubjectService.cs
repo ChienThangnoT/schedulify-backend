@@ -336,7 +336,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 }).ToList(),
                 CreateDate = rs.CreateDate,
                 UpdateDate = rs.UpdateDate,
-                IsDeleted = rs.IsDeleted
+                IsDeleted = rs.IsDeleted,
+                TeacherId = rs.TeacherId,
+                TeacherFirstName = rs.Teacher.FirstName,
+                TeacherLastName = rs.Teacher.LastName,
+                TeacherAbbreviation = rs.Teacher.Abbreviation,
+
             }).ToList();
 
             var paginationResult = new Pagination<RoomSubjectsViewModel>

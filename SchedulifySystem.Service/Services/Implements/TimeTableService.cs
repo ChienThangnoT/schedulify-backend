@@ -224,7 +224,7 @@ namespace SchedulifySystem.Service.Services.Implements
             timetableDb.CreateDate = DateTime.UtcNow;
             timetableDb.StartWeek = parameters.StartWeek ;
             timetableDb.EndWeek = parameters.EndWeek;
-            timetableDb.FitnessPoint = timetableFirst.Adaptability;
+            timetableDb.FitnessPoint = (int)CalculateScore(timetableFirst.Adaptability);
            
 
             // export csv
@@ -254,6 +254,37 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetableDb),
             };
         }
+
+        private  float CalculateScore(int fitnessPoint)
+        {
+            if (fitnessPoint < 0)
+                return 0;
+
+            // Khai báo các khoảng (intervals) với tham số tương ứng
+            var intervals = new[]
+            {
+                new { Min = 0.0,     Max = 10.0,      S = 100.0, k = 0.0051293,  F0 = 0.0 },       // Khoảng 1: 0 - 10
+                new { Min = 10.0,    Max = 50.0,      S = 95.0,  k = 0.0013517,  F0 = 10.0 },      // Khoảng 2: 10 - 50
+                new { Min = 50.0,    Max = 1000.0,    S = 90.0,  k = 0.00012398, F0 = 50.0 },      // Khoảng 3: 50 - 1,000
+                new { Min = 1000.0,  Max = 10000.0,   S = 80.0,  k = 0.000031964, F0 = 1000.0 },   // Khoảng 4: 1,000 - 10,000
+                new { Min = 10000.0, Max = 100000.0,  S = 60.0,  k = 0.000045493, F0 = 10000.0 }   // Khoảng 5: 10,000 - 100,000
+            };
+
+            // Duyệt qua từng khoảng để tìm khoảng phù hợp với fitnessPoint
+            foreach (var interval in intervals)
+            {
+                if (fitnessPoint >= interval.Min && fitnessPoint <= interval.Max)
+                {
+                    // Tính điểm dựa trên hàm suy giảm mũ (S x e^(-k * (fitnessPoint - F0)
+                    return (float) (interval.S * Math.Exp(-interval.k * (fitnessPoint - interval.F0)));
+                }
+            }
+
+            // Nếu fitnessPoint không nằm trong bất kỳ khoảng nào, trả về 0
+            return 0;
+        }
+
+
         #endregion
 
         #region Convert Data 
@@ -524,6 +555,19 @@ namespace SchedulifySystem.Service.Services.Implements
                 })
                 .ToList();
             parameters.PracticeRoomWithSubjects = groupByRoom;
+            // lấy ds lớp gộp
+            var combinations = await _unitOfWork.RoomSubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == parameters.SchoolId, 
+                include: query => query.Include(r => r.StudentClassRoomSubjects.Where(s => !s.IsDeleted)));
+            var combinationPara = new List<ClassCombination>();
+            combinationPara.AddRange(combinations.Select(s => new ClassCombination()
+            {
+                ClassIds = s.StudentClassRoomSubjects.Select(c => c.Id).ToList(),
+                RoomId = (int)s.RoomId,
+                Session = (MainSession)s.Session,
+                SubjectId = (int)s.SubjectId,
+                TeacherId = s.TeacherId,
+            })) ;
+            parameters.ClassCombinations = combinationPara;
 
             return (classes, teachers, subjects, assignments.OrderBy(a => a.PeriodCount).ToList(), timetableFlags);
         }
@@ -701,7 +745,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
-
+            
             // đánh dấu những tiết trong lớp gộp
             int index = 1;
             foreach (var combination in parameters.ClassCombinations)

@@ -567,6 +567,10 @@ public partial class SchedulifyContext : DbContext
            .HasOne(rs => rs.Term)
            .WithMany(r => r.RoomSubjects)
            .HasForeignKey(rs => rs.TermId);
+        modelBuilder.Entity<RoomSubject>()
+           .HasOne(rs => rs.Teacher)
+           .WithMany(r => r.RoomSubjects)
+           .HasForeignKey(rs => rs.TeacherId);
 
         //Curriculum
         modelBuilder.Entity<Curriculum>()

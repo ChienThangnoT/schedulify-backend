@@ -28,8 +28,12 @@ namespace SchedulifySystem.Service.BusinessModels.RoomSubjectBusinessModels
         public int RoomId { get; set; }
         public int SchoolId { get; set; }
         public int TermId { get; set; }
+        public int? TeacherId { get; set; }
         public string? RoomSubjectCode { get; set; }
         public string? RoomSubjectName { get; set; }
+        public string? TeacherFirstName { get; set; }
+        public string? TeacherLastName {  get; set; }
+        public string? TeacherAbbreviation { get; set; }
         public ERoomSubjectModel Model { get; set; }
         public MainSession? Session { get; set; }
         public List<StudentClassList>? StudentClass { get; set; }
