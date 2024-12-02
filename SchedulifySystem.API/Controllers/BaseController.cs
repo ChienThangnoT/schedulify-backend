@@ -27,7 +27,7 @@ namespace SchedulifySystem.API.Controllers
                 StatusCodes.Status400BadRequest => BadRequest(baseResponse),
                 StatusCodes.Status404NotFound => NotFound(baseResponse),
                 StatusCodes.Status409Conflict => Conflict(baseResponse),
-                StatusCodes.Status500InternalServerError => StatusCode(StatusCodes.Status500InternalServerError, baseResponse),
+                StatusCodes.Status500InternalServerError => StatusCode(StatusCodes.Status400BadRequest, baseResponse),
                 _ => StatusCode(baseResponse.Status, baseResponse)
             };
         }
