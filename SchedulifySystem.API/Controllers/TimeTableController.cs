@@ -41,5 +41,7 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _timetableService.GetAll(schoolId, pageIndex, pageSize));
         }
+
+        
     }
 }
