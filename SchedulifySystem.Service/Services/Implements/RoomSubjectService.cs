@@ -314,7 +314,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: rs => rs.SchoolId == schoolId && (roomSubjectId == null || rs.Id == roomSubjectId)
                     && (termId == null || rs.TermId == termId)
                     && !rs.IsDeleted,
-                include: query => query.Include(t => t.StudentClassRoomSubjects).ThenInclude(scrs => scrs.StudentClass),
+                include: query => query.Include(a => a.Teacher).Include(t => t.StudentClassRoomSubjects).ThenInclude(scrs => scrs.StudentClass),
                 orderBy: query => query.OrderBy(rs => rs.UpdateDate),
                 pageIndex: pageIndex, pageSize: pageSize);
 
@@ -341,6 +341,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 TeacherFirstName = rs.Teacher.FirstName,
                 TeacherLastName = rs.Teacher.LastName,
                 TeacherAbbreviation = rs.Teacher.Abbreviation,
+                Session = (MainSession)rs.Session
 
             }).ToList();
 
