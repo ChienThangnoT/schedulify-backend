@@ -28,5 +28,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
             List<TeacherAssigmentScheduleModel>,
             ETimetableFlag[,]
             )> GetData(GenerateTimetableModel parameters);
+        public Task<BaseResponseModel> CheckPeriodChange(CheckPeriodChangeModel model);
     }
 }

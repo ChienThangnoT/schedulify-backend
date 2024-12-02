@@ -15,10 +15,10 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int EndWeek { get; set; }
         public int SchoolId { get; set; }
         public int TermId { get; set; }
-        public string TermName { get; set; }
+        public string? TermName { get; set; }
         public string? Name { get; set; }
         public int FitnessPoint { get; set; }
 
-        public ICollection<ClassScheduleViewModel> ClassSchedules { get; set; }
+        public List<ClassScheduleViewModel> ClassSchedules { get; set; }
     }
 }
