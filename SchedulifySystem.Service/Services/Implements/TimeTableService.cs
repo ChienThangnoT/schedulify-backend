@@ -2589,5 +2589,99 @@ namespace SchedulifySystem.Service.Services.Implements
             };
 
         }
+
+        public async Task<BaseResponseModel> CheckPeriodChange(CheckPeriodChangeModel model)
+        {
+            var session = GetSession(model.FromStartAts.First());
+            if (model.ToStartAts.Any(s => GetSession(s) != session))
+            {
+                return new BaseResponseModel()
+                {
+                    Message = "Chỉ có thể trao đổi các tiết trong 1 buổi",
+                    Status = StatusCodes.Status400BadRequest
+                };
+            }
+
+            if (model.ToStartAts.Count != model.FromStartAts.Count)
+            {
+                return new BaseResponseModel()
+                {
+                    Message = "Chỉ có thể đổi với số lượng tiết bằng nhau",
+                    Status = StatusCodes.Status400BadRequest
+                };
+            }
+
+            var start = session == MainSession.Morning ? 1 : 6;
+            var end = session == MainSession.Morning ? 5 : 10;
+
+            // ds tiết học trong lớp 
+            var classPeriods = model.TimeTableData.ClassSchedules.FirstOrDefault(c => c.StudentClassId == model.ClassId)?.ClassPeriods
+                ?? throw new NotExistsException($"Không tìm thấy lớp Id {model.ClassId} trong thời khóa biểu.");
+            // ds tiết muốn đổi 
+            var fromPeriods = classPeriods.Where(p => model.FromStartAts.Contains(p.StartAt)).ToList();
+
+            // ds tiết bị đổi
+            var toPeriods = classPeriods.Where(p => model.ToStartAts.Contains(p.StartAt)).ToList();
+
+            // ds startAt bị đổi do chưa có tiết nào vị trí đó 
+            var freeStartAts = model.ToStartAts.Where(s => !toPeriods.Select(p => p.StartAt).Contains(s));
+            
+            // ds tiết của trường 
+            var schoolPeriods = model.TimeTableData.ClassSchedules.SelectMany(c => c.ClassPeriods)
+                .Where(p => p.StartAt % 10 >= start && p.StartAt % 10 <= end);
+
+            // ds tiết dạy giáo viên của tiết muốn đổi
+            var teacherPeriods = schoolPeriods.Where(p => fromPeriods.Select(f => f.TeacherId)
+            .Contains(p.TeacherId)).ToList();
+
+            // ds tiết dạy của giáo viên bị đổi
+            var teacherPeriods2 = new List<ClassPeriodViewModel>();
+            if (toPeriods.Any())
+            {
+                var teacherIds = toPeriods.Select(p => p.TeacherId).ToList();
+                teacherPeriods2 = schoolPeriods.Where(p => teacherIds.Contains(p.TeacherId)).ToList();
+            }
+            
+            //ds tiết bị trùng 
+            var teachedStartAtFrom = teacherPeriods.Where(p => model.ToStartAts.Contains(p.StartAt));
+            var teachedStartAtTo = teacherPeriods2.Where(p => fromPeriods.Select(f => f.StartAt).Contains(p.StartAt));
+
+            // kiểm tra có đổi đc k 
+            var isChangeAble = !teachedStartAtFrom.Any() && !teachedStartAtTo.Any();
+            
+            // đổi đc thì change timetable
+            if (isChangeAble)
+            {
+                for (int i = 0; i < model.FromStartAts.Count; i++)
+                {
+                    fromPeriods[i].StartAt = model.ToStartAts[i];
+                    if (i < toPeriods.Count)
+                        toPeriods[i].StartAt = model.FromStartAts[i];
+                }
+            }
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = isChangeAble
+                    ? $"Đủ điều kiện để đổi tiết."
+                    : $"Không thể đổi tiết do {string.Join("", teachedStartAtFrom.Select(p =>
+                    {
+                        (string day, string period) = GetDayAndPeriodString(p.StartAt);
+                        return $"giáo viên {p.TeacherAbbreviation} có tiết dạy vào {day} {period}, ";
+                    }))}{string.Join("", teachedStartAtTo.Select(p =>
+                    {
+                        (string day, string period) = GetDayAndPeriodString(p.StartAt);
+                        return $"giáo viên {p.TeacherAbbreviation} có tiết dạy vào {day} {period}, ";
+                    }))}",
+                            Result = isChangeAble ? model.TimeTableData : new Object()
+            };
+
+
+        }
+
+        private MainSession GetSession(int startAt)
+        {
+            return (startAt % 10 >= 1 && startAt % 10 <= 5) ? MainSession.Morning : MainSession.Afternoon;
+        }
     }
 }

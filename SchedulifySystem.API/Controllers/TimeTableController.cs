@@ -42,6 +42,10 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _timetableService.GetAll(schoolId, pageIndex, pageSize));
         }
 
-        
+        [HttpPost("check-period-change")]
+        public Task<IActionResult> CheckPeriodChange(CheckPeriodChangeModel model)
+        {
+            return ValidateAndExecute(() => _timetableService.CheckPeriodChange(model));
+        }
     }
 }
