@@ -400,7 +400,7 @@ namespace SchedulifySystem.Service.Services.Implements
     Dictionary<int, List<TeachableSubject>> teacherCapabilities,
     Dictionary<int, int> homeroomTeachers,
     List<FixedTeacherAssignmentModel>? fixedAssignments,
-    List<ClassCombination>? classCombinations,
+    List<ClassCombinationAutoAssign>? classCombinations,
     Dictionary<int, ICollection<CurriculumDetail>>? curriculums)
         {
             // Bước 1: Phân công giáo viên cố định trước

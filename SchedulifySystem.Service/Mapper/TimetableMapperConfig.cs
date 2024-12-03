@@ -60,26 +60,32 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.EndYear, otp => otp.MapFrom(src => src.SchoolYear.EndYear));
 
             CreateMap<TimetableIndividual, SchoolScheduleDetailsViewModel>()
-            .ForMember(dest => dest.ClassSchedules, otp => otp.MapFrom(src => src.Classes.Select(c => new ClassScheduleViewModel()
-            {
-                StudentClassId = c.Id,
-                Name = $"Thời khóa biểu lớp {c.Name}",
-                CreateDate = DateTime.UtcNow,
-                StudentClassName = c.Name,
-                ClassPeriods = src.TimetableUnits.Where(cp => cp.ClassId == c.Id).Select(cp => new ClassPeriodViewModel()
+            .ForMember(dest => dest.ClassSchedules, opt => opt.MapFrom(src =>
+                src.Classes.Select(c => new ClassScheduleViewModel()
                 {
-                    StartAt = cp.StartAt,
-                    Priority = cp.Priority,
-                    TeacherAbbreviation = cp.TeacherAbbreviation,
-                    TeacherAssignmentId = cp.TeacherAssignmentId,
-                    TeacherId = cp.TeacherId,
-                    SubjectAbbreviation = cp.SubjectAbbreviation,
-                    SubjectId = cp.SubjectId,
+                    StudentClassId = c.Id,
+                    Name = $"Thời khóa biểu lớp {c.Name}",
                     CreateDate = DateTime.UtcNow,
-                    DateOfWeek = cp.StartAt / 10,
-                }).OrderBy(cp => cp.StartAt).ToList()
-            }
-            )));
+                    StudentClassName = c.Name,
+                    ClassPeriods = src.TimetableUnits
+                        .Where(cp => cp.ClassId == c.Id)
+                        .Select(cp => new ClassPeriodViewModel()
+                        {
+                            StartAt = cp.StartAt,
+                            Priority = cp.Priority,
+                            TeacherAbbreviation = cp.TeacherAbbreviation,
+                            TeacherAssignmentId = cp.TeacherAssignmentId,
+                            TeacherId = cp.TeacherId,
+                            SubjectAbbreviation = cp.SubjectAbbreviation,
+                            SubjectId = cp.SubjectId,
+                            CreateDate = DateTime.UtcNow,
+                            DateOfWeek = cp.StartAt / 10
+                        })
+                        .OrderBy(cp => cp.StartAt)
+                        .ToList()
+                })
+            ));
         }
+
     }
 }

@@ -82,7 +82,7 @@ namespace SchedulifySystem.Service.Services.Implements
             /*timetableIdBacklog, backlogCount, và backlogCountMax: Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh 
              * việc mắc kẹt trong tối ưu cục bộ.timetableIdBacklog, backlogCount, và backlogCountMax: 
               Các biến dùng để theo dõi trạng thái lặp lại của quần thể để tránh việc mắc kẹt trong tối ưu cục bộ.*/
-
+            var bestTimetableList = new List<TimetableIndividual>();
 
             for (var step = 1; step <= NUMBER_OF_GENERATIONS; step++)
             {
@@ -94,8 +94,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.First().Adaptability < 1000 && step > 0)
-                    break;
+                if (timetablePopulation.Take(3).All(t => t.Adaptability< 1000))
+                {
+                        break;
+                }
+                    
 
                 // lai tạo
                 /* Tournament */
@@ -215,7 +218,7 @@ namespace SchedulifySystem.Service.Services.Implements
             //Console.Clear();
             //Console.WriteLine(sw.Elapsed.ToString() + ", " + backlogCountMax);
 
-            //save to database
+            //
             var timetableDb = _mapper.Map<SchoolSchedule>(timetableFirst);
             timetableDb.SchoolId = parameters.SchoolId;
             timetableDb.SchoolYearId = parameters.SchoolYearId;
@@ -230,6 +233,32 @@ namespace SchedulifySystem.Service.Services.Implements
             // export csv
             timetableFirst.ToCsv();
             timetableFirst.TimetableFlag.ToCsv(timetableFirst.Classes);
+            var combinationPeriods = timetableFirst.TimetableUnits.Where(u => u.ClassCombination != null).ToList();
+            combinationPeriods.ForEach(p => p.Priority = EPriority.Combination);
+            var result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetableDb);
+            var combinationsViewModels = combinationPeriods.GroupBy(c => c.ClassCombination.Id).Select(g =>
+            {
+                var period = g.FirstOrDefault();
+                
+                var combination = period.ClassCombination;
+
+                return new ClassCombinationViewModel()
+                {
+                    ClassCombinationCode = combination.RoomSubjectCode,
+                    ClassCombinationId = combination.Id,
+                    ClassCombinationName = combination.RoomSubjectName,
+                    Classes = combination.Classes,
+                    StartAt = g.Select(p => p.StartAt).Distinct().ToList(),
+                    SubjectAbbreviation = period.SubjectAbbreviation,
+                    SubjectId = period.SubjectId.HasValue ? (int)period.SubjectId : 0,
+                    SubjectName = period.SubjectName,
+                    TeacherAbbreviation = period.TeacherAbbreviation,
+                    TeacherId = period.TeacherId.HasValue ? (int)period.TeacherId : 0,
+                    TeacherName = combination.TeacherName
+                };
+            }
+            ).ToList();
+            result.ClassCombinations = combinationsViewModels;
 
             if (parameters.CurrentUserEmail != null)
             {
@@ -251,7 +280,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 Status = StatusCodes.Status200OK,
                 Message = "Tạo thời khóa biểu thành công!",
-                Result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetableDb),
+                Result = result,
             };
         }
 
@@ -539,12 +568,11 @@ namespace SchedulifySystem.Service.Services.Implements
             parameters.FixedPeriods = fixedPeriods;
 
             // lấy ra ds các phòng học có môn thực hành
-            var roomLabsDb = await _unitOfWork.RoomSubjectRepo.GetV2Async(
-                filter: r => r.Room.Building.SchoolId == parameters.SchoolId && !r.IsDeleted, include: query => query.Include(r => r.Room));
+            var roomLabsDb = (await _unitOfWork.RoomSubjectRepo.GetV2Async(
+                filter: r => r.Room.Building.SchoolId == parameters.SchoolId && !r.IsDeleted, include: query => query
+                .Include(r => r.Room).Include(r => r.StudentClassRoomSubjects).ThenInclude(r => r.StudentClass).Include(r => r.Teacher)));
 
-            // nhóm theo phòng
-            var groupByRoom = roomLabsDb
-                .GroupBy(r => r.RoomId)
+            parameters.PracticeRooms = roomLabsDb.Where(r => !r.StudentClassRoomSubjects.Any()).GroupBy(r => r.RoomId)
                 .Select(g => new RoomSubjectScheduleModel()
                 {
                     RoomId = g.Key ?? 0,
@@ -554,7 +582,21 @@ namespace SchedulifySystem.Service.Services.Implements
                     Name = g.First().Room?.Name ?? ""
                 })
                 .ToList();
-            parameters.PracticeRoomWithSubjects = groupByRoom;
+
+            parameters.ClassCombinations = roomLabsDb.Where(r => r.StudentClassRoomSubjects.Any()).Select(c => new ClassCombination
+            {
+                Classes = c.StudentClassRoomSubjects.Select(c => new StudentClassViewName() { Id = c.StudentClassId, Name = c.StudentClass.Name }).ToList(),
+                RoomId = (int)c.RoomId,
+                Id = c.Id,
+                RoomName = c.Room.Name,
+                RoomSubjectCode = c.RoomSubjectCode,
+                RoomSubjectName = c.RoomSubjectName,
+                Session = (MainSession)c.Session,
+                SubjectId = (int)c.SubjectId,
+                TeacherId = (int)c.TeacherId,
+                TeacherName = $"{c.Teacher.FirstName} {c.Teacher.LastName}"
+            }).ToList();
+
             // lấy ds lớp gộp
             //var combinations = await _unitOfWork.RoomSubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == parameters.SchoolId, 
             //    include: query => query.Include(r => r.StudentClassRoomSubjects.Where(s => !s.IsDeleted)));
@@ -567,7 +609,6 @@ namespace SchedulifySystem.Service.Services.Implements
             //    SubjectId = (int)s.SubjectId,
             //    TeacherId = s.TeacherId,
             //})) ;
-            parameters.ClassCombinations = [];
 
             return (classes, teachers, subjects, assignments.OrderBy(a => a.PeriodCount).ToList(), timetableFlags);
         }
@@ -611,7 +652,6 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
-
 
             for (var i = 0; i < classes.Count; i++)
             {
@@ -747,24 +787,15 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // đánh dấu những tiết trong lớp gộp
-            int index = 1;
-            foreach (var combination in parameters.ClassCombinations)
+            foreach(var combination in parameters.ClassCombinations)
             {
-                var founded = timetableUnits.Where(u => u.SubjectId == combination.SubjectId && combination.ClassIds.Contains((int)u.ClassId));
-                combination.Id = index++;
-                var groupByClasses = founded.GroupBy(u => u.ClassId);
-                foreach (var group in groupByClasses)
+                var periods = timetableUnits.Where(u => combination.Classes.Select(c => c.Id).Contains(u.ClassId) && u.SubjectId == combination.SubjectId && u.Session == combination.Session);;
+                foreach (var item in periods)
                 {
-                    int j = 0;
-                    foreach (var item in group)
-                    {
-                        item.ClassCombinations = combination;
-                        item.RoomId = combination.RoomId;
-                        item.Session = combination.Session;
-                        item.periodsTh = j++;
-                    }
+                    item.ClassCombination = combination;
                 }
             }
+
             //sắp xếp lại danh sách timetableUnits theo thứ tự tên lớp học và tạo ra một danh sách mới với thứ tự đã được sắp xếp
             timetableUnits = [.. timetableUnits.OrderBy(u => u.ClassName)];
 
@@ -811,8 +842,6 @@ namespace SchedulifySystem.Service.Services.Implements
         private async void RandomlyAssign(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             // Tạo dictionary để lưu thông tin startAt của mỗi ClassCombination
-            var combinationStartAtMap = new Dictionary<int, Dictionary<int, List<int>>>();
-            var combinationDoublePairsMap = new Dictionary<int, Dictionary<int, (int, int)>>();
             var teacherUnavailable = new Dictionary<int, List<int>>();
 
             // danh sách không assign vào 
@@ -843,7 +872,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 afternoonSlots = GetAvailableSlots(src, i, MainSession.Afternoon, parameters).Except(startAtRemove).ToList();
 
                 // phân bổ các tiết đơn còn lại sao cho không bị lủng và đúng buổi
-                AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, combinationStartAtMap, teacherUnavailable);
+                AssignContinuousSinglePeriods(src, i, morningSlots, afternoonSlots, teacherUnavailable);
             }
 
         }
@@ -996,7 +1025,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         // method phân bổ các tiết đơn liên tục để tránh bị lủng owr cuối buổi
-        private void AssignContinuousSinglePeriods(TimetableIndividual src, int classIndex, List<int> morningSlots, List<int> afternoonSlots, Dictionary<int, Dictionary<int, List<int>>> combinationStartAtMap, Dictionary<int, List<int>> teacherUnavailable)
+        private void AssignContinuousSinglePeriods(TimetableIndividual src, int classIndex, List<int> morningSlots, List<int> afternoonSlots, Dictionary<int, List<int>> teacherUnavailable)
         {
             morningSlots.Sort();
             afternoonSlots.Sort();
@@ -1015,14 +1044,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 .SelectMany(g => g)
                 .ToList();
 
-            AssignToContinuousSlots(morningSlots, morningPeriods, src, classIndex, MainSession.Morning, combinationStartAtMap, teacherUnavailable);
-            AssignToContinuousSlots(afternoonSlots, afternoonPeriods, src, classIndex, MainSession.Afternoon, combinationStartAtMap, teacherUnavailable);
+            AssignToContinuousSlots(morningSlots, morningPeriods, src, classIndex, MainSession.Morning, teacherUnavailable);
+            AssignToContinuousSlots(afternoonSlots, afternoonPeriods, src, classIndex, MainSession.Afternoon, teacherUnavailable);
         }
 
         // method phân bổ tiết vào các vị trí liên tục để tránh bị lủng
         private void AssignToContinuousSlots(List<int> slots, List<ClassPeriodScheduleModel> periods,
-            TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, Dictionary<int,
-                List<int>>> combinationStartAtMap, Dictionary<int, List<int>> teacherUnavailable)
+            TimetableIndividual src, int classIndex, MainSession session, Dictionary<int, List<int>> teacherUnavailable)
         {
             foreach (var period in periods)
             {
@@ -1039,50 +1067,10 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     continue;
                 }
-
-
-                if (period.ClassCombinations != null)
-                {
-                    if (combinationStartAtMap.ContainsKey(period.ClassCombinations.Id))
-                    {
-                        var combinationClassMap = combinationStartAtMap[period.ClassCombinations.Id];
-                        if (combinationClassMap.ContainsKey(classIndex))
-                        {
-                            var slot = TakeAvailableSlot(validSlots, src, period, teacherUnavailable);
-                            combinationClassMap[classIndex].Add(slot);
-                            period.StartAt = slot;
-                            src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
-                            slots.Remove(slot);
-                        }
-                        else
-                        {
-                            var combinationStarts = combinationClassMap[combinationClassMap.Keys.First()];
-                            var startAt = combinationStarts[period.periodsTh];
-                            period.StartAt = startAt;
-                            src.TimetableFlag[classIndex, startAt] = ETimetableFlag.Filled;
-                            slots.Remove(startAt);
-                        }
-                    }
-                    else
-                    {
-                        var slot = TakeAvailableSlot(validSlots, src, period, teacherUnavailable);
-                        var first = new Dictionary<int, List<int>>
-                        {
-                            { classIndex, new List<int>(){ slot } }
-                        };
-                        combinationStartAtMap.Add(period.ClassCombinations.Id, first);
-                        period.StartAt = slot;
-                        src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
-                        slots.Remove(slot);
-                    }
-                }
-                else
-                {
-                    var slot = TakeAvailableSlot(validSlots, src, period, teacherUnavailable);
-                    period.StartAt = slot;
-                    src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
-                    slots.Remove(slot);
-                }
+                var slot = TakeAvailableSlot(validSlots, src, period, teacherUnavailable);
+                period.StartAt = slot;
+                src.TimetableFlag[classIndex, slot] = ETimetableFlag.Filled;
+                slots.Remove(slot);
             }
         }
 
@@ -1159,9 +1147,8 @@ namespace SchedulifySystem.Service.Services.Implements
         private static int CheckHC01(TimetableIndividual src, GenerateTimetableModel parameters)
         {
             var count = 0;
-
             // Lặp qua từng phòng học thực hành có ràng buộc
-            foreach (var roomSubject in parameters.PracticeRoomWithSubjects)
+            foreach (var roomSubject in parameters.PracticeRooms)
             {
                 // Lấy tất cả các tiết học sử dụng phòng thực hành này
                 var timetableUnits = src.TimetableUnits
@@ -1177,13 +1164,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     // Với các lớp gộp, chỉ kiểm tra một lần cho mỗi nhóm
                     var distinctCombinations = units
-                        .Where(u => u.ClassCombinations != null)
-                        .Select(u => u.ClassCombinations.Id)
+                        .Where(u => u.ClassCombination != null)
+                        .Select(u => u.ClassCombination.Id)
                         .Distinct()
                         .Count();
 
                     // Tổng số lớp học (kể cả lớp gộp) sử dụng phòng tại thời điểm này
-                    var totalClasses = units.Count(u => u.ClassCombinations == null) + distinctCombinations;
+                    var totalClasses = units.Count(u => u.ClassCombination == null) + distinctCombinations;
 
                     if (totalClasses > 1)
                     {
@@ -1233,13 +1220,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
                     // Với lớp gộp, chỉ kiểm tra một lần cho mỗi nhóm
                     var distinctCombinations = units
-                        .Where(u => u.ClassCombinations != null)
-                        .Select(u => u.ClassCombinations.Id)
+                        .Where(u => u.ClassCombination != null)
+                        .Select(u => u.ClassCombination.Id)
                         .Distinct()
                         .Count();
 
                     // Tổng số lớp học mà giáo viên tham gia tại thời điểm này
-                    var totalClasses = units.Count(u => u.ClassCombinations == null) + distinctCombinations;
+                    var totalClasses = units.Count(u => u.ClassCombination == null) + distinctCombinations;
 
                     if (totalClasses > 1)
                     {
@@ -1413,7 +1400,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var unitsForSubject = subjectEntry.Value;
 
                     // Tìm tất cả các phòng có thể dạy môn học này và đảm bảo không vượt quá số phòng
-                    var availableRooms = parameters.PracticeRoomWithSubjects
+                    var availableRooms = parameters.PracticeRooms
                         .Where(room => room.TeachableSubjectIds.Contains(subjectId))
                         .ToList();
 
@@ -2241,29 +2228,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             for (var i = 0; i < parents[0].TimetableUnits.Count; i++)
             {
-                // Kiểm tra xem tiết có thuộc lớp gộp không
-                if (parents[0].TimetableUnits[i].ClassCombinations != null ||
-                    parents[1].TimetableUnits[i].ClassCombinations != null)
-                {
-                    // Xác định cha mẹ sẽ được sao chép (ưu tiên cha, nếu không thì mẹ)
-                    var parentToInherit = parents[0].TimetableUnits[i].ClassCombinations != null ? 0 : 1;
-
-                    // Lấy toàn bộ các tiết thuộc lớp gộp từ cha mẹ đã chọn
-                    var combinationId = parents[parentToInherit].TimetableUnits[i].ClassCombinations.Id;
-
-                    foreach (var unit in parents[parentToInherit].TimetableUnits
-                        .Where(u => u.ClassCombinations?.Id == combinationId))
-                    {
-                        var index = parents[parentToInherit].TimetableUnits.IndexOf(unit);
-                        for (var j = 0; j < children.Count; j++)
-                        {
-                            children[j].TimetableUnits[index].StartAt = unit.StartAt;
-                            children[j].TimetableUnits[index].Priority = unit.Priority;
-                        }
-                    }
-                    continue; // Bỏ qua hoán đổi cho các tiết thuộc lớp gộp
-                }
-
+               
                 // Nếu i nằm ngoài khoảng từ startIndex đến endIndex, sao chép trực tiếp từ cha mẹ sang con
 
                 // Nếu i nằm ngoài phạm vi của buổi chính và buổi phụ, sao chép từ cha mẹ sang con
@@ -2454,7 +2419,7 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             src.TimetableUnits = type switch
             {
-                EChromosomeType.ClassChromosome => [.. src.TimetableUnits.OrderBy(u => u.ClassName).ThenBy(u => u.Session).ThenBy(u => u.SubjectId).ThenBy(u => u.ClassCombinations?.Id ?? int.MaxValue)],
+                EChromosomeType.ClassChromosome => [.. src.TimetableUnits.OrderBy(u => u.ClassName).ThenBy(u => u.Session).ThenBy(u => u.SubjectId)],
                 EChromosomeType.TeacherChromosome => [.. src.TimetableUnits.OrderBy(u => u.TeacherAbbreviation)],
                 _ => throw new NotImplementedException(),
             };
@@ -2495,22 +2460,6 @@ namespace SchedulifySystem.Service.Services.Implements
                     src.TimetableFlag[classIndex, unit.StartAt] = ETimetableFlag.Filled;
                 }
 
-                // Nếu là tiết thuộc lớp gộp, đảm bảo đồng bộ trạng thái giữa các lớp trong tổ hợp
-                if (unit.ClassCombinations != null)
-                {
-                    foreach (var relatedUnit in src.TimetableUnits
-                        .Where(u => u.ClassCombinations?.Id == unit.ClassCombinations.Id))
-                    {
-                        var relatedClassIndex = src.Classes.FindIndex(c => c.Name == relatedUnit.ClassName);
-
-                        if (relatedClassIndex == -1)
-                        {
-                            throw new Exception($"Lớp {relatedUnit.ClassName} không tồn tại trong danh sách lớp.");
-                        }
-
-                        src.TimetableFlag[relatedClassIndex, relatedUnit.StartAt] = ETimetableFlag.Filled;
-                    }
-                }
             }
         }
 
