@@ -15,19 +15,21 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ITimetableService
     {
-        public Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel);
-        public Task<BaseResponseModel> Get(int id);
-        public Task<BaseResponseModel> GetAll(int schoolId, int pageIndex, int pageSize);
-        public Task<BaseResponseModel> Check(Guid timetableId);
-        public Task<BaseResponseModel> Update(TimetableIndividual timetable);
-        public Task<BaseResponseModel> Delete(int id);
-        public Task<(
+        Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel);
+        Task<BaseResponseModel> Get(int id);
+        Task<BaseResponseModel> GetAll(int schoolId, int pageIndex, int pageSize);
+        Task<BaseResponseModel> Check(Guid timetableId);
+        Task<BaseResponseModel> Update(TimetableIndividual timetable);
+        Task<BaseResponseModel> Delete(int id);
+        Task<(
             List<ClassScheduleModel>,
             List<TeacherScheduleModel>,
             List<SubjectScheduleModel>,
             List<TeacherAssigmentScheduleModel>,
             ETimetableFlag[,]
             )> GetData(GenerateTimetableModel parameters);
-        public Task<BaseResponseModel> CheckPeriodChange(CheckPeriodChangeModel model);
+        Task<BaseResponseModel> CheckPeriodChange(CheckPeriodChangeModel model);
+        Task<BaseResponseModel> UpdateStatusTimeTable(int schoolId, int yearId,int termId ,ScheduleStatus scheduleStatus);
+        //Task<BaseResponseModel> PublishedTimetable(int schoolId, int yearId,int termId ,ScheduleStatus scheduleStatus);
     }
 }

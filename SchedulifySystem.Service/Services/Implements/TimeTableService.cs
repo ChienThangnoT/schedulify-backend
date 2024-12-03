@@ -2521,6 +2521,88 @@ namespace SchedulifySystem.Service.Services.Implements
             throw new NotImplementedException();
         }
 
+        public async Task<BaseResponseModel> UpdateStatusTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
+        {
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var year = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+            var term = await _unitOfWork.TermRepo.GetByIdAsync(termId) ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+            
+            if(scheduleStatus == ScheduleStatus.Published || scheduleStatus == ScheduleStatus.Draft)
+            {
+                throw new DefaultException("Không thể cập nhật trạng thái này");
+            }
+            
+            switch (scheduleStatus)
+            {
+                case ScheduleStatus.PublishedInternal:
+                    var isPublishedInternal = await PublishInternalTimeTable(schoolId, yearId, termId);
+                    return new BaseResponseModel
+                    {   
+                        Status = StatusCodes.Status200OK,
+                        Message = isPublishedInternal ? "Schedule updated successfully." : "Failed to update schedule."
+                    };
+                case ScheduleStatus.Expired:
+                    var isUpdated = await PublishInternalTimeTable(schoolId, yearId, termId);
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = isUpdated ? "Successfully." : "Failed."
+                    }; 
+                case ScheduleStatus.Disabled:
+                    isUpdated = await PublishInternalTimeTable(schoolId, yearId, termId);
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = isUpdated ? "Successfully." : "Failed."
+                    };
+            }
+            return null;
+        }
+
+        public async Task<bool> PublishInternalTimeTable(int schoolId, int yearId, int termId)
+        {
+            var getTeacherInSchool = await _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => t.SchoolId == schoolId && !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong);
+            var teacherEmail = getTeacherInSchool.Select(t => t.Email);
+
+            var getAccountTeacher = await _unitOfWork.UserRepo.GetAsync(
+                filter: t => teacherEmail.Contains(t.Email));
+            if (!getAccountTeacher.Any())
+            {
+                return false;
+            }
+
+            NotificationModel noti = new NotificationModel
+            {
+                Title = "Thời khóa biểu công bố nội bộ",
+                Message = $"Thời khóa biểu đã được công bố trong nội bộ, nếu có yêu cầu thay đổi vui lòng gửi đơn cho quản lí.",
+                Type = ENotificationType.HeThong,
+                Link = ""
+            };
+            foreach (var teacher in getAccountTeacher)
+            {
+                await _notificationService.SendNotificationToUser(teacher.Id, noti);
+            }
+            return true;
+        }
+
+        public async Task<bool> UpdateTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
+        {
+            var timetablerecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
+                filter: t => t.SchoolId == schoolId && termId == termId && t.SchoolYearId == yearId);
+            if (!timetablerecent.Any())
+            {
+                return false;
+            }
+            if(scheduleStatus != ScheduleStatus.Published)
+            {
+                _unitOfWork.SchoolScheduleRepo.RemoveRange(timetablerecent);
+                await _unitOfWork.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+
         public async Task<BaseResponseModel> GetAll(int schoolId, int pageIndex = 1, int pageSize = 20)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)

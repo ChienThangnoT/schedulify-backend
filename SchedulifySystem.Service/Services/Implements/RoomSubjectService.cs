@@ -66,6 +66,11 @@ namespace SchedulifySystem.Service.Services.Implements
                         throw new NotExistsException(ConstantResponse.ROOM_CAPILITY_NOT_ENOUGH);
                     }
 
+                    if (roomSubjectAddModel.StudentClassId.Distinct().Count() <=1)
+                    {
+                        throw new DefaultException("Số lượng lớp phải lớn hơn 1 lớp khi tạo lớp gộp");
+                    }
+
                     var validStudentClassIds = await _unitOfWork.StudentClassesRepo
                         .GetAsync(s => roomSubjectAddModel.StudentClassId.Contains(s.Id) && !s.IsDeleted);
 
@@ -178,8 +183,14 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             if (roomExists.MaxClassPerTime < model.StudentClassIds.Distinct().Count())
             {
+               
                 throw new NotExistsException(ConstantResponse.ROOM_CAPILITY_NOT_ENOUGH);
             }
+            if (model.StudentClassIds.Distinct().Count() <= 1)
+            {
+                throw new DefaultException("Số lượng lớp phải lớn hơn 1 lớp khi tạo lớp gộp");
+            }
+
             var validStudentClassIds = await _unitOfWork.StudentClassesRepo
                         .GetAsync(s => model.StudentClassIds.Contains(s.Id) && !s.IsDeleted);
 
@@ -328,6 +339,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 RoomSubjectCode = rs.RoomSubjectCode,
                 RoomSubjectName = rs.RoomSubjectName,
                 Model = (ERoomSubjectModel)rs.Model,
+                EGrade = (EGrade)rs.Grade,
                 StudentClass = rs.StudentClassRoomSubjects
                 .Select(scrs => new StudentClassList
                 {
