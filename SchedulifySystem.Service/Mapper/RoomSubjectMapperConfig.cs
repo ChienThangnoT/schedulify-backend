@@ -2,6 +2,7 @@
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomSubjectBusinessModels;
+using SchedulifySystem.Service.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,10 +20,12 @@ namespace SchedulifySystem.Service.Mapper
 
             CreateMap<RoomSubjectAddModel, RoomSubject>()
                  .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                 .ForMember(dest => dest.Grade, opt => opt.MapFrom(src => src.Grade))
                 .ReverseMap();
 
             CreateMap<RoomSubjectUpdateModel, RoomSubject>()
                  .ForMember(dest => dest.UpdateDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                 .ForMember(dest => dest.Grade, opt => opt.MapFrom(src => src.Grade))
                 .ReverseMap();
         }
     }
