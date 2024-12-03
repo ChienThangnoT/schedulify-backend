@@ -159,7 +159,7 @@ public partial class SchedulifyContext : DbContext
             entity.HasOne(cp => cp.ClassSchedule)
                 .WithMany(cs => cs.ClassPeriods)
                 .HasForeignKey(cp => cp.ClassScheduleId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(cp => cp.Room)
                 .WithMany(r => r.ClassPeriods)
@@ -194,7 +194,8 @@ public partial class SchedulifyContext : DbContext
         modelBuilder.Entity<ClassSchedule>()
             .HasOne(cs => cs.SchoolSchedule)
             .WithMany(ss => ss.ClassSchedules)
-            .HasForeignKey(cs => cs.SchoolScheduleId);
+            .HasForeignKey(cs => cs.SchoolScheduleId)
+            .OnDelete(DeleteBehavior.Cascade);
 
 
         // ConfigAttribute Entity
