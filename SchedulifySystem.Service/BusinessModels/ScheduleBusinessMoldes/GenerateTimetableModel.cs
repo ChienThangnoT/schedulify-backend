@@ -1,4 +1,5 @@
 ﻿
+using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
@@ -29,8 +30,6 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public List<NoAssignPeriodScheduleModel>? NoAssignPeriodsPara { get; set; }
         public List<FreeTimetablePeriodScheduleModel>? FreeTimetablePeriodsPara { get; set; }
         public required List<TeacherAssignmentMinimalData> TeacherAssignments { get; set; }
-        [JsonIgnore]
-        public List<ClassCombination>? ClassCombinations { get; set; }
 
         [JsonIgnore]
         public List<ClassPeriodScheduleModel> FixedPeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // ds tiết cố định 
@@ -41,7 +40,10 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         [JsonIgnore]
         public List<ClassPeriodScheduleModel> FreeTimetablePeriods { get; set; } = new List<ClassPeriodScheduleModel>(); // Ds tiết trống - dùng cho kiểm tra tiết lủng // bỏ
         [JsonIgnore]
-        public List<RoomSubjectScheduleModel> PracticeRoomWithSubjects { get; set; } = new List<RoomSubjectScheduleModel>(); //
+        public List<RoomSubjectScheduleModel> PracticeRooms { get; set; } = new List<RoomSubjectScheduleModel>(); //
+        
+        [JsonIgnore]
+        public List<ClassCombination>? ClassCombinations { get; set; } = new List<ClassCombination>(); //
 
         public int RequiredBreakPeriods { get; set; } = 1;
         public int MinimumDaysOff { get; set; } = 0;
