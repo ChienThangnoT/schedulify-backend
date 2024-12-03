@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Services.Interfaces;
+using System.ComponentModel.DataAnnotations;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -42,10 +44,23 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _timetableService.GetAll(schoolId, pageIndex, pageSize));
         }
 
-        [HttpPost("check-period-change")]
+        [HttpPut("check-period-change")]
         public Task<IActionResult> CheckPeriodChange(CheckPeriodChangeModel model)
         {
             return ValidateAndExecute(() => _timetableService.CheckPeriodChange(model));
         }
+
+        [HttpPut("status")]
+        public Task<IActionResult> UpdateTimeTableStatus(int schoolId, int yearId, [Required]int termId, [Required] ScheduleStatus scheduleStatus)
+        {
+            return ValidateAndExecute(() => _timetableService.UpdateTimeTableStatus(schoolId, yearId, termId, scheduleStatus));
+        }
+
+        [HttpPost("publish")]
+        public Task<IActionResult> PublishedTimetable(SchoolScheduleDetailsViewModel schoolScheduleDetailsModel)
+        {
+            return ValidateAndExecute(() => _timetableService.PublishedTimetable(schoolScheduleDetailsModel));
+        }
+
     }
 }

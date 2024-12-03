@@ -2572,35 +2572,36 @@ namespace SchedulifySystem.Service.Services.Implements
             throw new NotImplementedException();
         }
 
-        public async Task<BaseResponseModel> UpdateStatusTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
+        #region update timetable status
+        public async Task<BaseResponseModel> UpdateTimeTableStatus(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var year = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
             var term = await _unitOfWork.TermRepo.GetByIdAsync(termId) ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
-            
-            if(scheduleStatus == ScheduleStatus.Published || scheduleStatus == ScheduleStatus.Draft)
+
+            if (scheduleStatus == ScheduleStatus.Published || scheduleStatus == ScheduleStatus.Draft)
             {
                 throw new DefaultException("Không thể cập nhật trạng thái này");
             }
-            
+
             switch (scheduleStatus)
             {
                 case ScheduleStatus.PublishedInternal:
-                    var isPublishedInternal = await PublishInternalTimeTable(schoolId, yearId, termId);
+                    var isPublishedInternal = await PublishInternalTimeTable(schoolId);
                     return new BaseResponseModel
-                    {   
+                    {
                         Status = StatusCodes.Status200OK,
                         Message = isPublishedInternal ? "Schedule updated successfully." : "Failed to update schedule."
                     };
                 case ScheduleStatus.Expired:
-                    var isUpdated = await PublishInternalTimeTable(schoolId, yearId, termId);
+                    var isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus);
                     return new BaseResponseModel
                     {
                         Status = StatusCodes.Status200OK,
                         Message = isUpdated ? "Successfully." : "Failed."
-                    }; 
+                    };
                 case ScheduleStatus.Disabled:
-                    isUpdated = await PublishInternalTimeTable(schoolId, yearId, termId);
+                    isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus);
                     return new BaseResponseModel
                     {
                         Status = StatusCodes.Status200OK,
@@ -2610,7 +2611,7 @@ namespace SchedulifySystem.Service.Services.Implements
             return null;
         }
 
-        public async Task<bool> PublishInternalTimeTable(int schoolId, int yearId, int termId)
+        public async Task<bool> PublishInternalTimeTable(int schoolId)
         {
             var getTeacherInSchool = await _unitOfWork.TeacherRepo.GetAsync(
                 filter: t => t.SchoolId == schoolId && !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong);
@@ -2625,7 +2626,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             NotificationModel noti = new NotificationModel
             {
-                Title = "Thời khóa biểu công bố nội bộ",
+                Title = "Công bố thời khóa biểu dự kiến",
                 Message = $"Thời khóa biểu đã được công bố trong nội bộ, nếu có yêu cầu thay đổi vui lòng gửi đơn cho quản lí.",
                 Type = ENotificationType.HeThong,
                 Link = ""
@@ -2640,12 +2641,12 @@ namespace SchedulifySystem.Service.Services.Implements
         public async Task<bool> UpdateTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
         {
             var timetablerecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
-                filter: t => t.SchoolId == schoolId && termId == termId && t.SchoolYearId == yearId);
+                filter: t => t.SchoolId == schoolId && t.TermId == termId && t.SchoolYearId == yearId);
             if (!timetablerecent.Any())
             {
                 return false;
             }
-            if(scheduleStatus != ScheduleStatus.Published)
+            if (scheduleStatus != ScheduleStatus.Published)
             {
                 _unitOfWork.SchoolScheduleRepo.RemoveRange(timetablerecent);
                 await _unitOfWork.SaveChangesAsync();
@@ -2653,6 +2654,67 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             return false;
         }
+
+
+        #endregion Published Timetable
+
+        #region Published Timetable
+        public async Task<BaseResponseModel> PublishedTimetable(SchoolScheduleDetailsViewModel schoolScheduleDetailsViewModel)
+        {
+            var schoolExist = await _unitOfWork.SchoolRepo.GetAsync(filter: t => t.Id == schoolScheduleDetailsViewModel.SchoolId && t.Status == (int)SchoolStatus.Active)
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var termExist = await _unitOfWork.TermRepo.GetAsync(filter: t => !t.IsDeleted && t.Id == schoolScheduleDetailsViewModel.TermId)
+                ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+            var schoolYearExist = await _unitOfWork.SchoolYearRepo.GetAsync(filter: t => !t.IsDeleted && t.Id == schoolScheduleDetailsViewModel.SchoolYearId)
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
+
+            var timetableRecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
+                filter: t => t.SchoolId == schoolScheduleDetailsViewModel.SchoolId && t.TermId == schoolScheduleDetailsViewModel.TermId && t.SchoolYearId == schoolScheduleDetailsViewModel.SchoolYearId);
+            if (timetableRecent.Any())
+            {
+                throw new DefaultException(ConstantResponse.TIMETABLE_EXIST_PUBLISH);
+            }
+            schoolScheduleDetailsViewModel.Id = 0;
+            var timetable = _mapper.Map<SchoolSchedule>(schoolScheduleDetailsViewModel);
+
+            await _unitOfWork.SchoolScheduleRepo.AddAsync(timetable);
+            await _unitOfWork.SaveChangesAsync();
+            var sendNoti = PublishTimeTable(schoolScheduleDetailsViewModel.SchoolId);
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.PUBLISH_TIMETABLE_SUCESS
+            };
+        }
+
+        public async Task<bool> PublishTimeTable(int schoolId)
+        {
+            var getTeacherInSchool = await _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => t.SchoolId == schoolId && !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong);
+            var teacherEmail = getTeacherInSchool.Select(t => t.Email);
+
+            var getAccountTeacher = await _unitOfWork.UserRepo.GetAsync(
+                filter: t => teacherEmail.Contains(t.Email));
+            if (!getAccountTeacher.Any())
+            {
+                return false;
+            }
+
+            NotificationModel noti = new NotificationModel
+            {
+                Title = "Công bố thời khóa biểu chính thức",
+                Message = $"Vui lòng kiểm tra thời khóa biểu chính thức đã được công bố.",
+                Type = ENotificationType.HeThong,
+                Link = ""
+            };
+
+            foreach (var teacher in getAccountTeacher)
+            {
+                await _notificationService.SendNotificationToUser(teacher.Id, noti);
+            }
+            return true;
+        }
+        #endregion
 
         public async Task<BaseResponseModel> GetAll(int schoolId, int pageIndex = 1, int pageSize = 20)
         {

@@ -207,12 +207,14 @@ namespace SchedulifySystem.Service.Services.Implements
             var roomSubjectExisted = await _unitOfWork.RoomSubjectRepo.GetByIdAsync(id, filter: f => !f.IsDeleted && f.SchoolId == schoolId, 
                 include: query => query.Include(rs => rs.StudentClassRoomSubjects)) ??
                 throw new NotExistsException(ConstantResponse.ROOM_SUBJECT_NOT_EXIST);
-            if (!model.RoomSubjectName.Equals(roomSubjectExisted.RoomSubjectName, StringComparison.OrdinalIgnoreCase) || !model.RoomSubjectCode.Equals(roomSubjectExisted.RoomSubjectCode, StringComparison.OrdinalIgnoreCase))
+            if (!model.RoomSubjectName.Equals(roomSubjectExisted.RoomSubjectName, StringComparison.OrdinalIgnoreCase) 
+                || !model.RoomSubjectCode.Equals(roomSubjectExisted.RoomSubjectCode, StringComparison.OrdinalIgnoreCase))
             {
                 var roomSubjectCodeExists = await _unitOfWork.RoomSubjectRepo.ExistsAsync(rs => rs.Id != id &&
-                                       (!string.IsNullOrEmpty(rs.RoomSubjectCode) && rs.RoomSubjectCode.ToLower() == model.RoomSubjectCode.ToLower())
-                                       || (!string.IsNullOrEmpty(rs.RoomSubjectName) && rs.RoomSubjectName.ToLower() == model.RoomSubjectName.ToLower())
-                                       && !rs.IsDeleted);
+                ((!string.IsNullOrEmpty(rs.RoomSubjectCode) && rs.RoomSubjectCode.ToLower() == model.RoomSubjectCode.ToLower())
+                || (!string.IsNullOrEmpty(rs.RoomSubjectName) && rs.RoomSubjectName.ToLower() == model.RoomSubjectName.ToLower()))
+                && !rs.IsDeleted);
+
 
                 if (roomSubjectCodeExists)
                 {
