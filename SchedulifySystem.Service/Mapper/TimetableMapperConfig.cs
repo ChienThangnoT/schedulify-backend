@@ -48,6 +48,36 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.EndWeek, otp => otp.MapFrom(src => src.EndWeek))
                 .ForMember(dest => dest.ClassSchedules, otp => otp.MapFrom(src => src.ClassSchedules));
 
+            CreateMap<SchoolScheduleDetailsViewModel, SchoolSchedule>()
+                .ForMember(dest => dest.StartWeek, otp => otp.MapFrom(src => src.StartWeek))
+                .ForMember(dest => dest.EndWeek, otp => otp.MapFrom(src => src.EndWeek))
+                .ForMember(dest => dest.SchoolId, otp => otp.MapFrom(src => src.SchoolId))
+                .ForMember(dest => dest.TermId, otp => otp.MapFrom(src => src.TermId))
+                .ForMember(dest => dest.Name, otp => otp.MapFrom(src => src.Name ?? "Thời khóa biểu không tên"))
+                .ForMember(dest => dest.FitnessPoint, otp => otp.MapFrom(src => src.FitnessPoint))
+                .ForMember(dest => dest.ClassSchedules, otp => otp.MapFrom(src => src.ClassSchedules.Select(cs => new ClassSchedule
+                {
+                    StudentClassId = cs.StudentClassId,
+                    Name = cs.Name ?? $"Thời khóa biểu lớp {cs.StudentClassName}",
+                    CreateDate = DateTime.UtcNow,
+                    StudentClassName = cs.StudentClassName,
+                    ClassPeriods = cs.ClassPeriods.Select(cp => new ClassPeriod
+                    {
+                        StartAt = cp.StartAt,
+                        Priority = (int)cp.Priority,
+                        TeacherAbbreviation = cp.TeacherAbbreviation,
+                        TeacherAssignmentId = cp.TeacherAssignmentId,
+                        TeacherId = cp.TeacherId,
+                        SubjectAbbreviation = cp.SubjectAbbreviation,
+                        SubjectId = cp.SubjectId,
+                        RoomId = cp.RoomId,
+                        RoomCode = cp.RoomCode,
+                        DateOfWeek = cp.DateOfWeek,
+                        CreateDate = DateTime.UtcNow,
+                    }).ToList()
+                })));
+
+
             CreateMap<ClassSchedule, ClassScheduleViewModel>()
                 .ForMember(dest => dest.ClassPeriods, otp => otp.MapFrom(src => src.ClassPeriods));
 

@@ -192,7 +192,9 @@ namespace SchedulifySystem.Service.Utils.Constants
 
         //Timetable
         public const string TIMETABLE_NOT_FOUND = "The timetable does not exist.";
+        public const string TIMETABLE_EXIST_PUBLISH = "Trong 1 học kì chỉ có 1 thời khóa biểu được áp dụng.";
         public const string GET_TIMETABLE_SUCCESS = "Get the timetable success.";
+        public const string PUBLISH_TIMETABLE_SUCESS = "Publish timetable success.";
 
         //Notification
         public const string GET_NOTIFICATION_NOT_EXIST = "Do not have any notification.";
