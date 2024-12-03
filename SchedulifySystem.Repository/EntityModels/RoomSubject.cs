@@ -15,6 +15,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? RoomSubjectCode { get; set; }
         public string? RoomSubjectName { get; set; }
         public int Model { get; set; }
+        public int Grade { get; set; }
         public int? Session {  get; set; }
         public int? SlotPerWeek {  get; set; }
         public int? TeacherId { get; set; }
