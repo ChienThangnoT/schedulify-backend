@@ -29,7 +29,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
             ETimetableFlag[,]
             )> GetData(GenerateTimetableModel parameters);
         Task<BaseResponseModel> CheckPeriodChange(CheckPeriodChangeModel model);
-        //Task<BaseResponseModel> PublishInternalTimeTable(int schoolId, int yearId,int termId ,ScheduleStatus scheduleStatus);
-        //Task<BaseResponseModel> PublishTimetable(int schoolId,int termId, int yearId ,ScheduleStatus scheduleStatus);
+        Task<BaseResponseModel> UpdateStatusTimeTable(int schoolId, int yearId,int termId ,ScheduleStatus scheduleStatus);
+        //Task<BaseResponseModel> PublishedTimetable(int schoolId, int yearId,int termId ,ScheduleStatus scheduleStatus);
     }
 }
