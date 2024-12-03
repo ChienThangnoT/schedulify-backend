@@ -12,6 +12,6 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
         public int MaxPeriodsPerWeek { get; set; } = 17;
         public int MinPeriodsPerWeek { get; set; } = 10;
         public List<FixedTeacherAssignmentModel>? fixedAssignment {  get; set; } = new List<FixedTeacherAssignmentModel>();
-        public List<ClassCombination>? classCombinations { get; set; }
+        public List<ClassCombinationAutoAssign>? classCombinations { get; set; }
     }
 }

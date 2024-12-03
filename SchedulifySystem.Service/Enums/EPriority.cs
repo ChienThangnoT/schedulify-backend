@@ -11,7 +11,7 @@ namespace SchedulifySystem.Service.Enums
         None = 999,
         Low = 4,
         Medium = 3,
-        High = 2,
+        Combination = 2,
         Double = 1,
         Fixed = 0,
     }
