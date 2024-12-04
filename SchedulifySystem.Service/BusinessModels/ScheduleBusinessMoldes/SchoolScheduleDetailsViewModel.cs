@@ -18,6 +18,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public string? TermName { get; set; }
         public string? Name { get; set; }
         public int FitnessPoint { get; set; }
+        public double ExcuteTime { get; set; }
         public List<ClassCombinationViewModel> ClassCombinations { get; set; }
         public List<ClassScheduleViewModel> ClassSchedules { get; set; }
     }

@@ -106,10 +106,10 @@ public partial class SchedulifyContext : DbContext
                 .ToTable("Notification");
         modelBuilder.Entity<Notification>()
             .Property(a => a.Title)
-            .HasMaxLength(50);
+            .HasMaxLength(150);
         modelBuilder.Entity<Notification>()
             .Property(a => a.Message)
-            .HasMaxLength(50);
+            .HasMaxLength(350);
         modelBuilder.Entity<Notification>()
             .HasOne(b => b.Account)
             .WithMany(s => s.Notifications)
@@ -548,6 +548,10 @@ public partial class SchedulifyContext : DbContext
             .HasOne(sr => sr.Teacher)
             .WithMany(t => t.SubmitRequests)
             .HasForeignKey(sr => sr.TeacherId);
+        modelBuilder.Entity<SubmitRequest>()
+            .HasOne(sr => sr.SchoolYear)
+            .WithMany(t => t.SubmitRequests)
+            .HasForeignKey(sr => sr.SchoolYearId);
 
         //RoomSubject
         modelBuilder.Entity<RoomSubject>()

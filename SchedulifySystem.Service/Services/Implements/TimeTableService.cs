@@ -275,6 +275,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 await _notificationService.SendNotificationToUser(user.FirstOrDefault().Id, noti);
             }
 
+            var executionTime = stopwatch.Elapsed;
+            result.ExcuteTime = executionTime.TotalSeconds;
 
             return new BaseResponseModel()
             {

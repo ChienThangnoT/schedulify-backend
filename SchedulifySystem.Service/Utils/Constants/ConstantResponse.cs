@@ -229,5 +229,10 @@ namespace SchedulifySystem.Service.Utils.Constants
         // Province
         public const string PROVINCE_NOT_EXIST = "Tỉnh không tồn tại.";
         public const string GET_PROVINCE_SUCCESS = "Lấy danh sách quận/huyện thành công.";
+
+        // Submit Request
+        public const string GET_SUBMIT_REQUEST_SUCCESS = "Lấy danh sách đơn thàn công.";
+        public const string SUBMIT_REQUEST_SUCCESS = "Gửi đơn thành công.";
+
     }
 }
