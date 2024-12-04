@@ -8,8 +8,8 @@ namespace SchedulifySystem.Service.Enums
 {
     public enum ERequestStatus
     {
-        Approved,
-        Rejected,
-        Pending
+        Approved = 1 ,
+        Rejected = 2,
+        Pending = 3
     }
 }
