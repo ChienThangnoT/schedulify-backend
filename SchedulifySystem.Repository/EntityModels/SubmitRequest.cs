@@ -12,9 +12,12 @@ namespace SchedulifySystem.Repository.EntityModels
         public int RequestType { get; set; }
         public DateTime RequestTime { get; set; }
         public int Status { get; set; }
-        public string? Description { get; set; }
+        public string? RequestDescription { get; set; }
+        public string? ProcessNote { get; set; }
         public string? AttachedFile { get; set; }
+        public int? SchoolYearId { get; set; }
 
         public Teacher? Teacher { get; set; }
+        public SchoolYear? SchoolYear { get; set; }
     }
 }

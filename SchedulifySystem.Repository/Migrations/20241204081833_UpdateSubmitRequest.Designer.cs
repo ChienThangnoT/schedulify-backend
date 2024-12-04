@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SchedulifySystem.Repository.DBContext;
@@ -11,9 +12,11 @@ using SchedulifySystem.Repository.DBContext;
 namespace SchedulifySystem.Repository.Migrations
 {
     [DbContext(typeof(SchedulifyContext))]
-    partial class SchedulifyContextModelSnapshot : ModelSnapshot
+    [Migration("20241204081833_UpdateSubmitRequest")]
+    partial class UpdateSubmitRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1220,9 +1223,6 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Property<int>("RequestType")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("SchoolYearId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -1233,8 +1233,6 @@ namespace SchedulifySystem.Repository.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("SchoolYearId");
 
                     b.HasIndex("TeacherId");
 
@@ -1987,17 +1985,11 @@ namespace SchedulifySystem.Repository.Migrations
 
             modelBuilder.Entity("SchedulifySystem.Repository.EntityModels.SubmitRequest", b =>
                 {
-                    b.HasOne("SchedulifySystem.Repository.EntityModels.SchoolYear", "SchoolYear")
-                        .WithMany("SubmitRequests")
-                        .HasForeignKey("SchoolYearId");
-
                     b.HasOne("SchedulifySystem.Repository.EntityModels.Teacher", "Teacher")
                         .WithMany("SubmitRequests")
                         .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("SchoolYear");
 
                     b.Navigation("Teacher");
                 });
@@ -2261,8 +2253,6 @@ namespace SchedulifySystem.Repository.Migrations
                     b.Navigation("StudentClasses");
 
                     b.Navigation("Subjects");
-
-                    b.Navigation("SubmitRequests");
 
                     b.Navigation("Terms");
                 });

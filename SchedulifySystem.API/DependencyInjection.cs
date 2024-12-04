@@ -248,6 +248,10 @@ namespace SchedulifySystem.API
             services.AddTransient<IStudentClassGroupRepository, StudentClassGroupRepository>();
             services.AddTransient<IStudentClassGroupService, StudentClassGroupService>();
 
+            //config Submit Request service and repo
+            services.AddTransient<ISubmitRequestRepository, SubmitRequestRepository>();
+            services.AddTransient<ISubmitRequestService, SubmitRequestService>();
+
             //config Notification
             services.AddSignalR();
             services.AddScoped<INotificationService, NotificationService>();
