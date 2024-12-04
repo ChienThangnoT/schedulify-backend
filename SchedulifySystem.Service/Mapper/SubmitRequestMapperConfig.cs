@@ -13,7 +13,7 @@ namespace SchedulifySystem.Service.Mapper
     {
         partial void SubmitRequestMapperConfig()
         {
-            CreateMap<ApplicationRequest, SubmitRequest>()
+            CreateMap<SubmitSendRequestModel, SubmitRequest>()
                 .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
                 .ReverseMap();
             

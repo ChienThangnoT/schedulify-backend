@@ -8,13 +8,11 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubmitRequest
 {
-    public class ApplicationRequest
+    public class SubmitSendRequestModel
     {
         public required int TeacherId { get; set; }
         public required int SchoolYearId { get; set; }
         public required ERequestType RequestType { get; set; }
-        [JsonIgnore]
-        public DateTime RequestTime { get; set; }
         [JsonIgnore]
         public ERequestStatus Status { get; set; }
         public required string RequestDescription { get; set; }

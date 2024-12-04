@@ -233,6 +233,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         // Submit Request
         public const string GET_SUBMIT_REQUEST_SUCCESS = "Lấy danh sách đơn thàn công.";
         public const string SUBMIT_REQUEST_SUCCESS = "Gửi đơn thành công.";
+        public const string REQUEST_NOT_EXIST = "Đơn không tồn tại.";
+        public const string REQUEST_ALREADY_SOLVED = "Đơn đã được xử lí không thể cập nhật.";
 
     }
 }
