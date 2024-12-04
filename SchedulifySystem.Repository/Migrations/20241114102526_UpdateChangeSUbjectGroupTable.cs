@@ -39,10 +39,7 @@ namespace SchedulifySystem.Repository.Migrations
                 name: "ExpiredDate",
                 table: "SchoolSchedules");
 
-            migrationBuilder.RenameColumn(
-                name: "GroupCode",
-                table: "SubjectGroups",
-                newName: "StudentClassGroupCode");
+
 
             migrationBuilder.RenameColumn(
                 name: "WeeklyRange",
