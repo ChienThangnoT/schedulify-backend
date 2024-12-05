@@ -94,11 +94,11 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.Take(3).All(t => t.Adaptability< 1000))
+                if (timetablePopulation.Take(3).All(t => t.Adaptability < 1000))
                 {
-                        break;
+                    break;
                 }
-                    
+
 
                 // lai tạo
                 /* Tournament */
@@ -239,7 +239,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var combinationsViewModels = combinationPeriods.GroupBy(c => c.ClassCombination.Id).Select(g =>
             {
                 var period = g.FirstOrDefault();
-                
+
                 var combination = period.ClassCombination;
 
                 return new ClassCombinationViewModel()
@@ -789,9 +789,9 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // đánh dấu những tiết trong lớp gộp
-            foreach(var combination in parameters.ClassCombinations)
+            foreach (var combination in parameters.ClassCombinations)
             {
-                var periods = timetableUnits.Where(u => combination.Classes.Select(c => c.Id).Contains(u.ClassId) && u.SubjectId == combination.SubjectId && u.Session == combination.Session);;
+                var periods = timetableUnits.Where(u => combination.Classes.Select(c => c.Id).Contains(u.ClassId) && u.SubjectId == combination.SubjectId && u.Session == combination.Session); ;
                 foreach (var item in periods)
                 {
                     item.ClassCombination = combination;
@@ -2230,7 +2230,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             for (var i = 0; i < parents[0].TimetableUnits.Count; i++)
             {
-               
+
                 // Nếu i nằm ngoài khoảng từ startIndex đến endIndex, sao chép trực tiếp từ cha mẹ sang con
 
                 // Nếu i nằm ngoài phạm vi của buổi chính và buổi phụ, sao chép từ cha mẹ sang con
@@ -2530,37 +2530,34 @@ namespace SchedulifySystem.Service.Services.Implements
             var year = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
             var term = await _unitOfWork.TermRepo.GetByIdAsync(termId) ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
 
-            if (scheduleStatus == ScheduleStatus.Published || scheduleStatus == ScheduleStatus.Draft)
+            if (scheduleStatus == ScheduleStatus.Published)
             {
                 throw new DefaultException("Không thể cập nhật trạng thái này");
             }
 
-            switch (scheduleStatus)
+            return scheduleStatus switch
             {
-                case ScheduleStatus.PublishedInternal:
-                    var isPublishedInternal = await PublishInternalTimeTable(schoolId);
-                    return new BaseResponseModel
-                    {
-                        Status = StatusCodes.Status200OK,
-                        Message = isPublishedInternal ? "Schedule updated successfully." : "Failed to update schedule."
-                    };
-                case ScheduleStatus.Expired:
-                    var isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus);
-                    return new BaseResponseModel
-                    {
-                        Status = StatusCodes.Status200OK,
-                        Message = isUpdated ? "Successfully." : "Failed."
-                    };
-                case ScheduleStatus.Disabled:
-                    isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus);
-                    return new BaseResponseModel
-                    {
-                        Status = StatusCodes.Status200OK,
-                        Message = isUpdated ? "Successfully." : "Failed."
-                    };
-            }
-            return null;
+                ScheduleStatus.PublishedInternal => await PublishInternalTimeTable(schoolId)
+                    ? new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Schedule updated successfully." }
+                    : new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Failed to update schedule." },
+
+                ScheduleStatus.Expired or ScheduleStatus.Disabled or ScheduleStatus.Draft=>
+                    await HandleUpdateTimeTableStatus(schoolId, yearId, termId, scheduleStatus),
+
+                _ => new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Invalid schedule status." }
+            };
         }
+
+        private async Task<BaseResponseModel> HandleUpdateTimeTableStatus(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
+        {
+            var isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus);
+            return new BaseResponseModel
+            {
+                Status = isUpdated ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest,
+                Message = isUpdated ? "Successfully." : "Failed to update schedule."
+            };
+        }
+
 
         public async Task<bool> PublishInternalTimeTable(int schoolId)
         {
@@ -2620,7 +2617,9 @@ namespace SchedulifySystem.Service.Services.Implements
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
             var timetableRecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
-                filter: t => t.SchoolId == schoolScheduleDetailsViewModel.SchoolId && t.TermId == schoolScheduleDetailsViewModel.TermId && t.SchoolYearId == schoolScheduleDetailsViewModel.SchoolYearId);
+                filter: t => t.SchoolId == schoolScheduleDetailsViewModel.SchoolId
+                        && t.TermId == schoolScheduleDetailsViewModel.TermId
+                        && t.SchoolYearId == schoolScheduleDetailsViewModel.SchoolYearId);
             if (timetableRecent.Any())
             {
                 throw new DefaultException(ConstantResponse.TIMETABLE_EXIST_PUBLISH);
