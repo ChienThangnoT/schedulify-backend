@@ -15,6 +15,8 @@ namespace SchedulifySystem.Service.Mapper
         partial void DistrictMapperConfig()
         {
             CreateMap<DistrictViewModel, District>().ReverseMap();
+            CreateMap<DistrictAddModel, District>();
+            CreateMap<DistrictUpdateModel, District>();
         }
     }
 }

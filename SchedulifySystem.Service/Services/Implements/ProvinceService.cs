@@ -73,14 +73,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> RemoveProvince(int provinceId)
         {
-            var province = await _unitOfWork.ProvinceRepo.GetByIdAsync(provinceId) ?? 
+            var province = await _unitOfWork.ProvinceRepo.GetByIdAsync(provinceId, filter: f => !f.IsDeleted) ?? 
                 throw new NotExistsException($"Không tìm thấy tỉnh thành Id {provinceId} trong hệ thống.");
-            if(!province.IsDeleted)
-            {
-                province.IsDeleted = true;
-                _unitOfWork.ProvinceRepo.Update(province);
-                await _unitOfWork.SaveChangesAsync();
-            }
+
+            province.IsDeleted = true;
+            _unitOfWork.ProvinceRepo.Update(province);
+            await _unitOfWork.SaveChangesAsync();
+
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
