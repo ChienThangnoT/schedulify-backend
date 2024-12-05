@@ -12,5 +12,6 @@ namespace SchedulifySystem.Service.BusinessModels.SchoolYearBusinessModels
         public string? StartYear { get; set; }
         public string? EndYear { get; set; }
         public string? SchoolYearCode { get; set; }
+        public bool IsPublic { get; set; }
     }
 }
