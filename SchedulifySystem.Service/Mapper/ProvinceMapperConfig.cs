@@ -14,6 +14,8 @@ namespace SchedulifySystem.Service.Mapper
         partial void ProvinceMapperConfig()
         {
             CreateMap<Province, ProvinceViewModel>().ReverseMap();
+            CreateMap<ProvinceAddModel, Province>();
+            CreateMap<ProvinceUpdateModel, Province>();
         }
     }
 }
