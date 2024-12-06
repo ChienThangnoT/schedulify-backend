@@ -11,6 +11,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? StartYear { get; set; }
         public string? EndYear { get; set; }
         public string? SchoolYearCode { get; set; }
+        public bool IsPublic {  get; set; } = false;
         
         public ICollection<SubmitRequest> SubmitRequests { get; set; } = new List<SubmitRequest>();
         public ICollection<Subject> Subjects { get; set; } = new List<Subject>();
