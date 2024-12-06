@@ -9,7 +9,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
     public class FixedPeriodScheduleModel
     {
         public int? SubjectId { get; set; }
-        public int? ClassId { get; set; }
+        public int? ClassId { get; set; } = null;
         public int StartAt { get; set; }
     }
 }

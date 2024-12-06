@@ -13,7 +13,9 @@ namespace SchedulifySystem.Service.Services.Interfaces
     {
         Task<BaseResponseModel> GetDepartments(int schoolId, int pageIndex = 1, int pageSize = 20);
         Task<BaseResponseModel> AddDepartment(int schoolId, List<DepartmentAddModel> models);
-        Task<BaseResponseModel> UpdateDepartment(int departmentId, DepartmentUpdateModel model);
+        Task<BaseResponseModel> UpdateDepartment(int departmentId, int schoolId, DepartmentUpdateModel model);
         Task<BaseResponseModel> DeleteDepartment(int departmentId);
+        Task<BaseResponseModel> GenerateDepartmentAccount(GenerateTeacherInDepartmentAccountModel generateMode);
+
     }
 }

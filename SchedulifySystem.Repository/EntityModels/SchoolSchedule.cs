@@ -11,12 +11,10 @@ namespace SchedulifySystem.Repository.EntityModels
         public int SchoolYearId { get; set; }
         public int SchoolId { get; set; }
         public int TermId { get; set; }
-        public DateTime ApplyDate { get; set; }
-        public DateTime ExpiredDate { get; set; }
-        public int WeeklyRange { get; set; }
+        public int StartWeek { get; set; }
+        public int EndWeek { get; set; }
         public string? Name { get; set; }
         public int ScheduleType { get; set; }
-        public int MainSession { get; set; }
         public int FitnessPoint {  get; set; }
 
         public School? School { get; set; }

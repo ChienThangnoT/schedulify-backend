@@ -14,6 +14,7 @@ namespace SchedulifySystem.Service.Mapper
         partial void SchoolYearMapperConfig()
         {
             CreateMap<SchoolYear, SchoolYearViewModel>();
+            CreateMap<SchoolYearAddModel, SchoolYear>();
         }
     }
 }

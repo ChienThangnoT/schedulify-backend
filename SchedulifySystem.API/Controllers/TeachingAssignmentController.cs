@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/teacher-assignments")]
+    [Route("api/schools/{schoolId}/academic-years/{yearId}/teacher-assignments")]
     [ApiController]
     public class TeachingAssignmentController : BaseController
     {
@@ -17,11 +18,11 @@ namespace SchedulifySystem.API.Controllers
             _teacherAssignmentService = teacherAssignmentService;
         }
 
-        [HttpPost]
+        [HttpPatch]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> AddTeacherAssignment(AddTeacherAssignmentModel model)
+        public Task<IActionResult> AddTeacherAssignment(List<AssignTeacherAssignmentModel> models)
         {
-            return ValidateAndExecute(() => _teacherAssignmentService.AddAssignment(model));
+            return ValidateAndExecute(() => _teacherAssignmentService.AssignTeacherForAsignments(models));
         }
 
         [HttpGet]
@@ -30,6 +31,21 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _teacherAssignmentService.GetAssignment(studentClassId, termId));
         }
-        
+
+        [HttpPatch("auto-assign-teacher")]
+        //[Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> AutoAssignTeachers(int schoolId, int yearId,AutoAssignTeacherModel model)
+        {
+            return ValidateAndExecute(() => _teacherAssignmentService.AutoAssignTeachers(schoolId, yearId, model));
+        }
+
+        [HttpPatch("check-auto-assign-teacher")]
+        //[Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> CheckAutoAssignTeacher(int schoolId, int yearId, AutoAssignTeacherModel model)
+        {
+            return ValidateAndExecute(() => _teacherAssignmentService.CheckTeacherAssignment(schoolId, yearId, model));
+        }
+
+
     }
 }

@@ -111,5 +111,119 @@ namespace SchedulifySystem.Service.Utils
             ";
             return body;
         }
+
+        public static string SendPasswordTemplate(string schoolName, string accountName,string email, string password)
+        {
+            string body = $@"
+                    <!DOCTYPE html>
+                    <html lang=""vi"">
+                      <head>
+                        <meta charset=""UTF-8"" />
+                        <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
+                        <title>Xác Thực Tài Khoản Fricks</title>
+                      </head>
+                      <body
+                        style=""
+                          font-family: 'Inter', sans-serif;
+                          background-color: #f4f4f4;
+                          padding: 20px;
+                          margin: 0;
+                        ""
+                      >
+                        <div
+                          style=""
+                            width: 600px;
+                            background-color: #24547c;
+                            margin: 0 auto;
+                            overflow: hidden;
+                            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                          ""
+                        >
+                          <div
+                            style=""
+                              background-color: #003e6d;
+                              text-align: left;
+                              width: 600px;
+                              height: 80px;
+                              padding: 0 20px;
+                              display: table;
+                            ""
+                          >
+                            <div style=""display: table-cell; vertical-align: middle; color: #ffffff;"">
+                              <h2>Schedulify</h2>
+                            </div>
+                          </div>
+
+                          <div
+                            style=""
+                              padding: 30px 50px;
+                              text-align: left;
+                              background-color: #fff;
+                              margin-top: 5px;
+                            ""
+                          >
+                            <h2 style=""color: #333"">
+                              Thông tin tài khoản
+                              <span style=""color: #f4a02a; font-weight: 700"">Schedulify</span>
+                            </h2>
+                            <p>Xin chào, <strong>{accountName}</strong></p>
+                            <p>
+                              Bạn đã được tạo tài khoản {email} thuộc trường THPT {schoolName}. Đây là thông tin đăng nhập
+                              của bạn.
+                            </p>
+                            <div style=""margin-top: 35px;"">
+                              <p>
+                                Tài khoản: <span style=""font-style: italic; font-weight: 700; color: #24547c""
+                                >{email}</span>
+                              </p>
+                              <p>
+                                Mật khẩu: <span style=""font-style: italic; font-weight: 700; color: #24547c""
+                                >{password}</span>
+                              </p>
+                            </div>
+                            <p style=""font-size: 16px; font-style: italic; line-height: 22px; margin-top: 35px; color: red"">
+                              <strong style=""color: red"">*Lưu ý:</strong> Không cung cấp thông tin tài khoản cho người khác để tránh những thiệt hại không đáng có!
+                            </p>
+                          </div>
+
+                          <div
+                            style=""
+                              background-color: #24547c;
+                              color: #fff;
+                              padding: 20px;
+                              text-align: center;
+                              line-height: 25px;
+                            ""
+                          >
+                            <p
+                              style=""
+                                margin: 0 0 10px 0;
+                                color: orange;
+                                font-weight: 700;
+                                font-size: 17px;
+                              ""
+                            >
+                            Schedulify - Thời gian hài hòa, tri thức vươn xa
+                            </p>
+                            <a
+                              href=""mailto:fricks.customerservice@gmail.com?subject=Contact&body=Dear shop,%0D%0A%0D%0ATôi có vấn đề này...""
+                              style=""color: #ffffff; text-decoration: none; font-size: small""
+                            >
+                            schedulifyse078@gmail.com
+                            </a>
+
+                            <p style=""font-size: small; margin: 5px 0"">(+84) 977 54 54 50</p>
+                            <p style=""font-size: small; margin: 0"">
+                              Lô E2a-7, Đường D1, Đ. D1, Long Thạnh Mỹ, Thành Phố Thủ Đức,
+							                    Hồ Chí Minh
+                            </p>
+                          </div>
+                        </div>
+                      </body>
+                    </html>
+
+                ";
+            return body;
+        }
     }
 }
