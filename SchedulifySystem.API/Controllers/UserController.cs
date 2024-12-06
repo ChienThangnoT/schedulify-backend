@@ -123,6 +123,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPatch("status")]
+        [Authorize(Roles = "Admin")]
         public Task<IActionResult> UpdateAccountStatus([FromBody]UpdateStatus updateStatus)
         {
             return ValidateAndExecute(() => _userService.UpdateAccountStatus(updateStatus));
