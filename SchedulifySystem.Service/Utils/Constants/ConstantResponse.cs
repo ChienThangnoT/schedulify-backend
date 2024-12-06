@@ -32,6 +32,8 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string SCHOOL_MANAGERR_CONFIRM = "Confirm create school manager account success";
 
         public const string ACCOUNT_LIST_NOT_EXIST = "Account list not exist";
+        public const string ACCOUNT_UN_CHANGE_STATUS = "Account status does not change.";
+        public const string ACCOUNT_CHANGE_STATUS_SUCCESS = "Account status change success.";
 
 
         //auth

@@ -10,6 +10,7 @@ namespace SchedulifySystem.Service.Enums
     {
         Active = 1,
         Pending = 2,
-        Inactive = 3
+        Inactive = 3,
+        Validating = 4
     }
 }

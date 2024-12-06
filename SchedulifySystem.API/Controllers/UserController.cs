@@ -122,6 +122,11 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _userService.ExcuteResetPassword(resetPasswordModel));
         }
 
+        [HttpPatch("status")]
+        public Task<IActionResult> UpdateAccountStatus([FromBody]UpdateStatus updateStatus)
+        {
+            return ValidateAndExecute(() => _userService.UpdateAccountStatus(updateStatus));
+        }
 
         //[HttpPost("admin-register")]
         //public async Task<IActionResult> SignupAccountAdmin(CreateAdmin createSchoolManagerModel)
