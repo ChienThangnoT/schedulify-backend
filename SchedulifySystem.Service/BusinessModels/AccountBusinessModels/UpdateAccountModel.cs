@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchedulifySystem.Service.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +13,11 @@ namespace SchedulifySystem.Service.BusinessModels.AccountBusinessModels
         public string? LastName { get; set; }
         public string? Phone { get; set; }
         public string? AvatarURL { get; set; }
+    }
+
+    public class UpdateStatus
+    {
+        public required int AccountId { get; set; }
+        public required AccountStatus AccountStatus { get; set; }
     }
 }

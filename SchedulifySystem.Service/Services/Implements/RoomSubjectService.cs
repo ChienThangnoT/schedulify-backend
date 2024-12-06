@@ -71,6 +71,37 @@ namespace SchedulifySystem.Service.Services.Implements
                         throw new DefaultException("Số lượng lớp phải lớn hơn 1 lớp khi tạo lớp gộp");
                     }
 
+                    //var getRoomSubjectBySubject = await _unitOfWork.RoomSubjectRepo.GetAsync(
+                    //    filter: t => !t.IsDeleted && t.SubjectId == roomSubjectAddModel.SubjectId 
+                    //    && t.TermId == roomSubjectAddModel.TermId 
+                    //    && t.SchoolId == roomSubjectAddModel.SchoolId);
+
+                    var existingGroupAssignments = await _unitOfWork.StudentClassRoomSubjectRepo.GetV2Async(
+                        s => roomSubjectAddModel.StudentClassId.Contains(s.StudentClassId)
+                           && s.RoomSubject.SubjectId == roomSubjectAddModel.SubjectId
+                           && s.RoomSubject.TermId == roomSubjectAddModel.TermId
+                           && s.RoomSubject.SchoolId == roomSubjectAddModel.SchoolId
+                           && !s.IsDeleted,
+                        include: t => t.Include(a => a.RoomSubject)
+                                       .ThenInclude(r => r.Term)
+                                       .Include(a => a.RoomSubject)
+                                       .ThenInclude(r => r.School));
+
+                    var existingStudentClassIds = existingGroupAssignments
+                        .Select(s => s.StudentClassId)
+                        .Distinct()
+                        .ToList();
+
+                    var conflictingStudentClassIds = roomSubjectAddModel.StudentClassId
+                        .Intersect(existingStudentClassIds)
+                        .ToList();
+
+                    if (conflictingStudentClassIds.Count > 0)
+                    {
+                        var studentClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: t => conflictingStudentClassIds.Contains(t.Id));
+                        throw new DefaultException($"Các lớp sau đã tham gia lớp ghép khác cho môn học này: {string.Join(", ", studentClass)}");
+                    }
+
                     var validStudentClassIds = await _unitOfWork.StudentClassesRepo
                         .GetAsync(s => roomSubjectAddModel.StudentClassId.Contains(s.Id) && !s.IsDeleted);
 
@@ -88,7 +119,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     var roomSubjectCodeExists = await _unitOfWork.RoomSubjectRepo.ExistsAsync(rs =>
                         (!string.IsNullOrEmpty(rs.RoomSubjectCode) && rs.RoomSubjectCode.ToLower() == roomSubjectAddModel.RoomSubjectCode.ToLower())
                         || (!string.IsNullOrEmpty(rs.RoomSubjectName) && rs.RoomSubjectName.ToLower() == roomSubjectAddModel.RoomSubjectName.ToLower())
-                        && !rs.IsDeleted);
+                        && !rs.IsDeleted && rs.SchoolId == roomSubjectAddModel.SchoolId);
 
 
                     if (roomSubjectCodeExists)
@@ -204,6 +235,30 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 throw new NotExistsException($"Các StudentClassId không hợp lệ: {string.Join(", ", invalidStudentClassIds)}");
             }
+
+            var existingGroupAssignments = await _unitOfWork.StudentClassRoomSubjectRepo.GetAsync(
+                s => model.StudentClassIds.Contains(s.StudentClassId)
+                       && s.RoomSubject.SubjectId == model.SubjectId
+                       && s.RoomSubject.TermId == model.TermId
+                       && s.RoomSubject.SchoolId == schoolId
+                       && s.RoomSubject.Id != id
+                       && !s.IsDeleted);
+
+            var existingStudentClassIds = existingGroupAssignments
+                .Select(s => s.StudentClassId)
+                .Distinct()
+                .ToList();
+
+            var conflictingStudentClassIds = model.StudentClassIds
+                .Intersect(existingStudentClassIds)
+                .ToList();
+
+            if (conflictingStudentClassIds.Count > 0)
+            {
+                var studentClass = await _unitOfWork.StudentClassesRepo.GetAsync(filter: t => conflictingStudentClassIds.Contains(t.Id));
+                throw new DefaultException($"Các lớp sau đã tham gia lớp ghép khác cho môn học này: {string.Join(", ", studentClass)}");
+            }
+
             var roomSubjectExisted = await _unitOfWork.RoomSubjectRepo.GetByIdAsync(id, filter: f => !f.IsDeleted && f.SchoolId == schoolId, 
                 include: query => query.Include(rs => rs.StudentClassRoomSubjects)) ??
                 throw new NotExistsException(ConstantResponse.ROOM_SUBJECT_NOT_EXIST);
@@ -213,7 +268,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var roomSubjectCodeExists = await _unitOfWork.RoomSubjectRepo.ExistsAsync(rs => rs.Id != id &&
                 ((!string.IsNullOrEmpty(rs.RoomSubjectCode) && rs.RoomSubjectCode.ToLower() == model.RoomSubjectCode.ToLower())
                 || (!string.IsNullOrEmpty(rs.RoomSubjectName) && rs.RoomSubjectName.ToLower() == model.RoomSubjectName.ToLower()))
-                && !rs.IsDeleted);
+                && !rs.IsDeleted && rs.SchoolId == schoolId);
 
 
                 if (roomSubjectCodeExists)

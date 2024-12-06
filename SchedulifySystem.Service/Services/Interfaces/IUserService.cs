@@ -19,5 +19,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> RequestResetPassword(string gmail);
         Task<BaseResponseModel> ConfirmResetPassword(ConfirmResetPasswordModel confirmResetPasswordModel);
         Task<BaseResponseModel> ExcuteResetPassword(ResetPasswordModel resetPasswordModel);
+        Task<BaseResponseModel> UpdateAccountStatus(UpdateStatus updateStatus);
     }
 }
