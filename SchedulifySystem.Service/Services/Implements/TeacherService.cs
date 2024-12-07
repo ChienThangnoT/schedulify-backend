@@ -438,7 +438,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         #endregion
 
-        #region Update Teacherable Subeject
+        #region add Teacherable Subeject
         public async Task<BaseResponseModel> AddTeachableSubjects(int id, List<SubjectGradeModel> teachableSubjects)
         {
             foreach (var subject in teachableSubjects)
@@ -482,7 +482,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 var subjectObjectPara = subjects.Where(s => teachableSubjectAbbreviationPara.Contains(s.Abbreviation.ToLower()));
 
-
                 int countMainSubjects = teachableSubjects.Count(s => s.IsMain);
                 if (countMainSubjects > 1)
                 {
@@ -500,6 +499,15 @@ namespace SchedulifySystem.Service.Services.Implements
 
                         if (existingSubject != null)
                         {
+                            if (existingSubject.IsMain && !model.IsMain)
+                            {
+                                return new BaseResponseModel
+                                {
+                                    Status = StatusCodes.Status400BadRequest,
+                                    Message = $"Môn học mã {item.Abbreviation} của khối {grade.Grade} đã được đánh dấu là môn chính, không thể thêm mới dưới dạng môn phụ."
+                                };
+                            }
+
                             return new BaseResponseModel
                             {
                                 Status = StatusCodes.Status400BadRequest,
