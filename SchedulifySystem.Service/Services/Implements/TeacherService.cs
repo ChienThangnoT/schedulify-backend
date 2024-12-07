@@ -375,11 +375,12 @@ namespace SchedulifySystem.Service.Services.Implements
                         SubjectId = group.Key,
                         SubjectName = group.First().Subject?.SubjectName,
                         Abbreviation = group.First().Subject?.Abbreviation,
-                        IsMain = group.First().IsMain,
                         ListApproriateLevelByGrades = group.Select(ts => new ListApproriateLevelByGrade
                         {
                             AppropriateLevel = (EAppropriateLevel)ts.AppropriateLevel,
-                            Grade = (EGrade)ts.Grade
+                            Grade = (EGrade)ts.Grade,
+                            Id = ts.Id,
+                            IsMain = ts.IsMain
                         }).ToList()
                     }).ToList()
             }).ToList();
@@ -573,11 +574,12 @@ namespace SchedulifySystem.Service.Services.Implements
                         SubjectId = group.Key,
                         SubjectName = group.First().Subject?.SubjectName,
                         Abbreviation = group.First().Subject?.Abbreviation,
-                        IsMain = group.First().IsMain,
                         ListApproriateLevelByGrades = group.Select(ts => new ListApproriateLevelByGrade
                         {
                             AppropriateLevel = (EAppropriateLevel)ts.AppropriateLevel,
-                            Grade = (EGrade)ts.Grade
+                            Grade = (EGrade)ts.Grade,
+                            Id = ts.Id,
+                            IsMain = ts.IsMain
                         }).ToList()
                     }).ToList()
                 };
