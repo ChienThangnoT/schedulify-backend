@@ -10,6 +10,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
     public class TeachableSubjectViewModel
     {
         public int SubjectId { get; set; }
+        public int Id { get; set; }
         public string? SubjectName { get; set; }
         public string? Abbreviation { get; set; }
         public List<ListApproriateLevelByGrade> ListApproriateLevelByGrades { get; set; }
