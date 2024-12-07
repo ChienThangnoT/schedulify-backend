@@ -407,6 +407,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 UpdateDate = rs.UpdateDate,
                 IsDeleted = rs.IsDeleted,
                 TeacherId = rs.TeacherId,
+                SlotPerWeek = rs.SlotPerWeek,
                 TeacherFirstName = rs.Teacher.FirstName,
                 TeacherLastName = rs.Teacher.LastName,
                 TeacherAbbreviation = rs.Teacher.Abbreviation,

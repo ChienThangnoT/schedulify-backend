@@ -35,6 +35,7 @@ namespace SchedulifySystem.Service.BusinessModels.RoomSubjectBusinessModels
         public string? TeacherFirstName { get; set; }
         public string? TeacherLastName {  get; set; }
         public string? TeacherAbbreviation { get; set; }
+        public int? SlotPerWeek { get; set; }
         public EGrade EGrade { get; set; }
         public ERoomSubjectModel Model { get; set; }
         public MainSession? Session { get; set; }
