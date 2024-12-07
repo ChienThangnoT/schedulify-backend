@@ -39,7 +39,7 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _accountService.UpdateAccountInformation(id, updateAccountModel));
         }
 
-        [HttpPut("change-password")]
+        [HttpPut("change-password/{id}")]
         public Task<IActionResult> ChangePasswrod(int id, ChangePasswordModel changePasswordModel)
         {
             return ValidateAndExecute(() => _accountService.ChangeAccountPassword(id, changePasswordModel));

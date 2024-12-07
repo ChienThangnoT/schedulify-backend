@@ -492,6 +492,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var existedUser = await _unitOfWork.UserRepo.GetAccountByEmail(resetPasswordModel.Email) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             existedUser.Password = AuthenticationUtils.HashPassword(resetPasswordModel.Password);
             existedUser.UpdateDate = DateTime.UtcNow;
+            existedUser.IsChangeDefaultPassword = true;
             _unitOfWork.UserRepo.Update(existedUser);
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel()
