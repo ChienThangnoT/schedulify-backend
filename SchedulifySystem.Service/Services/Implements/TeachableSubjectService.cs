@@ -80,12 +80,12 @@ namespace SchedulifySystem.Service.Services.Implements
                         SubjectId = group.Key,
                         SubjectName = group.First().Subject?.SubjectName,
                         Abbreviation = group.First().Subject?.Abbreviation,
-                        Id = group.First().Id,
-                        IsMain = group.First().IsMain,
                         ListApproriateLevelByGrades = group.Select(ts => new ListApproriateLevelByGrade
                         {
                             AppropriateLevel = (EAppropriateLevel)ts.AppropriateLevel,
-                            Grade = (EGrade)ts.Grade
+                            Grade = (EGrade)ts.Grade,
+                            IsMain = ts.IsMain,
+                            Id = ts.Id
                         }).ToList()
                     }).ToList()
                 };
