@@ -9,7 +9,6 @@ namespace SchedulifySystem.Repository.EntityModels
     public partial class ClassPeriod : BaseEntity
     {
         public int? ClassScheduleId { get; set; }
-        public int? TimeSlotId { get; set; }
         public int? RoomId { get; set; }
         public int? Status { get; set; }
         public int? TeacherId { get; set; }
@@ -23,7 +22,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public int Priority { get; set; } 
 
         public TeacherAssignment? TeacherAssignment { get; set; } 
-        public TimeSlot? TimeSlot { get; set; }
         public ClassSchedule? ClassSchedule { get; set; }
         public Room? Room { get; set; }
         public Teacher? Teacher { get; set; }
