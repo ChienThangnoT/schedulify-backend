@@ -28,5 +28,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public Room? Room { get; set; }
         public Teacher? Teacher { get; set; }
         public Subject? Subject { get; set; }
+        public ICollection<PeriodChange> PeriodChanges { get; set; } = new List<PeriodChange>();
     }
 }

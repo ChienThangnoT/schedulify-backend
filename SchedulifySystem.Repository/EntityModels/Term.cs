@@ -11,6 +11,8 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? Name { get; set; }
         public int StartWeek { get; set; }
         public int EndWeek { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
         public int SchoolYearId { get; set; }
 
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();

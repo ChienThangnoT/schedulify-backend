@@ -602,6 +602,15 @@ public partial class SchedulifyContext : DbContext
             .WithMany(s => s.StudentClassRoomSubjects)
             .HasForeignKey(rs => rs.RoomSubjectId);
 
+        // Period Change
+        modelBuilder.Entity<PeriodChange>()
+            .HasKey(pc => pc.Id);
+
+        modelBuilder.Entity<PeriodChange>()
+            .HasOne(pc => pc.ClassPeriod)
+            .WithMany(cp => cp.PeriodChanges)
+            .HasForeignKey(pc => pc.ClassPeriodId);
+
     }
 }
 
