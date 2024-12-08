@@ -18,6 +18,8 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
         public int PeriodCount { get; set; }
         public int StudentClassGroupId { get; set; }
         public int CurriculumId { get; set; }
+        public string? RoomCode {  get; set; }
+        public int? RoomId { get; set; } = 0;
 
         public ClassScheduleModel(StudentClass studentClass)
         {
@@ -31,6 +33,8 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
             PeriodCount = studentClass.PeriodCount;
             StudentClassGroupId = (int) studentClass.StudentClassGroupId;
             CurriculumId = (int)studentClass.StudentClassGroup.CurriculumId;
+            RoomCode = studentClass.Room.RoomCode;
+            RoomId = studentClass.RoomId;
         }
     }
 }

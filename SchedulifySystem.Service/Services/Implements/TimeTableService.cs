@@ -352,7 +352,7 @@ namespace SchedulifySystem.Service.Services.Implements
                              t.SchoolYearId == parameters.SchoolYearId &&
                              t.IsDeleted == false,
                 include: query => query.Include(c => c.StudentClassGroup).ThenInclude(c => c.Curriculum)
-                           .ThenInclude(sg => sg.CurriculumDetails).ThenInclude(sig => sig.Subject));
+                           .ThenInclude(sg => sg.CurriculumDetails).ThenInclude(sig => sig.Subject).Include(c => c.Room));
             // fix here ------------------------------------------------------------------------------------------------------------------
 
             var groupIds = classesDb.Select(c => c.StudentClassGroup.Curriculum.Id).ToList();// get list curri
@@ -795,6 +795,8 @@ namespace SchedulifySystem.Service.Services.Implements
                 foreach (var item in periods)
                 {
                     item.ClassCombination = combination;
+                    item.RoomCode = combination.RoomSubjectCode;
+                    item.RoomId = combination.RoomId;
                 }
             }
 
