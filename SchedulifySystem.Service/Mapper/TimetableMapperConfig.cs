@@ -35,6 +35,8 @@ namespace SchedulifySystem.Service.Mapper
                     TeacherAssignmentId = cp.TeacherAssignmentId,
                     TeacherId = cp.TeacherId,
                     SubjectAbbreviation = cp.SubjectAbbreviation,
+                    RoomId = cp.RoomId,
+                    RoomCode = cp.RoomCode,
                     SubjectId = cp.SubjectId,
                     CreateDate = DateTime.UtcNow,
                     DateOfWeek = cp.StartAt / 10,

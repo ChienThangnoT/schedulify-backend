@@ -63,6 +63,8 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
             TeacherId = assignment.Teacher.Id;
             TeacherAbbreviation = assignment.Teacher.Abbreviation;
             ClassName = assignment.StudentClass.Name;
+            RoomCode = assignment.StudentClass.RoomCode;
+            RoomId = assignment.StudentClass.RoomId;
             ClassId = assignment.StudentClass.Id;
             TeacherAssignmentId = assignment.Id;
         }
