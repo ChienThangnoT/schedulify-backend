@@ -15,5 +15,7 @@ namespace SchedulifySystem.Service.BusinessModels.SchoolYearBusinessModels
         [RegularExpression(@"^\d{4}$", ErrorMessage = "StartYear must be a valid 4-digit year")]
         public required string EndYear { get; set; }
         public required string SchoolYearCode { get; set; }
+        public DateTime StartDateHK1 { get; set; }
+        public DateTime StartDateHK2 { get; set; }
     }
 }
