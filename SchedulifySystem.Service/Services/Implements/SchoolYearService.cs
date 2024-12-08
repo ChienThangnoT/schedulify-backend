@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Utilities;
 using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Repository.Repositories.Interfaces;
 using SchedulifySystem.Service.BusinessModels.SchoolYearBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.Services.Interfaces;
@@ -22,6 +24,7 @@ namespace SchedulifySystem.Service.Services.Implements
         private readonly IMapper _mapper;
         private readonly int[] START_WEEKS = [1, 19];
         private readonly int[] END_WEEKS = [18, 35];
+        private readonly int[] NUMBER_OF_WEEK = [18, 17];
 
         public SchoolYearService(IUnitOfWork unitOfWork, IMapper mapper)
         {
@@ -77,9 +80,21 @@ namespace SchedulifySystem.Service.Services.Implements
                     Name = $"HK{i}",
                     StartWeek = START_WEEKS[i - 1],
                     EndWeek = END_WEEKS[i - 1],
-                    CreateDate = DateTime.UtcNow
-                });
+                    CreateDate = DateTime.UtcNow,
+                    StartDate = i == 1 ? model.StartDateHK1 : model.StartDateHK2,
+                    EndDate = i == 1 ? model.StartDateHK1.AddDays(NUMBER_OF_WEEK[i - 1] * 7) : model.StartDateHK2.AddDays(NUMBER_OF_WEEK[i - 1] * 7)
+                }); ;
             }
+
+            if (year.Terms.Last().StartDate <= year.Terms.First().EndDate)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Ngày bắt đầu học kì 2 phải lớn hơn ngày kết thúc của học kì 1."
+                };
+            }
+
             await _unitOfWork.SchoolYearRepo.AddAsync(year);
             await _unitOfWork.SaveChangesAsync();
 
@@ -145,7 +160,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> UpdateSchoolYear(int id, SchoolYearUpdateModel model)
         {
-            var found = await _unitOfWork.SchoolYearRepo.GetByIdAsync(id, filter: f => !f.IsDeleted) ??
+            var found = await _unitOfWork.SchoolYearRepo.GetByIdAsync(id, filter: f => !f.IsDeleted, include: query => query.Include(y => y.Terms)) ??
                 throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
             if (found.IsPublic)
@@ -198,6 +213,30 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
                 found.SchoolYearCode = model.SchoolYearCode;
             }
+            var firstTerm = found.Terms.First();
+            var secondTerm = found.Terms.Last();
+
+            if (firstTerm.StartDate != model.StartDateHK1)
+            {
+                firstTerm.StartDate = model.StartDateHK1;
+                firstTerm.EndDate = model.StartDateHK1.AddDays(NUMBER_OF_WEEK[0] * 7);
+            }
+
+            if(secondTerm.StartDate != model.StartDateHK2)
+            {
+                secondTerm.StartDate = model.StartDateHK2;
+                secondTerm.EndDate = model.StartDateHK2.AddDays(NUMBER_OF_WEEK[1] * 7);
+            }
+
+            if (secondTerm.StartDate <= firstTerm.EndDate)
+            {
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Ngày bắt đầu học kì 2 phải lớn hơn ngày kết thúc của học kì 1."
+                };
+            }
+
             found.UpdateDate = DateTime.UtcNow;
             _unitOfWork.SchoolYearRepo.Update(found);
             await _unitOfWork.SaveChangesAsync();
