@@ -2493,20 +2493,95 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #endregion
-        public async Task<BaseResponseModel> Get(int id)
+        public async Task<BaseResponseModel> Get(int schoolId, int termId, DateTime day)
         {
-            var timetable = await _unitOfWork.SchoolScheduleRepo.GetByIdAsync(id,
-                include: query => query.Include(ss => ss.Term).Include(ss => ss.SchoolYear)
-                .Include(ss => ss.ClassSchedules).ThenInclude(cs => cs.ClassPeriods))
-                  ?? throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+            var term = await _unitOfWork.TermRepo.GetByIdAsync(termId, filter: t => !t.IsDeleted)
+                ?? throw new NotExistsException("Term not found");
+
+            var totalDays = (day.Date - term.StartDate.Date).TotalDays;
+            var weekNumber = term.StartWeek + (int)(totalDays / 7);
+
+            var timetable = await _unitOfWork.SchoolScheduleRepo.GetV2Async(
+                filter: t => t.TermId == termId && t.SchoolId == schoolId 
+                    && (t.StartWeek <= weekNumber && t.EndWeek >= weekNumber),
+                include: query => query
+                    .Include(ss => ss.Term)
+                    .Include(ss => ss.SchoolYear)
+                    .Include(ss => ss.ClassSchedules)
+                        .ThenInclude(cs => cs.ClassPeriods)
+                            .ThenInclude(cp => cp.PeriodChanges))
+                ?? throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+
+            // Lấy tất cả PeriodChange tuần hiện tại
+            var allPeriodChangesThisWeek = timetable.FirstOrDefault().ClassSchedules
+                .SelectMany(cs => cs.ClassPeriods)
+                .SelectMany(cp => cp.PeriodChanges)
+                .Where(pc => pc.Week == weekNumber)
+                .ToList();
+
+            // Thu thập tất cả TeacherId và RoomId
+            var changedTeacherIds = allPeriodChangesThisWeek
+                .Where(pc => pc.TeacherId.HasValue)
+                .Select(pc => pc.TeacherId.Value)
+                .Distinct().ToList();
+
+            var changedRoomIds = allPeriodChangesThisWeek
+                .Where(pc => pc.RoomId.HasValue)
+                .Select(pc => pc.RoomId.Value)
+                .Distinct().ToList();
+
+            // Truy vấn tất cả Teacher và Room tương ứng
+            var changedTeachers = await _unitOfWork.TeacherRepo.GetAsync(t => changedTeacherIds.Contains(t.Id));
+            var teacherDict = changedTeachers.ToDictionary(t => t.Id, t => t);
+
+            var changedRooms = await _unitOfWork.RoomRepo.GetAsync(r => changedRoomIds.Contains(r.Id));
+            var roomDict = changedRooms.ToDictionary(r => r.Id, r => r);
+
+            // Áp dụng thay đổi
+            foreach (var classSchedule in timetable.FirstOrDefault().ClassSchedules)
+            {
+                foreach (var classPeriod in classSchedule.ClassPeriods)
+                {
+                    var periodChange = classPeriod.PeriodChanges.FirstOrDefault(pc => pc.Week == weekNumber);
+                    if (periodChange != null)
+                    {
+                        // Chỉ gán nếu có giá trị
+                        if (periodChange.StartAt != default(int))
+                        {
+                            classPeriod.StartAt = periodChange.StartAt;
+                        }
+
+                        if (periodChange.TeacherId.HasValue)
+                        {
+                            classPeriod.TeacherId = periodChange.TeacherId.Value;
+                            if (teacherDict.TryGetValue(classPeriod.TeacherId.Value, out var changedTeacher))
+                            {
+                                classPeriod.TeacherAbbreviation = changedTeacher.Abbreviation;
+                            }
+                        }
+
+                        if (periodChange.RoomId.HasValue)
+                        {
+                            classPeriod.RoomId = periodChange.RoomId.Value;
+                            if (roomDict.TryGetValue(classPeriod.RoomId.Value, out var changedRoom))
+                            {
+                                classPeriod.RoomCode = changedRoom.RoomCode;
+                            }
+                        }
+                    }
+                }
+            }
+
+            var result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetable);
 
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
                 Message = ConstantResponse.GET_TIMETABLE_SUCCESS,
-                Result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetable)
+                Result = result
             };
         }
+
 
         public Task<BaseResponseModel> Check(Guid timetableId)
         {
@@ -2551,6 +2626,29 @@ namespace SchedulifySystem.Service.Services.Implements
         private async Task<BaseResponseModel> HandleUpdateTimeTableStatus(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
         {
             var isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus);
+            if (scheduleStatus == ScheduleStatus.Disabled)
+            {
+                var getTeacherInSchool = await _unitOfWork.TeacherRepo.GetAsync(
+                filter: t => t.SchoolId == schoolId && !t.IsDeleted && t.Status == (int)TeacherStatus.HoatDong);
+                var teacherEmail = getTeacherInSchool.Select(t => t.Email);
+
+                var getAccountTeacher = await _unitOfWork.UserRepo.GetAsync(
+                    filter: t => teacherEmail.Contains(t.Email));
+                if (getAccountTeacher.Any())
+                {
+                    NotificationModel noti = new NotificationModel
+                    {
+                        Title = "Thông báo thu hồi thời khóa biểu dự kiến",
+                        Message = $"Thời khóa biểu đã được quản lý thu hồi, vui lòng liên hệ quản lý trường học để biết thêm thông tin.",
+                        Type = ENotificationType.HeThong,
+                        Link = ""
+                    };
+                    foreach (var teacher in getAccountTeacher)
+                    {
+                        await _notificationService.SendNotificationToUser(teacher.Id, noti);
+                    }
+                }
+            }
             return new BaseResponseModel
             {
                 Status = isUpdated ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest,
@@ -2666,20 +2764,25 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        public async Task<BaseResponseModel> GetAll(int schoolId, int pageIndex = 1, int pageSize = 20)
+        public async Task<BaseResponseModel> GetAll(int schoolId, int yearId, int pageIndex = 1, int pageSize = 20)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var timetables = await _unitOfWork.SchoolScheduleRepo.ToPaginationIncludeAsync(pageIndex, pageSize,
-                filter: t => t.SchoolId == schoolId && !t.IsDeleted,
+                filter: t => t.SchoolId == schoolId && !t.IsDeleted && t.SchoolYearId == yearId,
                 include: query => query.Include(t => t.Term).Include(t => t.SchoolYear));
+            if (!timetables.Items.Any())
+            {
+                throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+            }
+            var result = _mapper.Map<Pagination<SchoolScheduleViewModel>>(timetables);
 
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
                 Message = ConstantResponse.GET_TIMETABLE_SUCCESS,
-                Result = _mapper.Map<Pagination<SchoolScheduleViewModel>>(timetables)
+                Result = result
             };
 
         }
