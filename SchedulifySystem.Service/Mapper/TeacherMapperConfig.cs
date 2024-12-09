@@ -19,7 +19,10 @@ namespace SchedulifySystem.Service.Mapper
             CreateMap<Teacher, TeacherViewModel>()
                 .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : string.Empty))
                 .ForMember(dest => dest.Gender, otp => otp.MapFrom(src => src.Gender == (int)Gender.Female ? "Female" : "Male"))
-                .ForMember(dest => dest.TeachableSubjects, opt => opt.MapFrom(src =>src.TeachableSubjects));
+                .ForMember(dest => dest.TeachableSubjects, opt => opt.MapFrom(src => src.TeachableSubjects))
+                .ForMember(dest => dest.IsHomeRoomTeacher, opt => opt.MapFrom(src => src.StudentClasses.Any()))
+                .ForMember(dest => dest.HomeRoomTeacherOfClass, opt => opt.MapFrom(src => src.StudentClasses.FirstOrDefault().Name))
+                .ForMember(dest => dest.StudentClassId, opt => opt.MapFrom(src => src.StudentClasses.FirstOrDefault().Id));
 
             CreateMap<TeachableSubject, TeachableSubjectViewModel>()
                 .ForMember(dest => dest.SubjectId, otp => otp.MapFrom(src => src.Subject.Id) )
