@@ -2503,13 +2503,25 @@ namespace SchedulifySystem.Service.Services.Implements
             var term = await _unitOfWork.TermRepo.GetByIdAsync(termId, filter: t => !t.IsDeleted)
                 ?? throw new NotExistsException("Term not found");
 
+            var endOfWeek1 = term.StartDate.Date.AddDays(7 - (int)term.StartDate.DayOfWeek);
+
             if (day.Date < term.StartDate.Date || day.Date > term.EndDate.Date)
             {
                 throw new NotExistsException("Ngày bạn chọn hiện không thuộc học kì nào trong năm học.");
             }
 
-            var totalDays = (day.Date - term.StartDate.Date).TotalDays;
-            var weekNumber = term.StartWeek + (int)(totalDays / 7);
+            int weekNumber;
+            if (day.Date <= endOfWeek1)
+            {
+                weekNumber = term.StartWeek;
+            }
+            else
+            {
+                var startOfWeek2 = endOfWeek1.AddDays(1);
+                var totalDays = (day.Date - startOfWeek2).TotalDays;
+                weekNumber = term.StartWeek + 1 + (int)(totalDays / 7);
+            }
+
             var timetable = await _unitOfWork.SchoolScheduleRepo.GetV2Async(
                 filter: t => t.TermId == termId && t.SchoolId == schoolId
                     && (t.StartWeek <= weekNumber && t.EndWeek >= weekNumber),
