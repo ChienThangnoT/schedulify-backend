@@ -16,7 +16,7 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         List<ClassPeriodScheduleModel> timetableUnits,
         List<ClassScheduleModel> classes,
         List<TeacherScheduleModel> teachers,
-        List<SubjectScheduleModel> doubleSubjects) : TimetableIndividual(timetableFlag, timetableUnits, classes, teachers, doubleSubjects)
+        Dictionary<int, List<SubjectScheduleModel>> doubleSubjectsByGroup) : TimetableIndividual(timetableFlag, timetableUnits, classes, teachers, doubleSubjectsByGroup)
     {
 
     }

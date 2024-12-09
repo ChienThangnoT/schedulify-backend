@@ -10,7 +10,8 @@ namespace SchedulifySystem.Service.Enums
     {
         Draft = 1,
         Published = 2,
-        Unpublished = 3,
-        Expired = 4
+        PublishedInternal = 3,
+        Expired = 4,
+        Disabled = 5
     }
 }

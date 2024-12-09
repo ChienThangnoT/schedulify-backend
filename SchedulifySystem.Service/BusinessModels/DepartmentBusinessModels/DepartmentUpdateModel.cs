@@ -11,5 +11,6 @@ namespace SchedulifySystem.Service.BusinessModels.DepartmentBusinessModels
         public string? Name { get; set; }
         public string? Description { get; set; }
         public string? DepartmentCode { get; set; }
+        public int MeetingDay { get; set; }
     }
 }

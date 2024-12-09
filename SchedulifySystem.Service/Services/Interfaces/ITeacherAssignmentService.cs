@@ -1,4 +1,5 @@
-﻿using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
+﻿using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
     {
         Task<BaseResponseModel> GetAssignment(int classId,int? termId);
         Task<BaseResponseModel> UpdateAssignment(int assignmentId);
-        Task<BaseResponseModel> AddAssignment(AddTeacherAssignmentModel model);
+        Task<BaseResponseModel> AssignTeacherForAsignments(List<AssignTeacherAssignmentModel> models);
+        Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId, AutoAssignTeacherModel model);
+        Task<BaseResponseModel> CheckTeacherAssignment(int schoolId, int yearId, AutoAssignTeacherModel model);
     }
 }

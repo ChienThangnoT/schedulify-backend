@@ -23,10 +23,11 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.SubjectName, otp => otp
                     .MapFrom(t => t.Subject != null ? t.Subject.SubjectName : string.Empty)).ReverseMap();
 
-            CreateMap<AddTeacherAssignmentModel, TeacherAssignment>()
+
+            CreateMap<AssignTeacherAssignmentModel, TeacherAssignment>()
                 .ForMember(dest => dest.CreateDate, otp => otp.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
 
-            CreateMap<UpdateTeacherAssignmentModel, TeacherAssignment>()
+            CreateMap<AssignTeacherAssignmentModel, TeacherAssignment>()
                .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow)).ReverseMap();
             CreateMap<TeacherAssignment, TeacherAssignment>();
         }

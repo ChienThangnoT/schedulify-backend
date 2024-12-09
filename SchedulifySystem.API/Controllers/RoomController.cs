@@ -7,7 +7,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 
 namespace SchedulifySystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/schools/{schoolId}/rooms")]
     [ApiController]
     public class RoomController : BaseController
     {
@@ -27,9 +27,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetRooms(int schoolId, int? buildingId,ERoomType? RoomTypeId, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetRooms(int schoolId, int? capicity,int? buildingId,ERoomType? RoomTypeId, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _roomService.GetRooms(schoolId, buildingId,RoomTypeId, pageIndex, pageSize));
+            return ValidateAndExecute(() => _roomService.GetRooms(schoolId, capicity, buildingId,RoomTypeId, pageIndex, pageSize));
         }
 
         [HttpGet("{id}")]

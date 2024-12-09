@@ -28,4 +28,10 @@ namespace SchedulifySystem.Service.BusinessModels.AccountBusinessModels
         [PasswordPropertyText]
         public required string ConfirmAccountPassword { get; set; }
     }
+
+    public class ConfirmResetPasswordModel
+    {
+        public required string Email { get; set; }
+        public required int Code { get; set; }
+    }
 }

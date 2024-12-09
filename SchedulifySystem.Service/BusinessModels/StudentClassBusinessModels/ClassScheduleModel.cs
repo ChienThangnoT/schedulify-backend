@@ -10,12 +10,16 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
     public class ClassScheduleModel : BaseEntity
     {
         public string? Name { get; set; }
-        public int HomeroomTeacherId { get; set; }
+        public int? HomeroomTeacherId { get; set; }
         public int SchoolId { get; set; }
         public int SchoolYearId { get; set; }
         public int MainSession { get; set; }
         public bool IsFullDay { get; set; }
         public int PeriodCount { get; set; }
+        public int StudentClassGroupId { get; set; }
+        public int CurriculumId { get; set; }
+        public string? RoomCode {  get; set; }
+        public int? RoomId { get; set; } = 0;
 
         public ClassScheduleModel(StudentClass studentClass)
         {
@@ -27,6 +31,10 @@ namespace SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels
             MainSession = studentClass.MainSession;
             IsFullDay = studentClass.IsFullDay;
             PeriodCount = studentClass.PeriodCount;
+            StudentClassGroupId = (int) studentClass.StudentClassGroupId;
+            CurriculumId = (int)studentClass.StudentClassGroup.CurriculumId;
+            RoomCode = studentClass.Room.RoomCode;
+            RoomId = studentClass.RoomId;
         }
     }
 }
