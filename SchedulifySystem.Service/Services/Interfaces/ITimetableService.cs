@@ -16,8 +16,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface ITimetableService
     {
         Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel);
-        Task<BaseResponseModel> Get(int id);
-        Task<BaseResponseModel> GetAll(int schoolId, int pageIndex, int pageSize);
+        Task<BaseResponseModel> Get(int schoolId, int termId, DateTime day);
+        Task<BaseResponseModel> GetAll(int schoolId, int yearId, int pageIndex, int pageSize);
         Task<BaseResponseModel> Check(Guid timetableId);
         Task<BaseResponseModel> Update(TimetableIndividual timetable);
         Task<BaseResponseModel> Delete(int id);

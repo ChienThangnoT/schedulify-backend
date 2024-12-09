@@ -32,16 +32,16 @@ namespace SchedulifySystem.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{id}")]
-        public Task<IActionResult> GetTimetable(int id)
+        [HttpGet("{day:datetime}")]
+        public Task<IActionResult> GetTimetable(int schoolId, [Required]int termId, DateTime day)
         {
-            return ValidateAndExecute(() => _timetableService.Get(id));
+            return ValidateAndExecute(() => _timetableService.Get(schoolId,  termId, day));
         }
 
         [HttpGet]
-        public Task<IActionResult> GetAllSchedules(int schoolId, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetAllSchedules(int schoolId, int yearId, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(() => _timetableService.GetAll(schoolId, pageIndex, pageSize));
+            return ValidateAndExecute(() => _timetableService.GetAll(schoolId, yearId,pageIndex, pageSize));
         }
 
         [HttpPut("check-period-change")]
