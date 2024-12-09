@@ -78,6 +78,9 @@ namespace SchedulifySystem.Service.Mapper
             //add Submit Request Mapper Config
             SubmitRequestMapperConfig();
 
+            //add change period Mapper Config
+            PeriodChangeMapperConfig();
+
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
@@ -100,5 +103,6 @@ namespace SchedulifySystem.Service.Mapper
         partial void DistrictMapperConfig();
         partial void ProvinceMapperConfig();
         partial void SubmitRequestMapperConfig();
+        partial void PeriodChangeMapperConfig();
     }
 }

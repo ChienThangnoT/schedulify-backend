@@ -37,6 +37,8 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly ICurriculumRepository _curriculumRepository;
         private readonly IStudentClassRoomSubjectRepository _studentClassRoomSubjectRepository;
         private readonly ISubmitRequestRepository _submitRequestRepository;
+        private readonly IClassPeriodRepository _classPeriodRepository;
+        private readonly IPeriodChangeRepository _periodChangeRepository;
 
         public UnitOfWork(SchedulifyContext context, 
             IUserRepository userRepository,
@@ -63,7 +65,9 @@ namespace SchedulifySystem.Service.UnitOfWork
             INotificationRepository notificationRepository,
             ICurriculumRepository curriculumRepository,
             IStudentClassRoomSubjectRepository studentClassRoomSubjectRepository,
-            ISubmitRequestRepository submitRequestRepository)
+            ISubmitRequestRepository submitRequestRepository,
+            IClassPeriodRepository classPeriodRepository,
+            IPeriodChangeRepository periodChangeRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -92,6 +96,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             _curriculumRepository = curriculumRepository;
             _studentClassRoomSubjectRepository = studentClassRoomSubjectRepository;
             _submitRequestRepository = submitRequestRepository;
+            _classPeriodRepository = classPeriodRepository;
+            _periodChangeRepository = periodChangeRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -120,6 +126,8 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ICurriculumRepository CurriculumRepo => _curriculumRepository;
         public IStudentClassRoomSubjectRepository StudentClassRoomSubjectRepo => _studentClassRoomSubjectRepository;
         public ISubmitRequestRepository SubmitRequestRepo => _submitRequestRepository;
+        public IClassPeriodRepository ClassPeriodRepo => _classPeriodRepository;
+        public IPeriodChangeRepository PeriodChangeRepo => _periodChangeRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
