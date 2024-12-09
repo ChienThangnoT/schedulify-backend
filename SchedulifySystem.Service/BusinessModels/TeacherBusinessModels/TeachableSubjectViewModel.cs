@@ -15,6 +15,17 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         public List<ListApproriateLevelByGrade> ListApproriateLevelByGrades { get; set; }
     }
 
+    public class TeachableSubjectTimetableViewModel
+    {
+        public int TeacherId { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public int SubjectId { get; set; }
+        public string? SubjectName { get; set; }
+        public string? Abbreviation { get; set; }
+        public List<ListApproriateLevelByGrade> ListApproriateLevelByGrades { get; set; }
+    }
+
     public class ListApproriateLevelByGrade
     {
         public int Id { get; set; }

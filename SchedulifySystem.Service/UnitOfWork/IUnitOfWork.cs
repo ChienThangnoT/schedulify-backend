@@ -37,6 +37,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubmitRequestRepository SubmitRequestRepo { get; }
         public IClassPeriodRepository ClassPeriodRepo { get; }
         public IPeriodChangeRepository PeriodChangeRepo { get; }
+        public IClassScheduleRepository ClassScheduleRepo { get; }
         public Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

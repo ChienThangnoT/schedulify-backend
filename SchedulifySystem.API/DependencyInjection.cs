@@ -260,6 +260,10 @@ namespace SchedulifySystem.API
             services.AddTransient<IPeriodChangeRepository, PeriodChangeRepository>();
             //services.AddTransient<IClassPeriodService, ClassPeriodService>();
 
+            //config class schedule service and repo
+            services.AddTransient<IClassScheduleRepository, ClassScheduleRepository>();
+            //services.AddTransient<IClassPeriodService, ClassPeriodService>();
+
             //config Notification
             services.AddSignalR();
             services.AddScoped<INotificationService, NotificationService>();
