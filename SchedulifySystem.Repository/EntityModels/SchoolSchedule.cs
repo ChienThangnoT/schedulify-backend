@@ -20,10 +20,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public School? School { get; set; }
         public SchoolYear? SchoolYear { get; set; }
         public Term? Term { get; set; }
-
-        public ICollection<ScheduleConfig> ScheduleConfigs { get; set; } = new List<ScheduleConfig>();
-        public ICollection<TeacherConfig> TeacherConfigs { get; set; } = new List<TeacherConfig>();
-        public ICollection<SubjectConfig> SubjectConfigs { get; set; } = new List<SubjectConfig>();
         public ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
     }
 }

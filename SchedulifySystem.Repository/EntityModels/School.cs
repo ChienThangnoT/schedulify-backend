@@ -21,7 +21,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public ICollection<Building> Buildings { get; set; } = new List<Building>();
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         public ICollection<Department> Departments { get; set; } = new List<Department>();
-        public ICollection<TimeSlot> TimeSlots { get; set; } = new List<TimeSlot>();
         public ICollection<SchoolSchedule> SchoolSchedules { get; set; } = new List<SchoolSchedule>();
         public ICollection<Account> Accounts { get; set; } = new List<Account>();
         public ICollection<RoomSubject> RoomSubjects { get; set; } = new List<RoomSubject>();

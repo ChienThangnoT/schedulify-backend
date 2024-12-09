@@ -23,18 +23,18 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _termService.GetTerms(termId, schoolYearId, pageIndex, pageSize));
         }
 
-        [HttpPost]
-        [Authorize(Roles = "Admin")]
-        public Task<IActionResult> CreateTerm(TermAdjustModel termAddModel)
-        {
-            return ValidateAndExecute(() => _termService.AddTerm(termAddModel));
-        }
+        //[HttpPost]
+        //[Authorize(Roles = "Admin")]
+        //public Task<IActionResult> CreateTerm(TermAdjustModel termAddModel)
+        //{
+        //    return ValidateAndExecute(() => _termService.AddTerm(termAddModel));
+        //}
 
-        [HttpPatch("{id}")]
-        [Authorize(Roles = "Admin")]
-        public Task<IActionResult> UpdateTermById(int id, TermAdjustModel termAddModel)
-        {
-            return ValidateAndExecute(() => _termService.UpdateTermById(id, termAddModel));
-        }
+        //[HttpPatch("{id}")]
+        //[Authorize(Roles = "Admin")]
+        //public Task<IActionResult> UpdateTermById(int id, TermAdjustModel termAddModel)
+        //{
+        //    return ValidateAndExecute(() => _termService.UpdateTermById(id, termAddModel));
+        //}
     }
 }
