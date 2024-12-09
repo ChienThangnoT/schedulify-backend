@@ -244,5 +244,10 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string REQUEST_NOT_EXIST = "Đơn không tồn tại.";
         public const string REQUEST_ALREADY_SOLVED = "Đơn đã được xử lí không thể cập nhật.";
 
+        //Class period
+        public const string CLASS_PERIOD_NOT_FOUND = "Tiết của lớp không tồn tại.";
+        public const string GET_CLASS_PERIOD_SUCCESS = "Lấy tiết của lớp thành công.";
+        public const string UPSERT_CHANGE_PERIOS_SUCCESS = "Chỉnh sửa tiết học thành công.";
+
     }
 }

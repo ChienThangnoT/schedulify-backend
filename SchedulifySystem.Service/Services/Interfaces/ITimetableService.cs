@@ -1,4 +1,5 @@
-﻿using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
+﻿using SchedulifySystem.Service.BusinessModels.PeriodChangeBusinessModels;
+using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
@@ -17,6 +18,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
     {
         Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel);
         Task<BaseResponseModel> Get(int schoolId, int termId, DateTime day);
+        Task<BaseResponseModel> ChangePeriodOfClass(List<PeriodChangeModel> periodChangeModel);
         Task<BaseResponseModel> GetAll(int schoolId, int yearId, int pageIndex, int pageSize);
         Task<BaseResponseModel> Check(Guid timetableId);
         Task<BaseResponseModel> Update(TimetableIndividual timetable);

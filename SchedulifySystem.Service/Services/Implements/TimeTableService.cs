@@ -8,6 +8,7 @@ using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels;
 using SchedulifySystem.Service.BusinessModels.NotificationBusinessModels;
+using SchedulifySystem.Service.BusinessModels.PeriodChangeBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoomBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.SchoolBusinessModels;
@@ -2495,6 +2496,8 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #endregion
+
+        #region Get
         public async Task<BaseResponseModel> Get(int schoolId, int termId, DateTime day)
         {
             var term = await _unitOfWork.TermRepo.GetByIdAsync(termId, filter: t => !t.IsDeleted)
@@ -2502,13 +2505,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (day.Date < term.StartDate.Date || day.Date > term.EndDate.Date)
             {
-                throw new NotExistsException("Provided date is outside the term period.");
+                throw new NotExistsException("Ngày bạn chọn hiện không thuộc học kì nào trong năm học.");
             }
 
             var totalDays = (day.Date - term.StartDate.Date).TotalDays;
             var weekNumber = term.StartWeek + (int)(totalDays / 7);
             var timetable = await _unitOfWork.SchoolScheduleRepo.GetV2Async(
-                filter: t => t.TermId == termId && t.SchoolId == schoolId 
+                filter: t => t.TermId == termId && t.SchoolId == schoolId
                     && (t.StartWeek <= weekNumber && t.EndWeek >= weekNumber),
                 include: query => query
                     .Include(ss => ss.Term)
@@ -2519,17 +2522,16 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (!timetable.Any())
             {
-                 throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+                throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
             }
 
-            // Lấy tất cả PeriodChange tuần hiện tại
             var allPeriodChangesThisWeek = timetable.FirstOrDefault().ClassSchedules
                 .SelectMany(cs => cs.ClassPeriods)
                 .SelectMany(cp => cp.PeriodChanges)
                 .Where(pc => pc.Week == weekNumber)
                 .ToList();
 
-            // Thu thập tất cả TeacherId và RoomId
+            // teacherId và roomId
             var changedTeacherIds = allPeriodChangesThisWeek
                 .Where(pc => pc.TeacherId.HasValue)
                 .Select(pc => pc.TeacherId.Value)
@@ -2540,14 +2542,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 .Select(pc => pc.RoomId.Value)
                 .Distinct().ToList();
 
-            // Truy vấn tất cả Teacher và Room tương ứng
+            // get room and teacher
             var changedTeachers = await _unitOfWork.TeacherRepo.GetAsync(t => changedTeacherIds.Contains(t.Id));
             var teacherDict = changedTeachers.ToDictionary(t => t.Id, t => t);
 
             var changedRooms = await _unitOfWork.RoomRepo.GetAsync(r => changedRoomIds.Contains(r.Id));
             var roomDict = changedRooms.ToDictionary(r => r.Id, r => r);
 
-            // Áp dụng thay đổi
             foreach (var classSchedule in timetable.FirstOrDefault().ClassSchedules)
             {
                 foreach (var classPeriod in classSchedule.ClassPeriods)
@@ -2555,7 +2556,6 @@ namespace SchedulifySystem.Service.Services.Implements
                     var periodChange = classPeriod.PeriodChanges.FirstOrDefault(pc => pc.Week == weekNumber);
                     if (periodChange != null)
                     {
-                        // Chỉ gán nếu có giá trị
                         if (periodChange.StartAt != default(int))
                         {
                             classPeriod.StartAt = periodChange.StartAt;
@@ -2592,6 +2592,53 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
+        #endregion
+
+        #region Change class period
+        public async Task<BaseResponseModel> ChangePeriodOfClass(List<PeriodChangeModel> periodChangeModel)
+        {
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    foreach (var periodChange in periodChangeModel)
+                    {
+                        var getClassPeriod = await _unitOfWork.ClassPeriodRepo.GetByIdAsync(periodChange.ClassPeriodId, filter: t => !t.IsDeleted)
+                            ?? throw new NotExistsException(ConstantResponse.CLASS_PERIOD_NOT_FOUND);
+
+                        var getAlreadyClassPeriod = (await _unitOfWork.PeriodChangeRepo.GetAsync(
+                            filter: t => t.ClassPeriodId == periodChange.ClassPeriodId && t.Week == periodChange.Week)).FirstOrDefault();
+
+                        if (getAlreadyClassPeriod != null)
+                        {
+                            var update = _mapper.Map(periodChange, getAlreadyClassPeriod);
+                            update.UpdateDate = DateTime.UtcNow;
+                            _unitOfWork.PeriodChangeRepo.Update(update);
+                        }
+                        var addChangePeriod = _mapper.Map<PeriodChange>(periodChange);
+                        addChangePeriod.CreateDate = DateTime.UtcNow;
+                        await _unitOfWork.PeriodChangeRepo.AddAsync(addChangePeriod);
+                    }
+                    await _unitOfWork.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status200OK,
+                        Message = ConstantResponse.UPSERT_CHANGE_PERIOS_SUCCESS
+                    };
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return new BaseResponseModel()
+                    {
+                        Status = StatusCodes.Status500InternalServerError,
+                        Message = $"Error: {ex.Message}"
+                    };
+                }
+            }
+        }
+        #endregion
 
         public Task<BaseResponseModel> Check(Guid timetableId)
         {
@@ -2626,7 +2673,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     ? new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Schedule updated successfully." }
                     : new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Failed to update schedule." },
 
-                ScheduleStatus.Expired or ScheduleStatus.Disabled or ScheduleStatus.Draft=>
+                ScheduleStatus.Expired or ScheduleStatus.Disabled or ScheduleStatus.Draft =>
                     await HandleUpdateTimeTableStatus(schoolId, yearId, termId, scheduleStatus),
 
                 _ => new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Invalid schedule status." }
