@@ -48,12 +48,15 @@ namespace SchedulifySystem.API
                 options.AddPolicy("app-cors",
                     builder =>
                     {
-                        builder.AllowAnyOrigin()    
+                        builder.WithOrigins("https://schedulify.id.vn", "http://localhost:8080")  // Chỉ cho phép domain này
                         .AllowAnyHeader()
+                        .AllowCredentials()
                         .WithExposedHeaders("X-Pagination")
                         .AllowAnyMethod();
                     });
             });
+
+
             #endregion
 
             #region signal R
