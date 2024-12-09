@@ -19,6 +19,8 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> Generate(GenerateTimetableModel paraModel);
         Task<BaseResponseModel> Get(int schoolId, int termId, DateTime day);
         Task<BaseResponseModel> ChangePeriodOfClass(List<PeriodChangeModel> periodChangeModel);
+        Task<BaseResponseModel> GetTeacherScheduleInWeek(int schoolId, GetTeacherInSlotModel getTeacherInSlotModel);
+        Task<BaseResponseModel> GetRoomScheduleInWeek(int schoolId, GetRoomInSlotModel getRoomInSlotModel);
         Task<BaseResponseModel> GetAll(int schoolId, int yearId, int pageIndex, int pageSize);
         Task<BaseResponseModel> Check(Guid timetableId);
         Task<BaseResponseModel> Update(TimetableIndividual timetable);

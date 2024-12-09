@@ -43,6 +43,12 @@ namespace SchedulifySystem.API.Controllers
         {
             return ValidateAndExecute(() => _timetableService.GetAll(schoolId, yearId,pageIndex, pageSize));
         }
+        
+        [HttpGet("available-teachers")]
+        public Task<IActionResult> GetTeacherScheduleByWeek(int schoolId, [FromQuery]GetTeacherInSlotModel getTeacherInSlotModel)
+        {
+            return ValidateAndExecute(() => _timetableService.GetTeacherScheduleInWeek(schoolId, getTeacherInSlotModel));
+        }
 
         [HttpPut("check-period-change")]
         public Task<IActionResult> CheckPeriodChange(CheckPeriodChangeModel model)

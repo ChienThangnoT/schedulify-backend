@@ -39,8 +39,9 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly ISubmitRequestRepository _submitRequestRepository;
         private readonly IClassPeriodRepository _classPeriodRepository;
         private readonly IPeriodChangeRepository _periodChangeRepository;
+        private readonly IClassScheduleRepository _classScheduleRepository;
 
-        public UnitOfWork(SchedulifyContext context, 
+        public UnitOfWork(SchedulifyContext context,
             IUserRepository userRepository,
             IRoleRepository roleRepository,
             IRoleAssignmentRepository roleAssignmentRepository,
@@ -67,7 +68,8 @@ namespace SchedulifySystem.Service.UnitOfWork
             IStudentClassRoomSubjectRepository studentClassRoomSubjectRepository,
             ISubmitRequestRepository submitRequestRepository,
             IClassPeriodRepository classPeriodRepository,
-            IPeriodChangeRepository periodChangeRepository)
+            IPeriodChangeRepository periodChangeRepository,
+            IClassScheduleRepository classScheduleRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -98,6 +100,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             _submitRequestRepository = submitRequestRepository;
             _classPeriodRepository = classPeriodRepository;
             _periodChangeRepository = periodChangeRepository;
+            _classScheduleRepository = classScheduleRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -109,13 +112,13 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubjectRepository SubjectRepo => _subjectRepository;
         public IBuildingRepository BuildingRepo => _buildingRepository;
         public IStudentClassGroupRepository StudentClassGroupRepo => _studentClassGroupRepository;
-        public IDistrictRepository DistrictRepo=> _districtRepository;
+        public IDistrictRepository DistrictRepo => _districtRepository;
         public IProvinceRepository ProvinceRepo => _provinceRepository;
         public IRoomRepository RoomRepo => _roomRepository;
         public IOtpRepository OTPRepo => _otpRepository;
         public ISchoolYearRepository SchoolYearRepo => _schoolYearRepository;
         public IDepartmentRepository DepartmentRepo => _departmentRepository;
-        public ITeacherAssignmentRepository TeacherAssigntRepo=> _teacherAssignmentRepository;
+        public ITeacherAssignmentRepository TeacherAssigntRepo => _teacherAssignmentRepository;
         public ITeacherAssignmentRepository TeacherAssignmentRepo => _teacherAssignmentRepository;
         public ITeachableSubjectRepository TeachableSubjectRepo => _teachableSubjectRepository;
         public ITermRepository TermRepo => _termRepository;
@@ -128,6 +131,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubmitRequestRepository SubmitRequestRepo => _submitRequestRepository;
         public IClassPeriodRepository ClassPeriodRepo => _classPeriodRepository;
         public IPeriodChangeRepository PeriodChangeRepo => _periodChangeRepository;
+        public IClassScheduleRepository ClassScheduleRepo => _classScheduleRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {

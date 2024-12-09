@@ -37,6 +37,25 @@ namespace SchedulifySystem.Service.Mapper
                     }
                 }));
 
+            CreateMap<TeachableSubject, TeachableSubjectTimetableViewModel>()
+                .ForMember(dest => dest.SubjectId, otp => otp.MapFrom(src => src.Subject.Id))
+                .ForMember(dest => dest.SubjectName, otp => otp.MapFrom(src => src.Subject.SubjectName))
+                .ForMember(dest => dest.Abbreviation, otp => otp.MapFrom(src => src.Subject.Abbreviation))
+                .ForMember(dest => dest.TeacherId, otp => otp.MapFrom(src => src.Teacher.Id))
+                .ForMember(dest => dest.FirstName, otp => otp.MapFrom(src => src.Teacher.FirstName))
+                .ForMember(dest => dest.LastName, otp => otp.MapFrom(src => src.Teacher.LastName))
+                .ForMember(dest => dest.ListApproriateLevelByGrades, opt => opt.MapFrom(src => new List<ListApproriateLevelByGrade>
+                {
+                    new ListApproriateLevelByGrade
+                    {
+
+                        Id = src.Id,
+                        IsMain = src.IsMain,
+                        AppropriateLevel = (EAppropriateLevel)src.AppropriateLevel,
+                        Grade = (EGrade)src.Grade
+                    }
+                }));
+
             CreateMap<CreateTeacherModel, Teacher>()
                 .ForMember(dest => dest.CreateDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
 

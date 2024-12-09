@@ -14,6 +14,7 @@ using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.SchoolBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.SubjectBusinessModels;
+using SchedulifySystem.Service.BusinessModels.TeachableSubjectBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using SchedulifySystem.Service.Enums;
@@ -2786,10 +2787,15 @@ namespace SchedulifySystem.Service.Services.Implements
             var timetableRecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
                 filter: t => t.SchoolId == schoolScheduleDetailsViewModel.SchoolId
                         && t.TermId == schoolScheduleDetailsViewModel.TermId
-                        && t.SchoolYearId == schoolScheduleDetailsViewModel.SchoolYearId);
+                        && t.SchoolYearId == schoolScheduleDetailsViewModel.SchoolYearId && t.EndWeek > schoolScheduleDetailsViewModel.StartWeek);
             if (timetableRecent.Any())
             {
                 throw new DefaultException(ConstantResponse.TIMETABLE_EXIST_PUBLISH);
+            }
+
+            if (schoolScheduleDetailsViewModel.StartWeek < termExist.FirstOrDefault().StartWeek || schoolScheduleDetailsViewModel.EndWeek > termExist.FirstOrDefault().EndWeek)
+            {
+                throw new NotExistsException("Ngày bạn chọn bắt buộc phải thuộc 1 học kì trong năm học.");
             }
             schoolScheduleDetailsViewModel.Id = 0;
             var timetable = _mapper.Map<SchoolSchedule>(schoolScheduleDetailsViewModel);
@@ -2830,6 +2836,251 @@ namespace SchedulifySystem.Service.Services.Implements
                 await _notificationService.SendNotificationToUser(teacher.Id, noti);
             }
             return true;
+        }
+        #endregion
+
+        #region Get Teacher Schedule By Week
+        public async Task<BaseResponseModel> GetTeacherScheduleInWeek(int schoolId, GetTeacherInSlotModel getTeacherInSlotModel)
+        {
+            var term = await _unitOfWork.TermRepo.GetByIdAsync(getTeacherInSlotModel.TermId, filter: t => !t.IsDeleted)
+               ?? throw new NotExistsException("Term not found");
+
+            var endOfWeek1 = term.StartDate.Date.AddDays(7 - (int)term.StartDate.DayOfWeek);
+
+            if (getTeacherInSlotModel.Day.Date < term.StartDate.Date || getTeacherInSlotModel.Day.Date > term.EndDate.Date)
+            {
+                throw new NotExistsException("Ngày bạn chọn hiện không thuộc học kì nào trong năm học.");
+            }
+
+            int weekNumber;
+            if (getTeacherInSlotModel.Day.Date <= endOfWeek1)
+            {
+                weekNumber = term.StartWeek;
+            }
+            else
+            {
+                var startOfWeek2 = endOfWeek1.AddDays(1);
+                var totalDays = (getTeacherInSlotModel.Day.Date - startOfWeek2).TotalDays;
+                weekNumber = term.StartWeek + 1 + (int)(totalDays / 7);
+            }
+
+            var timetable = await _unitOfWork.SchoolScheduleRepo.GetV2Async(
+                filter: t => t.TermId == getTeacherInSlotModel.TermId && t.SchoolId == schoolId
+                    && (t.StartWeek <= weekNumber && t.EndWeek >= weekNumber),
+                include: query => query
+                    .Include(ss => ss.Term)
+                    .Include(ss => ss.SchoolYear)
+                    .Include(ss => ss.ClassSchedules)
+                        .ThenInclude(cs => cs.ClassPeriods)
+                            .ThenInclude(cp => cp.PeriodChanges));
+
+            if (!timetable.Any())
+            {
+                throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+            }
+
+            var allPeriodChangesThisWeek = timetable.FirstOrDefault().ClassSchedules
+                .SelectMany(cs => cs.ClassPeriods)
+                .SelectMany(cp => cp.PeriodChanges)
+                .Where(pc => pc.Week == weekNumber)
+                .ToList();
+
+            // teacherId và roomId
+            var changedTeacherIds = allPeriodChangesThisWeek
+                .Where(pc => pc.TeacherId.HasValue)
+                .Select(pc => pc.TeacherId.Value)
+                .Distinct().ToList();
+
+            var changedRoomIds = allPeriodChangesThisWeek
+                .Where(pc => pc.RoomId.HasValue)
+                .Select(pc => pc.RoomId.Value)
+                .Distinct().ToList();
+
+            // get room and teacher
+            var changedTeachers = await _unitOfWork.TeacherRepo.GetAsync(t => changedTeacherIds.Contains(t.Id));
+            var teacherDict = changedTeachers.ToDictionary(t => t.Id, t => t);
+
+            var changedRooms = await _unitOfWork.RoomRepo.GetAsync(r => changedRoomIds.Contains(r.Id));
+            var roomDict = changedRooms.ToDictionary(r => r.Id, r => r);
+
+            foreach (var classSchedule in timetable.FirstOrDefault().ClassSchedules)
+            {
+                foreach (var classPeriod in classSchedule.ClassPeriods)
+                {
+                    var periodChange = classPeriod.PeriodChanges.FirstOrDefault(pc => pc.Week == weekNumber);
+                    if (periodChange != null)
+                    {
+                        if (periodChange.StartAt != default(int))
+                        {
+                            classPeriod.StartAt = periodChange.StartAt;
+                        }
+
+                        if (periodChange.TeacherId.HasValue)
+                        {
+                            classPeriod.TeacherId = periodChange.TeacherId.Value;
+                            if (teacherDict.TryGetValue(classPeriod.TeacherId.Value, out var changedTeacher))
+                            {
+                                classPeriod.TeacherAbbreviation = changedTeacher.Abbreviation;
+                            }
+                        }
+
+                        if (periodChange.RoomId.HasValue)
+                        {
+                            classPeriod.RoomId = periodChange.RoomId.Value;
+                            if (roomDict.TryGetValue(classPeriod.RoomId.Value, out var changedRoom))
+                            {
+                                classPeriod.RoomCode = changedRoom.RoomCode;
+                            }
+                        }
+                    }
+                }
+            }
+
+            var getClassPeriod = timetable.FirstOrDefault().ClassSchedules
+                .SelectMany(cs => cs.ClassPeriods)
+                .FirstOrDefault(cp => cp.Id == getTeacherInSlotModel.ClassPeriodId)
+                ?? throw new NotExistsException("Không tìm thấy tiết học.");
+
+            var getStudentClassByPeriod = await _unitOfWork.ClassScheduleRepo.GetV2Async(
+                filter: t => t.Id == getClassPeriod.ClassScheduleId && !t.IsDeleted,
+                include: query => query.Include(t => t.StudentClass));
+
+            var subjectId = getClassPeriod.SubjectId ?? throw new NotExistsException("Không xác định được môn học.");
+            var startAt = getTeacherInSlotModel.StartAt;
+            var busyTeacherIds = timetable.FirstOrDefault().ClassSchedules
+                .SelectMany(cs => cs.ClassPeriods)
+                .Where(cp => cp.StartAt == startAt)
+                .Select(cp => cp.TeacherId)
+                .Where(tid => tid.HasValue)
+                .Select(tid => tid.Value)
+                .Distinct()
+                .ToList();
+
+            //list teachable subject
+            var teachableSubjects = await _unitOfWork.TeachableSubjectRepo.GetV2Async(
+                filter: ts => ts.SubjectId == subjectId && ts.Teacher.SchoolId == schoolId && ts.Grade == getStudentClassByPeriod.FirstOrDefault().StudentClass.Grade,
+                include: query => query.Include(ts => ts.Teacher).Include(ts => ts.Subject));
+
+            var availableTeachers = teachableSubjects
+                .Where(t => !busyTeacherIds.Contains(t.Id))
+                .ToList();
+
+            var result = _mapper.Map<List<TeachableSubjectTimetableViewModel>>(availableTeachers);
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Danh sách giáo viên trống tiết",
+                Result = result
+            };
+        }
+        #endregion
+
+        #region Get Teacher Schedule By Week
+        public async Task<BaseResponseModel> GetRoomScheduleInWeek(int schoolId, GetRoomInSlotModel getRoomInSlotModel)
+        {
+            var term = await _unitOfWork.TermRepo.GetByIdAsync(getRoomInSlotModel.TermId, filter: t => !t.IsDeleted)
+               ?? throw new NotExistsException("Term not found");
+
+            var endOfWeek1 = term.StartDate.Date.AddDays(7 - (int)term.StartDate.DayOfWeek);
+
+            if (getRoomInSlotModel.Day.Date < term.StartDate.Date || getRoomInSlotModel.Day.Date > term.EndDate.Date)
+            {
+                throw new NotExistsException("Ngày bạn chọn hiện không thuộc học kì nào trong năm học.");
+            }
+
+            int weekNumber;
+            if (getRoomInSlotModel.Day.Date <= endOfWeek1)
+            {
+                weekNumber = term.StartWeek;
+            }
+            else
+            {
+                var startOfWeek2 = endOfWeek1.AddDays(1);
+                var totalDays = (getRoomInSlotModel.Day.Date - startOfWeek2).TotalDays;
+                weekNumber = term.StartWeek + 1 + (int)(totalDays / 7);
+            }
+
+            var timetable = await _unitOfWork.SchoolScheduleRepo.GetV2Async(
+                filter: t => t.TermId == getRoomInSlotModel.TermId && t.SchoolId == schoolId
+                    && (t.StartWeek <= weekNumber && t.EndWeek >= weekNumber),
+                include: query => query
+                    .Include(ss => ss.Term)
+                    .Include(ss => ss.SchoolYear)
+                    .Include(ss => ss.ClassSchedules)
+                        .ThenInclude(cs => cs.ClassPeriods)
+                            .ThenInclude(cp => cp.PeriodChanges));
+
+            if (!timetable.Any())
+            {
+                throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+            }
+
+            var allPeriodChangesThisWeek = timetable.FirstOrDefault().ClassSchedules
+                .SelectMany(cs => cs.ClassPeriods)
+                .SelectMany(cp => cp.PeriodChanges)
+                .Where(pc => pc.Week == weekNumber)
+                .ToList();
+
+            // teacherId và roomId
+            var changedTeacherIds = allPeriodChangesThisWeek
+                .Where(pc => pc.TeacherId.HasValue)
+                .Select(pc => pc.TeacherId.Value)
+                .Distinct().ToList();
+
+            var changedRoomIds = allPeriodChangesThisWeek
+                .Where(pc => pc.RoomId.HasValue)
+                .Select(pc => pc.RoomId.Value)
+                .Distinct().ToList();
+
+            // get room and teacher
+            var changedTeachers = await _unitOfWork.TeacherRepo.GetAsync(t => changedTeacherIds.Contains(t.Id));
+            var teacherDict = changedTeachers.ToDictionary(t => t.Id, t => t);
+
+            var changedRooms = await _unitOfWork.RoomRepo.GetAsync(r => changedRoomIds.Contains(r.Id));
+            var roomDict = changedRooms.ToDictionary(r => r.Id, r => r);
+
+            foreach (var classSchedule in timetable.FirstOrDefault().ClassSchedules)
+            {
+                foreach (var classPeriod in classSchedule.ClassPeriods)
+                {
+                    var periodChange = classPeriod.PeriodChanges.FirstOrDefault(pc => pc.Week == weekNumber);
+                    if (periodChange != null)
+                    {
+                        if (periodChange.StartAt != default(int))
+                        {
+                            classPeriod.StartAt = periodChange.StartAt;
+                        }
+
+                        if (periodChange.TeacherId.HasValue)
+                        {
+                            classPeriod.TeacherId = periodChange.TeacherId.Value;
+                            if (teacherDict.TryGetValue(classPeriod.TeacherId.Value, out var changedTeacher))
+                            {
+                                classPeriod.TeacherAbbreviation = changedTeacher.Abbreviation;
+                            }
+                        }
+
+                        if (periodChange.RoomId.HasValue)
+                        {
+                            classPeriod.RoomId = periodChange.RoomId.Value;
+                            if (roomDict.TryGetValue(classPeriod.RoomId.Value, out var changedRoom))
+                            {
+                                classPeriod.RoomCode = changedRoom.RoomCode;
+                            }
+                        }
+                    }
+                }
+            }
+
+            
+
+            var result = roomDict;
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Danh sách phòng trống phù hợp",
+                Result = result
+            };
         }
         #endregion
 
