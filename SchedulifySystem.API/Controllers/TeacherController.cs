@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using System.ComponentModel.DataAnnotations;
+using SchedulifySystem.Repository.EntityModels;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -87,6 +88,13 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> GenerateTeacherAccount(TeacherGenerateAccount teacherGenerateAccount)
         {
             return ValidateAndExecute(() => _teacherService.GenerateTeacherAccount(teacherGenerateAccount));
+        }
+
+        [HttpGet("{email}/info")]
+        [Authorize(Roles = "Teacher, SchoolManager, TeacherDepartmentHead")]
+        public Task<IActionResult> GetTeacherByEmail(int schoolId, string email)
+        {
+            return ValidateAndExecute(() => _teacherService.GetTeacherByEmail(schoolId, email));
         }
 
 
