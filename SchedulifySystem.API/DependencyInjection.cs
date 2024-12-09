@@ -48,7 +48,7 @@ namespace SchedulifySystem.API
                 options.AddPolicy("app-cors",
                     builder =>
                     {
-                        builder.WithOrigins("https://schedulify.id.vn", "http://localhost:8080")  // Chỉ cho phép domain này
+                        builder.WithOrigins("https://schedulify.id.vn", "http://localhost:8080", "http://localhost:3000")  // Chỉ cho phép domain này
                         .AllowAnyHeader()
                         .AllowCredentials()
                         .WithExposedHeaders("X-Pagination")
