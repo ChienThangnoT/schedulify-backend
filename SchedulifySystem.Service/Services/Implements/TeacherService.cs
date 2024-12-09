@@ -779,5 +779,25 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
         #endregion
+
+        #region GetTeacherByEmail
+        public async Task<BaseResponseModel> GetTeacherByEmail(int schoolId, string email)
+        {
+            var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active)
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+
+            var teacher = (await _unitOfWork.TeacherRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == schoolId &&
+            f.Email.Trim().ToLower().Equals(email.Trim().ToLower()), include: query => query.Include(t => t.StudentClasses))).FirstOrDefault() ?? 
+            throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
+
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Lấy thông tin giáo viên thành công.",
+                Result = _mapper.Map<TeacherViewModel>(teacher)
+            };
+
+        }
+        #endregion
     }
 }
