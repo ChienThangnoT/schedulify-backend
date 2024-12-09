@@ -2500,9 +2500,13 @@ namespace SchedulifySystem.Service.Services.Implements
             var term = await _unitOfWork.TermRepo.GetByIdAsync(termId, filter: t => !t.IsDeleted)
                 ?? throw new NotExistsException("Term not found");
 
+            if (day.Date < term.StartDate.Date || day.Date > term.EndDate.Date)
+            {
+                throw new NotExistsException("Provided date is outside the term period.");
+            }
+
             var totalDays = (day.Date - term.StartDate.Date).TotalDays;
             var weekNumber = term.StartWeek + (int)(totalDays / 7);
-
             var timetable = await _unitOfWork.SchoolScheduleRepo.GetV2Async(
                 filter: t => t.TermId == termId && t.SchoolId == schoolId 
                     && (t.StartWeek <= weekNumber && t.EndWeek >= weekNumber),
@@ -2511,8 +2515,12 @@ namespace SchedulifySystem.Service.Services.Implements
                     .Include(ss => ss.SchoolYear)
                     .Include(ss => ss.ClassSchedules)
                         .ThenInclude(cs => cs.ClassPeriods)
-                            .ThenInclude(cp => cp.PeriodChanges))
-                ?? throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+                            .ThenInclude(cp => cp.PeriodChanges));
+
+            if (!timetable.Any())
+            {
+                 throw new NotExistsException(ConstantResponse.TIMETABLE_NOT_FOUND);
+            }
 
             // Lấy tất cả PeriodChange tuần hiện tại
             var allPeriodChangesThisWeek = timetable.FirstOrDefault().ClassSchedules
@@ -2574,7 +2582,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            var result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetable);
+            var result = _mapper.Map<SchoolScheduleDetailsViewModel>(timetable.FirstOrDefault());
 
             return new BaseResponseModel()
             {
