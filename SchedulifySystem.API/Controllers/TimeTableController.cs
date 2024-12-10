@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.Enums;
@@ -22,6 +23,7 @@ namespace SchedulifySystem.API.Controllers
 
 
         [HttpPost("generate")]
+        [Authorize(Roles = "SchoolManager")]
         public async Task<IActionResult> Generate(int schoolId,int yearId, GenerateTimetableModel parameters)
         {
             var currentEmail = _claimsService.GetCurrentUserEmail;
@@ -57,12 +59,14 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPut("status")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> UpdateTimeTableStatus(int schoolId, int yearId, [Required]int termId, [Required] ScheduleStatus scheduleStatus)
         {
             return ValidateAndExecute(() => _timetableService.UpdateTimeTableStatus(schoolId, yearId, termId, scheduleStatus));
         }
 
         [HttpPost("publish")]
+        [Authorize(Roles = "SchoolManager")]
         public Task<IActionResult> PublishedTimetable(SchoolScheduleDetailsViewModel schoolScheduleDetailsModel)
         {
             return ValidateAndExecute(() => _timetableService.PublishedTimetable(schoolScheduleDetailsModel));
