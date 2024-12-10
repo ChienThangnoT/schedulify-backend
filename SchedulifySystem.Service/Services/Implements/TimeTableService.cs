@@ -267,6 +267,9 @@ namespace SchedulifySystem.Service.Services.Implements
                 var user = await _unitOfWork.UserRepo.GetAsync(filter: t => t.Email == parameters.CurrentUserEmail && t.Status == (int)AccountStatus.Active)
                                ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
 
+                Console.WriteLine($"user:  {user}");
+                Console.WriteLine($"CurrentUserEmail:  {parameters.CurrentUserEmail}");
+
                 NotificationModel noti = new NotificationModel
                 {
                     Title = "Tạo thời khóa biểu thành công",

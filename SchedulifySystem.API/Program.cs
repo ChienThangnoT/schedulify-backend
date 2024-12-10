@@ -39,19 +39,6 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/notificationHub") && context.WebSockets.IsWebSocketRequest)
-    {
-        if (!context.WebSockets.IsWebSocketRequest)
-        {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
-        }
-    }
-    await next();
-});
-
 // Configure Swagger to be available in all environments
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -65,14 +52,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseWebSockets();
-app.MapHub<NotificationHub>("/notificationHub");
-
+app.UseHttpsRedirection();
 app.UseCors("app-cors");
-app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
+app.UseWebSockets();
+app.MapHub<NotificationHub>("/notificationHub");
 app.MapControllers();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.Run();
