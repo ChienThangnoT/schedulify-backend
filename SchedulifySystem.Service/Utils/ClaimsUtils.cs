@@ -14,7 +14,7 @@ namespace SchedulifySystem.Service.Utils
             if (identity != null)
             {
                 var userClaims = identity.Claims;
-                return userClaims.FirstOrDefault(x => x.Type == "email")?.Value;
+                return userClaims.FirstOrDefault(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
             }
             return null;
         }
