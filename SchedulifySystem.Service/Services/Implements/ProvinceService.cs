@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.DistrictBusinessModels;
@@ -73,11 +74,16 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> RemoveProvince(int provinceId)
         {
-            var province = await _unitOfWork.ProvinceRepo.GetByIdAsync(provinceId, filter: f => !f.IsDeleted) ?? 
+            var province = await _unitOfWork.ProvinceRepo.GetByIdAsync(provinceId, filter: f => !f.IsDeleted, include: query => query.Include(p => p.Districts)) ?? 
                 throw new NotExistsException($"Không tìm thấy tỉnh thành Id {provinceId} trong hệ thống.");
 
             province.IsDeleted = true;
             _unitOfWork.ProvinceRepo.Update(province);
+            foreach (var item in province.Districts.ToList())
+            {
+                item.IsDeleted = true;
+                _unitOfWork.DistrictRepo.Update(item);
+            }
             await _unitOfWork.SaveChangesAsync();
 
             return new BaseResponseModel()
