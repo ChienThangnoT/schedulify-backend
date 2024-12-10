@@ -273,7 +273,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 NotificationModel noti = new NotificationModel
                 {
                     Title = "Tạo thời khóa biểu thành công",
-                    Message = $"Thời khóa biểu đã được tạo thành công lúc {DateTime.UtcNow}",
+                    Message = $"Thời khóa biểu đã được tạo thành công lúc {TimeUtils.ConvertToLocalTime(DateTime.UtcNow):MM/dd/yyyy HH:mm:ss}",
                     Type = ENotificationType.HeThong,
                     Link = ""
                 };
