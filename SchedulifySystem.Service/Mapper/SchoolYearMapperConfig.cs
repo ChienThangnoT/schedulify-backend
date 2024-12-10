@@ -13,7 +13,10 @@ namespace SchedulifySystem.Service.Mapper
     {
         partial void SchoolYearMapperConfig()
         {
-            CreateMap<SchoolYear, SchoolYearViewModel>();
+            CreateMap<SchoolYear, SchoolYearViewModel>()
+                .ForMember(dest => dest.TermViewModel, opt => opt.MapFrom(src => src.Terms));
+
+            CreateMap<Term, TermViewModel>();
             CreateMap<SchoolYearAddModel, SchoolYear>();
         }
     }

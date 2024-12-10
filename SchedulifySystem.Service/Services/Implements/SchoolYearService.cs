@@ -130,7 +130,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetSchoolYear(bool includePrivate)
         {
-            var schoolYear = await _unitOfWork.SchoolYearRepo.GetAsync(filter: t => t.IsDeleted == false && (includePrivate || t.IsPublic == true));
+            var schoolYear = await _unitOfWork.SchoolYearRepo.GetV2Async(filter: t => t.IsDeleted == false && (includePrivate || t.IsPublic == true),
+                include : query => query.Include(t => t.Terms));
 
             var result = _mapper.Map<List<SchoolYearViewModel>>(schoolYear);
             return new BaseResponseModel()
