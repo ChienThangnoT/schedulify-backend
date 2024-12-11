@@ -463,6 +463,7 @@ namespace SchedulifySystem.Service.Services.Implements
             ///*Duyệt qua danh sách các phân công (assignmentsDb), tìm lớp học, môn học, và giáo viên tương ứng cho từng phân công.
             // Tạo đối tượng AssignmentTCDTO và thêm vào danh sách assignments.
             //*/
+            var sessionValues = new List<int>() { (int)MainSession.Morning, (int)MainSession.Afternoon };
 
             for (var i = 0; i < assignmentsDbList.Count; i++)
             {
@@ -473,16 +474,22 @@ namespace SchedulifySystem.Service.Services.Implements
                 // Check if any of the elements are null and handle accordingly
                 if (studentClass == null)
                 {
-                    throw new DefaultException($"Class with Id {assignmentsDbList[i].StudentClassId} not found.");
+                    throw new DefaultException($"Không tìm thấy lớp Id {assignmentsDbList[i].StudentClassId}.");
                 }
+
+                if (!sessionValues.Contains(studentClass.MainSession))
+                {
+                    throw new DefaultException($"Lớp {studentClass.Name} dữ liệu mainsession không hợp lệ.");
+                }
+
                 var subject = subjects.FirstOrDefault(s => s.SubjectId == assignmentsDbList[i].SubjectId && studentClass.CurriculumId == s.CurriculumId);
                 if (subject == null)
                 {
-                    throw new DefaultException($"Subject with Id {assignmentsDbList[i].SubjectId} not found.");
+                    throw new DefaultException($"Không tìm thấy môn học Id  {assignmentsDbList[i].SubjectId}.");
                 }
                 if (teacher == null)
                 {
-                    throw new DefaultException($"Teacher with Id {assignmentsDbList[i].TeacherId} not found.");
+                    throw new DefaultException($"Không tìm thấy giáo viên Id {assignmentsDbList[i].TeacherId}");
                 }
 
                 // If all exist, proceed with adding to the assignments list
