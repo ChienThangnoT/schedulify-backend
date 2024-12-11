@@ -70,7 +70,7 @@ namespace SchedulifySystem.Service.Utils
                 for (int column = 0; column < columnCount; column++)
                 {
                     var unit = src.TimetableUnits.FirstOrDefault(u => u.StartAt == row && u.ClassId == src.Classes[column].Id);
-                    file.Write($"{unit?.SubjectName} - {unit?.TeacherAbbreviation}");
+                    file.Write($"{unit?.SubjectAbbreviation} - {unit?.TeacherAbbreviation}");
                     file.Write(",");
                 }
                 file.WriteLine();

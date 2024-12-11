@@ -15,7 +15,7 @@ namespace SchedulifySystem.Service.BusinessModels.ClassScheduleBusinessModels
         public int? StudentClassId { get; set; }
         public string? StudentClassName { get; set; }
 
-        public List<ClassPeriodViewModel> ClassPeriods { get; set; }
+        public List<ClassPeriodViewModel>? ClassPeriods { get; set; }
 
     }
 }

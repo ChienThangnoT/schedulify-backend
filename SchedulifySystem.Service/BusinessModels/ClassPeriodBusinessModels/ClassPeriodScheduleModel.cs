@@ -46,7 +46,7 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
         
         public EPriority Priority { get; set; } = EPriority.None;
         public MainSession Session { get; set; }
-        
+        public ClassCombination? ClassCombination { get; set; }
         public List<ConstraintErrorModel> ConstraintErrors { get; set; } = [];
 
         public ClassPeriodScheduleModel()
@@ -63,6 +63,8 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
             TeacherId = assignment.Teacher.Id;
             TeacherAbbreviation = assignment.Teacher.Abbreviation;
             ClassName = assignment.StudentClass.Name;
+            RoomCode = assignment.StudentClass.RoomCode;
+            RoomId = assignment.StudentClass.RoomId;
             ClassId = assignment.StudentClass.Id;
             TeacherAssignmentId = assignment.Id;
         }

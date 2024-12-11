@@ -111,9 +111,9 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpPost("reset-password/confirm")]
-        public Task<IActionResult> ConfirmResetPassword(string email, int code)
+        public Task<IActionResult> ConfirmResetPassword(ConfirmResetPasswordModel confirmResetPasswordModel)
         {
-            return ValidateAndExecute(() => _userService.ConfirmResetPassword(email, code));
+            return ValidateAndExecute(() => _userService.ConfirmResetPassword(confirmResetPasswordModel));
         }
         
         [HttpPost("reset-password/new-password")]
@@ -122,6 +122,12 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _userService.ExcuteResetPassword(resetPasswordModel));
         }
 
+        [HttpPatch("status")]
+        [Authorize(Roles = "Admin")]
+        public Task<IActionResult> UpdateAccountStatus([FromBody]UpdateStatus updateStatus)
+        {
+            return ValidateAndExecute(() => _userService.UpdateAccountStatus(updateStatus));
+        }
 
         //[HttpPost("admin-register")]
         //public async Task<IActionResult> SignupAccountAdmin(CreateAdmin createSchoolManagerModel)
