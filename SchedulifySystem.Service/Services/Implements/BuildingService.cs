@@ -120,7 +120,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var roomInDB = await _unitOfWork.RoomRepo.GetV2Async(
                filter: sc => !sc.IsDeleted && existed.Id == sc.BuildingId);
 
-            if (roomInDB != null)
+            if (roomInDB.Any())
             {
                 throw new DefaultException(ConstantResponse.DELETE_BUILDING_FAILED);
             }
