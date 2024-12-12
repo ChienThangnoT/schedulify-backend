@@ -188,7 +188,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> DeleteRoom(int RoomId)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, filter: t=> t.IsDeleted != false) 
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, filter: t=> !t.IsDeleted) 
                 ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
 
             // Lấy danh sách StudentClasses từ DB dựa trên RoomId
@@ -196,7 +196,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 filter: sc => !sc.IsDeleted && room.Id == sc.RoomId);
             var roomSubjectInDb = await _unitOfWork.RoomSubjectRepo.GetAsync(
                 filter: sc => !sc.IsDeleted && room.Id == sc.RoomId);
-            if(studentClassesInDb != null || roomSubjectInDb != null)
+            if(studentClassesInDb.Any() || roomSubjectInDb.Any())
             {
                 throw new DefaultException(ConstantResponse.DELETE_ROOM_FAILED);
             }
