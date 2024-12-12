@@ -2679,25 +2679,25 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
         #region update timetable status
-        public async Task<BaseResponseModel> UpdateTimeTableStatus(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
+        public async Task<BaseResponseModel> UpdateTimeTableStatus(int schoolId, int yearId, UpdateTimeTableStatusModel updateTimeTableStatusModel)
         {
             var school = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             var year = await _unitOfWork.SchoolYearRepo.GetByIdAsync(yearId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
-            var term = await _unitOfWork.TermRepo.GetByIdAsync(termId) ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
+            var term = await _unitOfWork.TermRepo.GetByIdAsync(updateTimeTableStatusModel.termId) ?? throw new NotExistsException(ConstantResponse.TERM_NOT_EXIST);
 
-            if (scheduleStatus == ScheduleStatus.Published)
+            if (updateTimeTableStatusModel.scheduleStatus == ScheduleStatus.Published)
             {
                 throw new DefaultException("Không thể cập nhật trạng thái này");
             }
 
-            return scheduleStatus switch
+            return updateTimeTableStatusModel.scheduleStatus switch
             {
                 ScheduleStatus.PublishedInternal => await PublishInternalTimeTable(schoolId)
                     ? new BaseResponseModel { Status = StatusCodes.Status200OK, Message = "Schedule updated successfully." }
                     : new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Failed to update schedule." },
 
                 ScheduleStatus.Expired or ScheduleStatus.Disabled or ScheduleStatus.Draft =>
-                    await HandleUpdateTimeTableStatus(schoolId, yearId, termId, scheduleStatus),
+                    await HandleUpdateTimeTableStatus(schoolId, yearId, updateTimeTableStatusModel.termId, updateTimeTableStatusModel.scheduleStatus),
 
                 _ => new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Invalid schedule status." }
             };
@@ -2794,6 +2794,35 @@ namespace SchedulifySystem.Service.Services.Implements
             var schoolYearExist = await _unitOfWork.SchoolYearRepo.GetAsync(filter: t => !t.IsDeleted && t.Id == schoolScheduleDetailsViewModel.SchoolYearId)
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_YEAR_NOT_EXIST);
 
+            var term = termExist.FirstOrDefault();
+            if (term == null)
+            {
+                throw new NotExistsException("Term không hợp lệ.");
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var endOfWeek1 = term.StartDate.Date.AddDays(7 - (int)term.StartDate.DayOfWeek);
+
+            int currentWeekNumber;
+            if (today <= endOfWeek1)
+            {
+                currentWeekNumber = term.StartWeek;
+            }
+            else
+            {
+                var startOfWeek2 = endOfWeek1.AddDays(1);
+                var totalDays = (today - startOfWeek2).TotalDays;
+                currentWeekNumber = term.StartWeek + 1 + (int)(totalDays / 7);
+            }
+
+            if (schoolScheduleDetailsViewModel.StartWeek < currentWeekNumber)
+            {
+                throw new DefaultException("StartWeek của thời khóa biểu không được nhỏ hơn tuần hiện tại.");
+            }
+
+            await ValidateTeacherAssignmentsAsync(schoolScheduleDetailsViewModel);
+
+
             var timetableRecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
                 filter: t => t.SchoolId == schoolScheduleDetailsViewModel.SchoolId
                         && t.TermId == schoolScheduleDetailsViewModel.TermId
@@ -2803,10 +2832,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 throw new DefaultException(ConstantResponse.TIMETABLE_EXIST_PUBLISH);
             }
 
-            if (schoolScheduleDetailsViewModel.StartWeek < termExist.FirstOrDefault().StartWeek || schoolScheduleDetailsViewModel.EndWeek > termExist.FirstOrDefault().EndWeek)
+            if (schoolScheduleDetailsViewModel.StartWeek < termExist.FirstOrDefault().StartWeek ||
+                schoolScheduleDetailsViewModel.EndWeek > termExist.FirstOrDefault().EndWeek)
             {
                 throw new NotExistsException("Ngày bạn chọn bắt buộc phải thuộc 1 học kì trong năm học.");
             }
+
             schoolScheduleDetailsViewModel.Id = 0;
             var timetable = _mapper.Map<SchoolSchedule>(schoolScheduleDetailsViewModel);
 
@@ -2819,6 +2850,47 @@ namespace SchedulifySystem.Service.Services.Implements
                 Message = ConstantResponse.PUBLISH_TIMETABLE_SUCESS
             };
         }
+
+        public async Task ValidateTeacherAssignmentsAsync(SchoolScheduleDetailsViewModel schoolScheduleDetailsViewModel)
+        {
+            // Lấy tất cả TeacherAssignmentId từ ClassSchedules và ClassPeriods
+            var teacherAssignmentIds = schoolScheduleDetailsViewModel.ClassSchedules
+                .SelectMany(schedule => schedule.ClassPeriods)
+                .Where(period => period.TeacherAssignmentId.HasValue)
+                .Select(period => period.TeacherAssignmentId.Value)
+                .Distinct()
+                .ToList();
+
+            if (schoolScheduleDetailsViewModel.ClassSchedules == null || !schoolScheduleDetailsViewModel.ClassSchedules.Any())
+            {
+                throw new DefaultException("Danh sách lịch học không được để trống.");
+            }
+
+
+            if (!teacherAssignmentIds.Any())
+            {
+                return; // Không có TeacherAssignmentId để kiểm tra
+            }
+
+
+            // Truy vấn các TeacherAssignmentId có trong cơ sở dữ liệu
+            var validTeacherAssignments = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+                filter: x => teacherAssignmentIds.Contains(x.Id));
+            var validTeacherAssignmentIds = validTeacherAssignments
+                .Select(x => x.Id)
+                .ToHashSet();
+
+            // Tìm các TeacherAssignmentId không hợp lệ
+            var invalidTeacherAssignmentIds = teacherAssignmentIds
+                .Except(validTeacherAssignmentIds)
+                .ToList();
+
+            if (invalidTeacherAssignmentIds.Any())
+            {
+                throw new Exception($"Invalid TeacherAssignmentIds: {string.Join(", ", invalidTeacherAssignmentIds)}");
+            }
+        }
+
 
         public async Task<bool> PublishTimeTable(int schoolId)
         {
@@ -2985,7 +3057,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
         #endregion
 
-        #region Get Teacher Schedule By Week
+        #region Get Room Schedule In Week
         public async Task<BaseResponseModel> GetRoomScheduleInWeek(int schoolId, GetRoomInSlotModel getRoomInSlotModel)
         {
             var term = await _unitOfWork.TermRepo.GetByIdAsync(getRoomInSlotModel.TermId, filter: t => !t.IsDeleted)
@@ -3082,7 +3154,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            
+
 
             var result = roomDict;
             return new BaseResponseModel()

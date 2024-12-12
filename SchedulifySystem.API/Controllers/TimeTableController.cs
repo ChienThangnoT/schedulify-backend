@@ -60,9 +60,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpPut("status")]
         [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> UpdateTimeTableStatus(int schoolId, int yearId, [Required]int termId, [Required] ScheduleStatus scheduleStatus)
+        public Task<IActionResult> UpdateTimeTableStatus(int schoolId, int yearId, UpdateTimeTableStatusModel updateTimeTableStatusModel)
         {
-            return ValidateAndExecute(() => _timetableService.UpdateTimeTableStatus(schoolId, yearId, termId, scheduleStatus));
+            return ValidateAndExecute(() => _timetableService.UpdateTimeTableStatus(schoolId, yearId, updateTimeTableStatusModel));
         }
 
         [HttpPost("publish")]

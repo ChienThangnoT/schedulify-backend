@@ -206,7 +206,7 @@ namespace SchedulifySystem.Service.Services.Implements
                               models.Select(m => m.Abbreviation.ToLower()).Any(a => t.Abbreviation.ToLower().StartsWith(a))));
 
             var activeAccountEmails = (await _unitOfWork.UserRepo.GetAsync(
-                filter: a => a.Status == (int)AccountStatus.Active)).Select(a => a.Email.ToLower()).ToHashSet();
+                filter: a => a.SchoolId == schoolId && a.Status == (int)AccountStatus.Active)).Select(a => a.Email.ToLower()).ToHashSet();
             var existingTeacherEmails = (await _unitOfWork.TeacherRepo.GetAsync(
                 filter: t => !t.IsDeleted && t.SchoolId == schoolId)).Select(t => t.Email.ToLower()).ToHashSet();
 
@@ -223,7 +223,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     continue;
                 }
 
-                var department = (await _unitOfWork.DepartmentRepo.GetAsync(filter: d => d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower()))).FirstOrDefault();
+                var department = (await _unitOfWork.DepartmentRepo.GetAsync(filter: d => d.SchoolId == schoolId && !d.IsDeleted
+                    && d.DepartmentCode.ToLower().Equals(model.DepartmentCode.ToLower()))).FirstOrDefault();
                 if (department == null)
                 {
                     errorList.Add(model);
@@ -243,51 +244,6 @@ namespace SchedulifySystem.Service.Services.Implements
             // check subject exist 
             var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted)) ?? new List<Subject>();
             var subjectAbreviations = subjects.Select(s => s.Abbreviation.ToLower()).ToHashSet();
-            //var subjectNotExist = models.Select(g => g.MainSubject.SubjectAbreviation)
-            //    .Where(s => !subjectAbreviations.Contains(s.ToLower())).ToList();
-
-            //if (subjectNotExist.Any())
-            //{
-            //    foreach (var model in models)
-            //    {
-            //        if (subjectNotExist.Contains(model.MainSubject.SubjectAbreviation.ToLower()))
-            //        {
-            //            errorList.Add(model);
-            //        }
-            //    }
-
-            //    return new BaseResponseModel()
-            //    {
-            //        Status = StatusCodes.Status400BadRequest,
-            //        Message = ConstantResponse.SUBJECT_NOT_EXISTED,
-            //        Result = new { ValidList = models.Where(m => !errorList.Contains(m)).ToList(), errorList }
-            //    };
-            //}
-            //else
-            //{
-            //    var subjectLookup = subjects.ToDictionary(s => s.Abbreviation.ToLower(), s => s.Id);
-
-            //    foreach (var model in models)
-            //    {
-            //        var list = new List<TeachableSubject>();
-            //        foreach (var grade in model.MainSubject.ListApproriateLevelByGrades)
-            //        {
-            //            var teachableSubject = new TeachableSubject
-            //            {
-            //                CreateDate = DateTime.UtcNow,
-            //                SubjectId = subjectLookup[model.MainSubject.SubjectAbreviation.ToLower()],
-            //                Grade = (int)grade.Grade,
-            //                AppropriateLevel = MAX_APPROVIATE_LEVEL,
-            //                IsMain = true
-            //            };
-            //            list.Add(teachableSubject);
-
-            //        }
-            //        model.TeachableSubjects = list;
-
-
-            //    }
-            //}
 
 
             foreach (var model in models)
@@ -482,11 +438,15 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 var subjectObjectPara = subjects.Where(s => teachableSubjectAbbreviationPara.Contains(s.Abbreviation.ToLower()));
 
-                int countMainSubjects = teachableSubjects.Count(s => s.IsMain);
+                int countMainSubjects = teachableSubjects
+                    .Sum(subject => subject.ListApproriateLevelByGrades.Count(level => level.IsMain));
+
                 if (countMainSubjects > 1)
                 {
                     throw new DefaultException(ConstantResponse.INVALID_NUMBER_MAIN_SUBJECR_OF_TEACHER);
                 }
+
+                //var getTteachableSubject = await _unitOfWork.TeachableSubjectRepo.GetAsync(filter: t => t.TeacherId == id && !t.IsDeleted && t.IsMain == true);
 
                 foreach (var item in subjectObjectPara)
                 {
@@ -495,23 +455,25 @@ namespace SchedulifySystem.Service.Services.Implements
                     foreach (var grade in model.ListApproriateLevelByGrades)
                     {
                         var existingSubject = existedTeacher.TeachableSubjects
-                            .FirstOrDefault(ts => ts.SubjectId == item.Id && ts.Grade == (int)grade.Grade);
+                            .FirstOrDefault(ts => ts.SubjectId == item.Id && !ts.IsDeleted);
 
-                        if (existingSubject != null)
+                        if (existingSubject != null && existingSubject.IsMain && grade.IsMain == false)
                         {
-                            if (existingSubject.IsMain && !model.IsMain)
-                            {
-                                return new BaseResponseModel
-                                {
-                                    Status = StatusCodes.Status400BadRequest,
-                                    Message = $"Môn học mã {item.Abbreviation} của khối {grade.Grade} đã được đánh dấu là môn chính, không thể thêm mới dưới dạng môn phụ."
-                                };
-                            }
-
                             return new BaseResponseModel
                             {
                                 Status = StatusCodes.Status400BadRequest,
-                                Message = $"Môn học mã {item.Abbreviation} của khối {grade.Grade} đã được dạy bởi giáo viên, không thể thêm mới."
+                                Message = $"Môn học mã {item.Abbreviation} đã được đánh dấu là môn chính, không thể thêm mới dưới dạng môn phụ."
+                            };
+                        }
+                        var existingSubjectInGrade = existedTeacher.TeachableSubjects
+                            .FirstOrDefault(ts => ts.SubjectId == item.Id && ts.Grade == (int)grade.Grade);
+
+                        if (existingSubjectInGrade != null)
+                        {
+                            return new BaseResponseModel
+                            {
+                                Status = StatusCodes.Status400BadRequest,
+                                Message = $"Môn học mã {item.Abbreviation} của khối này đã được dạy bởi giáo viên, không thể thêm mới."
                             };
                         }
                         // Thêm mới
@@ -521,7 +483,7 @@ namespace SchedulifySystem.Service.Services.Implements
                             SubjectId = item.Id,
                             Grade = (int)grade.Grade,
                             AppropriateLevel = (int)grade.AppropriateLevel,
-                            IsMain = model.IsMain,
+                            IsMain = grade.IsMain,
                             CreateDate = DateTime.UtcNow
                         });
                     }
@@ -539,7 +501,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Delete teachable subject
         public async Task<BaseResponseModel> DeleteTeachableSubjeect(int teachableSubjectId)
         {
-            var existTeacherSubject = await _unitOfWork.TeachableSubjectRepo.GetByIdAsync(teachableSubjectId, filter: t => !t.IsDeleted) 
+            var existTeacherSubject = await _unitOfWork.TeachableSubjectRepo.GetByIdAsync(teachableSubjectId, filter: t => !t.IsDeleted)
                 ?? throw new NotExistsException(ConstantResponse.TEACHABLE_SUBJECT_NOT_EXIST);
             _unitOfWork.TeachableSubjectRepo.Remove(existTeacherSubject);
             await _unitOfWork.SaveChangesAsync();
@@ -787,7 +749,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var teacher = (await _unitOfWork.TeacherRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == schoolId &&
-            f.Email.Trim().ToLower().Equals(email.Trim().ToLower()), include: query => query.Include(t => t.StudentClasses))).FirstOrDefault() ?? 
+            f.Email.Trim().ToLower().Equals(email.Trim().ToLower()), include: query => query.Include(t => t.StudentClasses))).FirstOrDefault() ??
             throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
 
             return new BaseResponseModel()
