@@ -174,6 +174,7 @@ namespace SchedulifySystem.Service.Utils.Constants
         public const string GET_TEACHABLE_SUBJECT_SUCCESS = "Get teachable subject success.";
         public const string GET_TEACHABLE_BY_SUBJECT_FAILED = "School has no teacher can teach the subject in this grade.";
         public const string DELETE_TEACHABLE_SUBJECT_SUCCESS = "Xóa môn có thể dạy của giáo viên thành công.";
+        public const string CANNOT_DELETE_LAST_MAIN_SUBJECT = "Không thể xóa môn chính cuối cùng của giáo viên.";
 
         //Term
         public const string TERM_NOT_EXIST = "The term does not exist.";

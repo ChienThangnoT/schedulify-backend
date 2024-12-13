@@ -438,12 +438,13 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 var subjectObjectPara = subjects.Where(s => teachableSubjectAbbreviationPara.Contains(s.Abbreviation.ToLower()));
 
-                int countMainSubjects = teachableSubjects
-                    .Sum(subject => subject.ListApproriateLevelByGrades.Count(level => level.IsMain));
+                int totalMainSubjects = teachableSubjects
+                    .SelectMany(subject => subject.ListApproriateLevelByGrades)
+                    .Count(level => level.IsMain);
 
-                if (countMainSubjects > 1)
+                if (totalMainSubjects > 1)
                 {
-                    throw new DefaultException(ConstantResponse.INVALID_NUMBER_MAIN_SUBJECR_OF_TEACHER);
+                    throw new DefaultException("Chỉ được phép có 1 môn học được đánh dấu là môn chính.");
                 }
 
                 //var getTteachableSubject = await _unitOfWork.TeachableSubjectRepo.GetAsync(filter: t => t.TeacherId == id && !t.IsDeleted && t.IsMain == true);
@@ -503,6 +504,19 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var existTeacherSubject = await _unitOfWork.TeachableSubjectRepo.GetByIdAsync(teachableSubjectId, filter: t => !t.IsDeleted)
                 ?? throw new NotExistsException(ConstantResponse.TEACHABLE_SUBJECT_NOT_EXIST);
+
+            var isMainSubjects = await _unitOfWork.TeachableSubjectRepo.GetAsync(
+                filter: t => t.TeacherId == existTeacherSubject.TeacherId && !t.IsDeleted && t.IsMain == true);
+
+            if (existTeacherSubject.IsMain && isMainSubjects.Count() == 1)
+            {
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ConstantResponse.CANNOT_DELETE_LAST_MAIN_SUBJECT
+                };
+            }
+
             _unitOfWork.TeachableSubjectRepo.Remove(existTeacherSubject);
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel()
