@@ -239,7 +239,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     Status = StatusCodes.Status400BadRequest,
                     Message = ConstantResponse.CLASS_NAME_EXISTED,
-                    Result = new { ValidList, errorList }
+                    Result = errorList
                 }
                 : new BaseResponseModel
                 {
