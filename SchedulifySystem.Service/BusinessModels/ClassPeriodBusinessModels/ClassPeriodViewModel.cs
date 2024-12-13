@@ -18,7 +18,7 @@ namespace SchedulifySystem.Service.BusinessModels.ClassPeriodBusinessModels
         public int? DateOfWeek { get; set; }
         public string? SubjectAbbreviation { get; set; }
         public string? TeacherAbbreviation { get; set; }
-        public int? TeacherAssignmentId { get; set; }
+        //public int? TeacherAssignmentId { get; set; }
         public int StartAt { get; set; }
         public EPriority Priority { get; set; }
     }

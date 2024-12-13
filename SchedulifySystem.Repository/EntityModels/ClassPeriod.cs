@@ -21,7 +21,6 @@ namespace SchedulifySystem.Repository.EntityModels
         public int StartAt { get; set; }
         public int Priority { get; set; } 
 
-        public TeacherAssignment? TeacherAssignment { get; set; } 
         public ClassSchedule? ClassSchedule { get; set; }
         public Room? Room { get; set; }
         public Teacher? Teacher { get; set; }

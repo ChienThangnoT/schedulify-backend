@@ -156,11 +156,6 @@ public partial class SchedulifyContext : DbContext
                 .WithMany(s => s.ClassPeriods)
                 .HasForeignKey(cp => cp.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(cp => cp.TeacherAssignment)
-               .WithMany(s => s.ClassPeriods)
-               .HasForeignKey(cp => cp.TeacherAssignmentId)
-               .OnDelete(DeleteBehavior.Restrict);
         });
 
 
