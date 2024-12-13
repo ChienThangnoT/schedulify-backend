@@ -2699,7 +2699,11 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (updateTimeTableStatusModel.scheduleStatus == ScheduleStatus.Published)
             {
-                throw new DefaultException("Không thể cập nhật trạng thái này");
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Update success."
+                };
             }
 
             return updateTimeTableStatusModel.scheduleStatus switch
