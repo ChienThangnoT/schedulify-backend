@@ -2697,15 +2697,24 @@ namespace SchedulifySystem.Service.Services.Implements
                     : new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Failed to update schedule." },
 
                 ScheduleStatus.Expired or ScheduleStatus.Disabled or ScheduleStatus.Draft =>
-                    await HandleUpdateTimeTableStatus(schoolId, yearId, updateTimeTableStatusModel.termId, updateTimeTableStatusModel.scheduleStatus),
+                    await HandleUpdateTimeTableStatus(schoolId, yearId, updateTimeTableStatusModel.termId, updateTimeTableStatusModel.scheduleStatus, updateTimeTableStatusModel.startWeek, updateTimeTableStatusModel.endWeek),
 
                 _ => new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = "Invalid schedule status." }
             };
         }
 
-        private async Task<BaseResponseModel> HandleUpdateTimeTableStatus(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
+        private async Task<BaseResponseModel> HandleUpdateTimeTableStatus(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus, int startWeek, int endWeek)
         {
-            var isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus);
+            var isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus, startWeek, endWeek);
+            if (isUpdated == false)
+            {
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Không có thời khóa biểu phù hợp với tuần bắt đầu và kết thúc này."
+                };
+            }
+
             if (scheduleStatus == ScheduleStatus.Disabled)
             {
                 var getTeacherInSchool = await _unitOfWork.TeacherRepo.GetAsync(
@@ -2764,10 +2773,10 @@ namespace SchedulifySystem.Service.Services.Implements
             return true;
         }
 
-        public async Task<bool> UpdateTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus)
+        public async Task<bool> UpdateTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus, int startWeek, int endWeek)
         {
             var timetablerecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
-                filter: t => t.SchoolId == schoolId && t.TermId == termId && t.SchoolYearId == yearId);
+                filter: t => t.SchoolId == schoolId && t.TermId == termId && t.SchoolYearId == yearId && t.StartWeek == startWeek && t.EndWeek == endWeek);
             if (!timetablerecent.Any())
             {
                 return false;
@@ -2782,7 +2791,7 @@ namespace SchedulifySystem.Service.Services.Implements
         }
 
 
-        #endregion Published Timetable
+        #endregion
 
         #region Published Timetable
         public async Task<BaseResponseModel> PublishedTimetable(SchoolScheduleDetailsViewModel schoolScheduleDetailsViewModel)
