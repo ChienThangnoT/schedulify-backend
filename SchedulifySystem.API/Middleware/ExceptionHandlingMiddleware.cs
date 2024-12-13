@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using SchedulifySystem.Service.Exceptions;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 
@@ -56,7 +57,13 @@ namespace SchedulifySystem.API.Middleware
                 Message = exception.Message,
             };
 
-            var jsonResponse = JsonConvert.SerializeObject(response);
+            var jsonResponse = JsonConvert.SerializeObject(response, new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy() 
+                }
+            });
             return context.Response.WriteAsync(jsonResponse);
         }
     }
