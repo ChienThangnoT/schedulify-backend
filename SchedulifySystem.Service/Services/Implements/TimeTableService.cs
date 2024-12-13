@@ -96,7 +96,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
 
                 // nếu cá thể tốt nhất trong quần thể có độ thích nghi (Adaptability) nhỏ hơn 1000, quá trình tiến hóa sẽ dừng lại sớm
-                if (timetablePopulation.Take(3).All(t => t.Adaptability < 1000))
+                if (timetablePopulation.Take(1).All(t => t.Adaptability < 1000))
                 {
                     break;
                 }
@@ -117,7 +117,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
                 Parallel.For(0, timetablePopulation.Count, i =>
                 {
-                    var selectedIndividual = timetablePopulation.Shuffle().Take(20).OrderBy(i => i.Adaptability).First();
+                    var selectedIndividual = timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First();
                     lock (tournamentList)
                     {
                         tournamentList.Add(selectedIndividual);
@@ -145,7 +145,10 @@ namespace SchedulifySystem.Service.Services.Implements
                     child.Id = currentId++;
                 }
 
-
+                foreach (var individual in timetablePopulation)
+                {
+                    individual.Age++;
+                }
                 // Chọn lọc
                 timetablePopulation.AddRange(timetableChildren);
                 //TabuSearch(timetablePopulation[0], parameters);
@@ -561,23 +564,27 @@ namespace SchedulifySystem.Service.Services.Implements
             // update fixed period in para
             List<ClassPeriodScheduleModel> fixedPeriods = new List<ClassPeriodScheduleModel>();
 
-            for (int i = 0; i < parameters.FixedPeriodsPara.Count(); i++)
+            if (parameters.FixedPeriodsPara != null)
             {
-                var fixedPeriod = parameters.FixedPeriodsPara[i];
-                var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && (fixedPeriod.ClassId == null || fixedPeriod.ClassId == 0 || a.StudentClass.Id == fixedPeriod.ClassId)).ToList();
-                if (founded == null)
+                for (int i = 0; i < parameters.FixedPeriodsPara.Count(); i++)
                 {
-                    throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
-                }
-                foreach (var f in founded)
-                {
-                    var period = new ClassPeriodScheduleModel(f);
-                    period.StartAt = fixedPeriod.StartAt;
-                    period.Priority = EPriority.Fixed;
-                    period.Session = IsMorningSlot(fixedPeriod.StartAt) ? MainSession.Morning : MainSession.Afternoon;
-                    fixedPeriods.Add(period);
+                    var fixedPeriod = parameters.FixedPeriodsPara[i];
+                    var founded = assignments.Where(a => a.Subject.SubjectId == fixedPeriod.SubjectId && (fixedPeriod.ClassId == null || fixedPeriod.ClassId == 0 || a.StudentClass.Id == fixedPeriod.ClassId)).ToList();
+                    if (founded == null)
+                    {
+                        throw new NotExistsException($"Tiết cố định không hợp lệ!. Môn học id {fixedPeriod.SubjectId} và lớp id {fixedPeriod.ClassId} không có trong bảng phân công.");
+                    }
+                    foreach (var f in founded)
+                    {
+                        var period = new ClassPeriodScheduleModel(f);
+                        period.StartAt = fixedPeriod.StartAt;
+                        period.Priority = EPriority.Fixed;
+                        period.Session = IsMorningSlot(fixedPeriod.StartAt) ? MainSession.Morning : MainSession.Afternoon;
+                        fixedPeriods.Add(period);
+                    }
                 }
             }
+
 
             parameters.FixedPeriods = fixedPeriods;
 
@@ -649,7 +656,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var StartAtAvoid = new Dictionary<MainSession, List<int>>();
             foreach (var session in mainSessions)
             {
-                var daysInWeek = parameters.DaysInWeek;
+                var daysInWeek = parameters.DaysInWeek + 1;
 
                 for (int j = 0; j < parameters.RequiredBreakPeriods; j++)
                 {
@@ -870,7 +877,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var fClass = src.Classes[i];
                 var mainSession = fClass.MainSession;
-                var startAtRemove = GetStartAtRedutance(fClass.Id, mainSession, src, parameters.DaysInWeek);
+                var startAtRemove = GetStartAtRedutance(fClass.Id, mainSession, src, parameters.DaysInWeek + 1);
 
                 //lấy danh sách các tiết trống buổi sáng và buổi chiều
                 List<int> morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters).Except(startAtRemove).ToList();
@@ -923,7 +930,7 @@ namespace SchedulifySystem.Service.Services.Implements
             int start = session == MainSession.Morning ? 1 : 6;
             int end = session == MainSession.Morning ? 5 : 10;
 
-            for (int j = 0; j < parameters.DaysInWeek; j++)
+            for (int j = 0; j < parameters.DaysInWeek + 1; j++)
             {
                 for (int k = start; k <= end; k++)
                 {
@@ -1701,7 +1708,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 int endSlot = mainSession == MainSession.Morning ? 5 : 10;
 
                 // Kiểm tra từng ngày trong tuần
-                for (int day = 0; day < parameters.DaysInWeek; day++)
+                for (int day = 0; day < parameters.DaysInWeek + 1; day++)
                 {
                     // Lấy danh sách các tiết đã xếp trong buổi chính của ngày hiện tại
                     List<int> filledSlots = periods
@@ -1768,7 +1775,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // Lặp qua mỗi ngày trong tuần (mỗi ngày có 10 tiết: 5 tiết buổi sáng, 5 tiết buổi chiều)
-                for (int day = 0; day < parameters.DaysInWeek; day++)
+                for (int day = 0; day < parameters.DaysInWeek + 1; day++)
                 {
                     // Tính chỉ số bắt đầu và kết thúc của buổi sáng và buổi chiều trong ngày
                     int morningEnd = day * 10 + 5;
@@ -1923,7 +1930,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // loop qua theo buổi trong tuần 
-                for (var j = 1; j < parameters.DaysInWeek - 1; j += 5)
+                for (var j = 1; j < parameters.DaysInWeek + 1; j += 5)
                 {
                     // lấy ra ds tiết trong buổi đó 
                     var periods = teacherPeriods
@@ -1959,7 +1966,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // loop theo ngày 
-                for (var j = 1; j < parameters.DaysInWeek; j += 10)
+                for (var j = 1; j < parameters.DaysInWeek + 1; j += 10)
                 {
                     // kiểm tra gv có dạy cả buổi sáng và buổi chiều trong cùng 1 ngày 
                     if (teacherPeriods.Any(p => p.StartAt >= j && p.StartAt < j + 5) &&
