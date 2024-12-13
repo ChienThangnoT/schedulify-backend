@@ -2820,7 +2820,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 throw new DefaultException("StartWeek của thời khóa biểu không được nhỏ hơn tuần hiện tại.");
             }
 
-            await ValidateTeacherAssignmentsAsync(schoolScheduleDetailsViewModel);
+            //await ValidateTeacherAssignmentsAsync(schoolScheduleDetailsViewModel);
 
 
             var timetableRecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
@@ -2851,45 +2851,45 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
-        public async Task ValidateTeacherAssignmentsAsync(SchoolScheduleDetailsViewModel schoolScheduleDetailsViewModel)
-        {
-            // Lấy tất cả TeacherAssignmentId từ ClassSchedules và ClassPeriods
-            var teacherAssignmentIds = schoolScheduleDetailsViewModel.ClassSchedules
-                .SelectMany(schedule => schedule.ClassPeriods)
-                .Where(period => period.TeacherAssignmentId.HasValue)
-                .Select(period => period.TeacherAssignmentId.Value)
-                .Distinct()
-                .ToList();
+        //public async Task ValidateTeacherAssignmentsAsync(SchoolScheduleDetailsViewModel schoolScheduleDetailsViewModel)
+        //{
+        //    // Lấy tất cả TeacherAssignmentId từ ClassSchedules và ClassPeriods
+        //    var teacherAssignmentIds = schoolScheduleDetailsViewModel.ClassSchedules
+        //        .SelectMany(schedule => schedule.ClassPeriods)
+        //        .Where(period => period.TeacherAssignmentId.HasValue)
+        //        .Select(period => period.TeacherAssignmentId.Value)
+        //        .Distinct()
+        //        .ToList();
 
-            if (schoolScheduleDetailsViewModel.ClassSchedules == null || !schoolScheduleDetailsViewModel.ClassSchedules.Any())
-            {
-                throw new DefaultException("Danh sách lịch học không được để trống.");
-            }
-
-
-            if (!teacherAssignmentIds.Any())
-            {
-                return; // Không có TeacherAssignmentId để kiểm tra
-            }
+        //    if (schoolScheduleDetailsViewModel.ClassSchedules == null || !schoolScheduleDetailsViewModel.ClassSchedules.Any())
+        //    {
+        //        throw new DefaultException("Danh sách lịch học không được để trống.");
+        //    }
 
 
-            // Truy vấn các TeacherAssignmentId có trong cơ sở dữ liệu
-            var validTeacherAssignments = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
-                filter: x => teacherAssignmentIds.Contains(x.Id));
-            var validTeacherAssignmentIds = validTeacherAssignments
-                .Select(x => x.Id)
-                .ToHashSet();
+        //    if (!teacherAssignmentIds.Any())
+        //    {
+        //        return; // Không có TeacherAssignmentId để kiểm tra
+        //    }
 
-            // Tìm các TeacherAssignmentId không hợp lệ
-            var invalidTeacherAssignmentIds = teacherAssignmentIds
-                .Except(validTeacherAssignmentIds)
-                .ToList();
 
-            if (invalidTeacherAssignmentIds.Any())
-            {
-                throw new Exception($"Invalid TeacherAssignmentIds: {string.Join(", ", invalidTeacherAssignmentIds)}");
-            }
-        }
+        //    // Truy vấn các TeacherAssignmentId có trong cơ sở dữ liệu
+        //    var validTeacherAssignments = await _unitOfWork.TeacherAssignmentRepo.GetAsync(
+        //        filter: x => teacherAssignmentIds.Contains(x.Id));
+        //    var validTeacherAssignmentIds = validTeacherAssignments
+        //        .Select(x => x.Id)
+        //        .ToHashSet();
+
+        //    // Tìm các TeacherAssignmentId không hợp lệ
+        //    var invalidTeacherAssignmentIds = teacherAssignmentIds
+        //        .Except(validTeacherAssignmentIds)
+        //        .ToList();
+
+        //    if (invalidTeacherAssignmentIds.Any())
+        //    {
+        //        throw new Exception($"Invalid TeacherAssignmentIds: {string.Join(", ", invalidTeacherAssignmentIds)}");
+        //    }
+        //}
 
 
         public async Task<bool> PublishTimeTable(int schoolId)
