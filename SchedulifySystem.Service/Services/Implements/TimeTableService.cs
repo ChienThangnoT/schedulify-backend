@@ -2748,6 +2748,11 @@ namespace SchedulifySystem.Service.Services.Implements
                         await _notificationService.SendNotificationToUser(teacher.Id, noti);
                     }
                 }
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Update success."
+                };
             }
             if (scheduleStatus == ScheduleStatus.Expired)
             {
