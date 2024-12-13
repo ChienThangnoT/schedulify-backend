@@ -438,14 +438,21 @@ namespace SchedulifySystem.Service.Services.Implements
 
                 var subjectObjectPara = subjects.Where(s => teachableSubjectAbbreviationPara.Contains(s.Abbreviation.ToLower()));
 
-                int totalMainSubjects = teachableSubjects
-                    .SelectMany(subject => subject.ListApproriateLevelByGrades)
-                    .Count(level => level.IsMain);
+                var mainSubjectGroups = teachableSubjects
+                    .Where(subject => subject.ListApproriateLevelByGrades.Any(level => level.IsMain))
+                    .GroupBy(subject => subject.SubjectAbreviation.ToLower())
+                    .ToList();
 
-                if (totalMainSubjects > 1)
+                if (mainSubjectGroups.Any(group => group.SelectMany(subject => subject.ListApproriateLevelByGrades)
+                                                         .Count(level => level.IsMain) > 1))
                 {
-                    throw new DefaultException("Chỉ được phép có 1 môn học được đánh dấu là môn chính.");
+                    return new BaseResponseModel
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Mỗi giáo viên chỉ được có 1 môn chính (không phân biệt khối)."
+                    };
                 }
+
 
                 //var getTteachableSubject = await _unitOfWork.TeachableSubjectRepo.GetAsync(filter: t => t.TeacherId == id && !t.IsDeleted && t.IsMain == true);
 
