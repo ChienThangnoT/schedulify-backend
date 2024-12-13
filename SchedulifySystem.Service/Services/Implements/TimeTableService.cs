@@ -47,7 +47,7 @@ namespace SchedulifySystem.Service.Services.Implements
         private static readonly int AVAILABLE_SLOT_PER_WEEK = 61;
         private readonly int NUMBER_OF_GENERATIONS = int.MaxValue;
         private readonly int INITIAL_NUMBER_OF_INDIVIDUALS = 1000;
-        private readonly float MUTATION_RATE = 0.1f;
+        private readonly float MUTATION_RATE = 0.5f;
         private readonly ESelectionMethod SELECTION_METHOD = ESelectionMethod.RankSelection;
         private readonly ECrossoverMethod CROSSOVER_METHOD = ECrossoverMethod.SinglePoint;
         private readonly EChromosomeType CHROMOSOME_TYPE = EChromosomeType.ClassChromosome;
@@ -117,7 +117,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 //chọn ra 10 cá thể từ cha mẹ và chọn ra 1 cá thể tốt nhát để lai tạo
                 Parallel.For(0, timetablePopulation.Count, i =>
                 {
-                    var selectedIndividual = timetablePopulation.Shuffle().Take(10).OrderBy(i => i.Adaptability).First();
+                    var selectedIndividual = timetablePopulation.Shuffle().Take(50).OrderBy(i => i.Adaptability).First();
                     lock (tournamentList)
                     {
                         tournamentList.Add(selectedIndividual);
@@ -152,7 +152,12 @@ namespace SchedulifySystem.Service.Services.Implements
                 // Chọn lọc
                 timetablePopulation.AddRange(timetableChildren);
                 //TabuSearch(timetablePopulation[0], parameters);
-                timetablePopulation = timetablePopulation.Where(u => u.Age < u.Longevity).OrderBy(i => i.Adaptability).Take(100).ToList();
+                //timetablePopulation = timetablePopulation.Where(u => u.Age < u.Longevity).OrderBy(i => i.Adaptability).Take(100).ToList();
+
+                var topIndividuals = timetablePopulation.OrderBy(i => i.Adaptability).Take(80).ToList();
+                var randomIndividuals = timetablePopulation.Shuffle().Take(20).ToList();
+                timetablePopulation = topIndividuals.Concat(randomIndividuals).ToList();
+
 
                 var best = timetablePopulation.First();
                 best.ConstraintErrors = [.. best.ConstraintErrors.OrderBy(e => e.Code)];
@@ -2712,13 +2717,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
         private async Task<BaseResponseModel> HandleUpdateTimeTableStatus(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus, int startWeek, int endWeek)
         {
-            var isUpdated = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus, startWeek, endWeek);
-            if (isUpdated == false)
+            if (scheduleStatus == ScheduleStatus.Draft)
             {
                 return new BaseResponseModel
                 {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = "Không có thời khóa biểu phù hợp với tuần bắt đầu và kết thúc này."
+                    Status = StatusCodes.Status200OK,
+                    Message = "Update success."
                 };
             }
 
@@ -2745,13 +2749,38 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+            if (scheduleStatus == ScheduleStatus.Expired)
+            {
+                var isExpired = await UpdateTimeTable(schoolId, yearId, termId, scheduleStatus, startWeek, endWeek);
+                return new BaseResponseModel
+                {
+                    Status = isExpired ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest,
+                    Message = isExpired ? "Successfully." : "Failed to update schedule."
+                };
+            }
             return new BaseResponseModel
             {
-                Status = isUpdated ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest,
-                Message = isUpdated ? "Successfully." : "Failed to update schedule."
+                Status = StatusCodes.Status400BadRequest,
+                Message = "Invalid schedule status."
             };
         }
-
+        public async Task<bool> UpdateTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus, int startWeek, int endWeek)
+        {
+            var timetablerecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
+                filter: t => t.SchoolId == schoolId && t.TermId == termId && t.SchoolYearId == yearId
+                              && t.StartWeek == startWeek && t.EndWeek == endWeek);
+            if (!timetablerecent.Any())
+            {
+                return false;
+            }
+            if (scheduleStatus == ScheduleStatus.Expired)
+            {
+                _unitOfWork.SchoolScheduleRepo.RemoveRange(timetablerecent);
+                await _unitOfWork.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
 
         public async Task<bool> PublishInternalTimeTable(int schoolId)
         {
@@ -2779,25 +2808,6 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             return true;
         }
-
-        public async Task<bool> UpdateTimeTable(int schoolId, int yearId, int termId, ScheduleStatus scheduleStatus, int startWeek, int endWeek)
-        {
-            var timetablerecent = await _unitOfWork.SchoolScheduleRepo.GetAsync(
-                filter: t => t.SchoolId == schoolId && t.TermId == termId && t.SchoolYearId == yearId && t.StartWeek == startWeek && t.EndWeek == endWeek);
-            if (!timetablerecent.Any())
-            {
-                return false;
-            }
-            if (scheduleStatus != ScheduleStatus.Published)
-            {
-                _unitOfWork.SchoolScheduleRepo.RemoveRange(timetablerecent);
-                await _unitOfWork.SaveChangesAsync();
-                return true;
-            }
-            return false;
-        }
-
-
         #endregion
 
         #region Published Timetable
