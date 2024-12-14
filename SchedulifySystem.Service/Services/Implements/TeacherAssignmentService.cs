@@ -328,13 +328,18 @@ namespace SchedulifySystem.Service.Services.Implements
                 .GroupBy(a => a.TeacherId)
                 .Select(g =>
                 {
-                    var teacher = teachers.First(t => t.Id == g.Key);
+                    var teacher = teachers.FirstOrDefault(t => t.Id == g.Key);
                     return new TeacherPeriodCountViewModel()
                     {
                         TeacherId = (int)g.Key,
                         TeacherAbbreviation = teacher.Abbreviation,
                         TeacherName = teacher.FirstName + " " + teacher.LastName,
-                        TotalPeriodsPerWeek = g.Sum(a => a.PeriodCount)
+                        TotalPeriodsPerWeek = g.Select(p => new TeacherSlotPerWeekViewModel() {
+                            PeriodCount = p.PeriodCount,
+                            SubjectAbbreviation = p.Subject.Abbreviation,
+                            SubjectId = p.SubjectId,
+                            SubjectName = p.Subject.SubjectName
+                        }).ToList()
                     };
                 })
                 .ToList();
