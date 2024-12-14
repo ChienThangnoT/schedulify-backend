@@ -382,6 +382,13 @@ namespace SchedulifySystem.Service.Services.Implements
                     var _ = await _unitOfWork.SchoolRepo.GetByIdAsync((int)updateTeacherRequestModel.SchoolId)
                         ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
                 }
+                
+                var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: sc => !sc.IsDeleted && existedTeacher.Id == sc.HomeroomTeacherId);
+                if ((existedTeacher.Status != (int)TeacherStatus.HoatDong) && studentClassesInDb.Any())
+                {
+                    studentClassesInDb.FirstOrDefault().HomeroomTeacherId = null;
+                }
 
                 _unitOfWork.TeacherRepo.Update(existedTeacher);
                 await _unitOfWork.SaveChangesAsync();
@@ -517,14 +524,14 @@ namespace SchedulifySystem.Service.Services.Implements
             var isMainSubjects = await _unitOfWork.TeachableSubjectRepo.GetAsync(
                 filter: t => t.TeacherId == existTeacherSubject.TeacherId && !t.IsDeleted && t.IsMain == true);
 
-            if (existTeacherSubject.IsMain && isMainSubjects.Count() == 1)
-            {
-                return new BaseResponseModel
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = ConstantResponse.CANNOT_DELETE_LAST_MAIN_SUBJECT
-                };
-            }
+            //if (existTeacherSubject.IsMain && isMainSubjects.Count() == 1)
+            //{
+            //    return new BaseResponseModel
+            //    {
+            //        Status = StatusCodes.Status400BadRequest,
+            //        Message = ConstantResponse.CANNOT_DELETE_LAST_MAIN_SUBJECT
+            //    };
+            //}
 
             _unitOfWork.TeachableSubjectRepo.Remove(existTeacherSubject);
             await _unitOfWork.SaveChangesAsync();
@@ -610,7 +617,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: sc => !sc.IsDeleted && existedTeacher.Id == sc.HomeroomTeacherId);
 
-                if (studentClassesInDb != null)
+                if (studentClassesInDb.Any())
                 {
                     throw new DefaultException(ConstantResponse.DELETE_TEACHER_FAILED);
                 }
