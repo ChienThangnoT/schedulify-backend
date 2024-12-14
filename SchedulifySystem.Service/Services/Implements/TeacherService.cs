@@ -576,7 +576,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         }).ToList()
                     }).ToList()
                 };
-                if(getHomeRoomTeacher != null)
+                if(getHomeRoomTeacher.Any())
                 {
                     teacherViewModels.IsHomeRoomTeacher = true;
                     teacherViewModels.StudentClassId = getHomeRoomTeacher.FirstOrDefault().Id;
