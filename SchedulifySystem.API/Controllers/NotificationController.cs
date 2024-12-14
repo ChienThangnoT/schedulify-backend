@@ -19,7 +19,7 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet("{accountId}")]
-        public Task<IActionResult> GetAllNotificationsByAccountIdAsync(int accountId, bool? isRead, int pageIndex = 1, int pageSize = 20)
+        public Task<IActionResult> GetAllNotificationsByAccountIdAsync(int accountId, bool? isRead, int pageIndex = 1, int pageSize = 100)
         {
             return ValidateAndExecute(() => _notificationService.GetAllNotificationsByAccountIdAsync(accountId, isRead, pageIndex, pageSize));
         }
