@@ -255,15 +255,16 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             var existedClass = (await _unitOfWork.StudentClassesRepo.GetV2Async(
                                     filter: t => t.Id == id && t.IsDeleted == false,
-                                    include: query => query.Include(r => r.Room).Include(t => t.StudentClassGroup).ThenInclude(q => q.Curriculum)
+                                    include: query => query.Include(a => a.Teacher).Include(r => r.Room).Include(t => t.StudentClassGroup).ThenInclude(q => q.Curriculum)
                 )).FirstOrDefault()
                 ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
-
+            var result = _mapper.Map<StudentClassViewModel>(existedClass);
+            result.PeriodCount = result.PeriodCount / 2;
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
                 Message = ConstantResponse.GET_CLASS_SUCCESS,
-                Result = _mapper.Map<StudentClassViewModel>(existedClass)
+                Result =result
             };
         }
         #endregion

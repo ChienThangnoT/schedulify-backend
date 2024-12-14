@@ -18,4 +18,28 @@ namespace SchedulifySystem.Service.BusinessModels.RoomBusinessModels
         public AvailabilityStatus AvailabilityeStatus { get; set; }
         public List<RoomSubjectViewModel> Subjects { get; set; }
     }
+
+    public class RoomScheduleResponse
+    {
+        public bool IsGroupClass { get; set; }
+        public List<ClassPeriodModel> RelatedClasses { get; set; } = new();
+        public List<RoomView> AvailableRooms { get; set; } = new();
+    }
+
+    public class ClassPeriodModel
+    {
+        public int? ClassScheduleId { get; set; }
+        public int? RoomId { get; set; }
+        public int? TeacherId { get; set; }
+        public int? SubjectId { get; set; }
+        public int StartAt { get; set; }
+    }
+
+    public class RoomView
+    {
+        public int RoomId { get; set; }
+        public string RoomCode { get; set; }
+        public string RoomName { get; set; }
+    }
+
 }
