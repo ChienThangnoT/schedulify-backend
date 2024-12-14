@@ -67,7 +67,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var user = await _unitOfWork.UserRepo.GetByIdAsync(accountId, filter: t => t.Status == (int)AccountStatus.Active)
                 ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
 
-            var notifications = await _unitOfWork.NotificationRepo.GetAsync(filter: t => t.AccountId == accountId && t.IsRead == false && t.IsDeleted == false);
+            var notifications = await _unitOfWork.NotificationRepo.GetAsync(filter: t => t.AccountId == accountId && t.IsRead == false && t.IsDeleted == false, pageIndex: 1, pageSize: int.MaxValue);
             var notiList = notifications.ToList().Count;
 
             return new BaseResponseModel()

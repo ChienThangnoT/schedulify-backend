@@ -543,7 +543,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id,
                     include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
-
+                var getHomeRoomTeacher = await _unitOfWork.StudentClassesRepo.GetAsync(filter: t=> t.HomeroomTeacherId == teacher.Id && !t.IsDeleted);
                 var teacherViewModels = new TeacherViewModel
                 {
                     Id = teacher.Id,
@@ -576,6 +576,16 @@ namespace SchedulifySystem.Service.Services.Implements
                         }).ToList()
                     }).ToList()
                 };
+                if(getHomeRoomTeacher != null)
+                {
+                    teacherViewModels.IsHomeRoomTeacher = true;
+                    teacherViewModels.StudentClassId = getHomeRoomTeacher.FirstOrDefault().Id;
+                    teacherViewModels.HomeRoomTeacherOfClass = getHomeRoomTeacher.FirstOrDefault().Name;
+                }
+                else
+                {
+                    teacherViewModels.IsHomeRoomTeacher = false;
+                }
                 return teacher != null ? new BaseResponseModel() { Status = StatusCodes.Status200OK, Result = teacherViewModels } :
                     new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
             }
