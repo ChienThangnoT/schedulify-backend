@@ -809,7 +809,7 @@ namespace SchedulifySystem.Service.Services.Implements
             for (var i = 0; i < classes.Count; i++)
             {
                 //lấy ra ds tiết học của lớp đó trong timetableUnits
-                var classTimetableUnits = timetableUnits.Where(u => u.ClassId == classes[i].Id).ToList();
+                var classTimetableUnits = timetableUnits.Where(u => u.ClassId == classes[i].Id && u.Priority != EPriority.Fixed).ToList();
                 var mainSession = classes[i].MainSession;
                 var doubleSubjects = subjectByGroup.ContainsKey(classes[i].CurriculumId) ? subjectByGroup[classes[i].CurriculumId] : [];
                 for (var j = 0; j < doubleSubjects.Count; j++)
