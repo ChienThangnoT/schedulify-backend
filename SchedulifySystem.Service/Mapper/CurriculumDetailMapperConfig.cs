@@ -32,6 +32,8 @@ namespace SchedulifySystem.Service.Mapper
                 opt => opt.MapFrom(src => src.Subject.SubjectGroupType ))
                .ForMember(dest => dest.TotalSlotInYear,
                 opt => opt.MapFrom(src => src.Subject.TotalSlotInYear))
+               .ForMember(dest => dest.TotalSlotPerWeek,
+                opt => opt.MapFrom(src => (src.MainSlotPerWeek + src.SubSlotPerWeek)))
                .ReverseMap();
             //CreateMap<CurriculumDetail, SubjectScheduleModel>()
             //    .IncludeMembers(sig => sig.Subject).ReverseMap();
