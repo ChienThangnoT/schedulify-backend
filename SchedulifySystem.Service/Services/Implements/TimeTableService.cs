@@ -3208,8 +3208,60 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
+            var classPeriods = timetable.First().ClassSchedules.SelectMany(cs => cs.ClassPeriods).ToList();
 
+            //lấy ra tiết học cần kiểm tra
+            var targetPeriod = classPeriods.FirstOrDefault(cp =>
+                cp.StartAt == getRoomInSlotModel.StartAt &&
+                cp.Id == (int)getRoomInSlotModel.ClassPeriodId &&
+                !cp.Status.HasValue);
 
+            if (targetPeriod == null)
+            {
+                throw new NotExistsException("Không tìm thấy tiết học cần kiểm tra.");
+            }
+            var response = new RoomScheduleResponse();
+            int totalClassesInGroup = 1;
+            if (targetPeriod.Priority == (int)EPriority.Combination)
+            {
+                //lớp ghép: lìm tất cả các lớp timetable
+                var groupPeriods = classPeriods
+                    .Where(cp => cp.StartAt == targetPeriod.StartAt &&
+                         cp.RoomId == targetPeriod.RoomId &&
+                         cp.Priority == (int)EPriority.Combination)
+                     .ToList();
+                totalClassesInGroup = groupPeriods.Count;
+                response.IsGroupClass = true;
+                response.RelatedClasses = groupPeriods.Select(gp => new ClassPeriodModel
+                {
+                    ClassScheduleId = gp.ClassScheduleId,
+                    RoomId = gp.RoomId,
+                    TeacherId = gp.TeacherId,
+                    SubjectId = gp.SubjectId,
+                    StartAt = gp.StartAt
+                }).ToList();
+            }
+            else
+            {
+                response.IsGroupClass = false;
+            }
+
+            // room trống
+            var busyRoomIds = classPeriods
+                .Where(cp => cp.StartAt == getRoomInSlotModel.StartAt)
+                .Select(cp => cp.RoomId)
+                .Distinct()
+                .ToList();
+
+            var availableRooms = await _unitOfWork.RoomRepo.GetAsync(filter: r =>
+                !busyRoomIds.Contains(r.Id) && !r.IsDeleted && r.MaxClassPerTime >= totalClassesInGroup);
+
+            response.AvailableRooms = availableRooms.Select(r => new RoomView
+            {
+                RoomId = r.Id,
+                RoomCode = r.RoomCode,
+                RoomName = r.Name
+            }).ToList();
             var result = roomDict;
             return new BaseResponseModel()
             {
