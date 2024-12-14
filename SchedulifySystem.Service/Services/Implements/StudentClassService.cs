@@ -259,7 +259,6 @@ namespace SchedulifySystem.Service.Services.Implements
                 )).FirstOrDefault()
                 ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
             var result = _mapper.Map<StudentClassViewModel>(existedClass);
-            result.PeriodCount = result.PeriodCount / 2;
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
