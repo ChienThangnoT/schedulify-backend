@@ -11,6 +11,14 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModel
         public int TeacherId { get; set; }
         public string? TeacherName { get; set; }
         public string? TeacherAbbreviation { get; set; }
-        public int TotalPeriodsPerWeek { get; set; }
+        public List<TeacherSlotPerWeekViewModel> TotalPeriodsPerWeek { get; set; } = new List<TeacherSlotPerWeekViewModel>();
+    }
+
+    public class TeacherSlotPerWeekViewModel
+    {
+        public string? SubjectName { get; set; }
+        public string? SubjectAbbreviation { get; set; }
+        public int SubjectId { get; set; }
+        public int PeriodCount { get; set; }
     }
 }
