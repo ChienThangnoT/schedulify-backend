@@ -35,7 +35,7 @@ namespace SchedulifySystem.Service.BusinessModels.TeacherBusinessModels
         [EnumDataType(typeof(TeacherRole), ErrorMessage = "Invalid teacher role value.")]
         public TeacherRole TeacherRole { get; set; }
 
-        public AccountStatus Status { get; set; }
+        public TeacherStatus Status { get; set; }
         public string? Phone { get; set; }
         [JsonIgnore]
         public int? SchoolId { get; set; }
