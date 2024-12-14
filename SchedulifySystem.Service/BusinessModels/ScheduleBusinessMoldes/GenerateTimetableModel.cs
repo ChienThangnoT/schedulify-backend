@@ -7,6 +7,7 @@ using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using SchedulifySystem.Service.Exceptions;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -48,12 +49,13 @@ namespace SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes
         public int RequiredBreakPeriods { get; set; } = 1;
         public int MinimumDaysOff { get; set; } = 0;
         public int TermId { get; set; }
-        public int DaysInWeek { get; set; } = 5;
+        [Range(4, 6)]
+        public int DaysInWeek { get; set; } = 6;
         public int MaxExecutionTimeInSeconds { get; set; } = 600;
 
         public int GetAvailableSlotsPerWeek()
         {
-            return (DaysInWeek + 1) * 10 + 1;
+            return (DaysInWeek) * 10 + 1;
         }
     }
 }

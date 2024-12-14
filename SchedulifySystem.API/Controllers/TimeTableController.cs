@@ -72,5 +72,11 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _timetableService.PublishedTimetable(schoolScheduleDetailsModel));
         }
 
+        [HttpGet("get-week-dates")]
+        public Task<IActionResult> GetDateInWeek([Required]int termId, int? weekNumber = null)
+        {
+            return ValidateAndExecute(() => _timetableService.GetDateInWeek(termId, weekNumber));
+        }
+
     }
 }

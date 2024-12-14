@@ -35,5 +35,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> CheckPeriodChange(CheckPeriodChangeModel model);
         Task<BaseResponseModel> UpdateTimeTableStatus(int schoolId, int yearId, UpdateTimeTableStatusModel updateTimeTableStatusModel);
         Task<BaseResponseModel> PublishedTimetable(SchoolScheduleDetailsViewModel schoolScheduleDetailsViewModel);
+        Task<BaseResponseModel> GetDateInWeek(int termId, int? weekNumber = null);
     }
 }

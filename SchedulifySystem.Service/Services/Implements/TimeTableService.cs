@@ -91,7 +91,26 @@ namespace SchedulifySystem.Service.Services.Implements
                 // Kiểm tra thời gian thực thi
                 if (stopwatch.Elapsed.TotalSeconds >= parameters.MaxExecutionTimeInSeconds)
                 {
+                    if (parameters.CurrentUserEmail != null)
+                    {
+                        var user = await _unitOfWork.UserRepo.GetAsync(filter: t => t.Email == parameters.CurrentUserEmail && t.Status == (int)AccountStatus.Active)
+                                       ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
+
+                        Console.WriteLine($"user:  {user}");
+                        Console.WriteLine($"CurrentUserEmail:  {parameters.CurrentUserEmail}");
+
+                        NotificationModel noti = new NotificationModel
+                        {
+                            Title = "Tạo thời khóa biểu thất bại",
+                            Message = $"Thời khóa biểu tên {parameters.TimetableName}không được tạo thành công, vui lòng giảm bớt các ràng buộc và thử lại.",
+                            Type = ENotificationType.HeThong,
+                            Link = ""
+                        };
+                        await _notificationService.SendNotificationToUser(user.FirstOrDefault().Id, noti);
+                    }
+
                     Console.WriteLine("Đã đạt thời gian tối đa thực thi. Kết thúc sớm.");
+                    
                     break;
                 }
 
@@ -281,7 +300,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 NotificationModel noti = new NotificationModel
                 {
                     Title = "Tạo thời khóa biểu thành công",
-                    Message = $"Thời khóa biểu đã được tạo thành công lúc {TimeUtils.ConvertToLocalTime(DateTime.UtcNow):MM/dd/yyyy HH:mm:ss}",
+                    Message = $"Thời khóa biểu tên {parameters.TimetableName} đã được tạo thành công lúc {TimeUtils.ConvertToLocalTime(DateTime.UtcNow):MM/dd/yyyy HH:mm:ss}",
                     Type = ENotificationType.HeThong,
                     Link = ""
                 };
@@ -661,7 +680,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var StartAtAvoid = new Dictionary<MainSession, List<int>>();
             foreach (var session in mainSessions)
             {
-                var daysInWeek = parameters.DaysInWeek + 1;
+                var daysInWeek = parameters.DaysInWeek;
 
                 for (int j = 0; j < parameters.RequiredBreakPeriods; j++)
                 {
@@ -882,7 +901,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var fClass = src.Classes[i];
                 var mainSession = fClass.MainSession;
-                var startAtRemove = GetStartAtRedutance(fClass.Id, mainSession, src, parameters.DaysInWeek + 1);
+                var startAtRemove = GetStartAtRedutance(fClass.Id, mainSession, src, parameters.DaysInWeek);
 
                 //lấy danh sách các tiết trống buổi sáng và buổi chiều
                 List<int> morningSlots = GetAvailableSlots(src, i, MainSession.Morning, parameters).Except(startAtRemove).ToList();
@@ -935,7 +954,7 @@ namespace SchedulifySystem.Service.Services.Implements
             int start = session == MainSession.Morning ? 1 : 6;
             int end = session == MainSession.Morning ? 5 : 10;
 
-            for (int j = 0; j < parameters.DaysInWeek + 1; j++)
+            for (int j = 0; j < parameters.DaysInWeek; j++)
             {
                 for (int k = start; k <= end; k++)
                 {
@@ -1713,7 +1732,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 int endSlot = mainSession == MainSession.Morning ? 5 : 10;
 
                 // Kiểm tra từng ngày trong tuần
-                for (int day = 0; day < parameters.DaysInWeek + 1; day++)
+                for (int day = 0; day < parameters.DaysInWeek; day++)
                 {
                     // Lấy danh sách các tiết đã xếp trong buổi chính của ngày hiện tại
                     List<int> filledSlots = periods
@@ -1780,7 +1799,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // Lặp qua mỗi ngày trong tuần (mỗi ngày có 10 tiết: 5 tiết buổi sáng, 5 tiết buổi chiều)
-                for (int day = 0; day < parameters.DaysInWeek + 1; day++)
+                for (int day = 0; day < parameters.DaysInWeek; day++)
                 {
                     // Tính chỉ số bắt đầu và kết thúc của buổi sáng và buổi chiều trong ngày
                     int morningEnd = day * 10 + 5;
@@ -1935,7 +1954,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // loop qua theo buổi trong tuần 
-                for (var j = 1; j < parameters.DaysInWeek + 1; j += 5)
+                for (var j = 1; j < parameters.DaysInWeek; j += 5)
                 {
                     // lấy ra ds tiết trong buổi đó 
                     var periods = teacherPeriods
@@ -1971,7 +1990,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     .ToList();
 
                 // loop theo ngày 
-                for (var j = 1; j < parameters.DaysInWeek + 1; j += 10)
+                for (var j = 1; j < parameters.DaysInWeek; j += 10)
                 {
                     // kiểm tra gv có dạy cả buổi sáng và buổi chiều trong cùng 1 ngày 
                     if (teacherPeriods.Any(p => p.StartAt >= j && p.StartAt < j + 5) &&
@@ -3199,6 +3218,88 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = result
             };
         }
+        #endregion
+
+        #region Get day in week
+        public async Task<BaseResponseModel> GetDateInWeek(int termId, int? weekNumber = null)
+        {
+            var term = await _unitOfWork.TermRepo.GetByIdAsync(termId, filter: t => !t.IsDeleted)
+                ?? throw new NotExistsException("Term not found");
+
+            var startDate = DateOnly.FromDateTime(term.StartDate);
+            var endDate = DateOnly.FromDateTime(term.EndDate);
+
+            var startDateOfWeek1 = startDate;
+            var endDateOfWeek1 = startDateOfWeek1.AddDays(7 - (int)startDateOfWeek1.DayOfWeek);
+
+
+            if (weekNumber.HasValue)
+            {
+                if (weekNumber < term.StartWeek || weekNumber > term.EndWeek)
+                {
+                    throw new DefaultException("Tuần không hợp lệ trong kỳ học.");
+                }
+
+                DateOnly startDateOfTargetWeek, endDateOfTargetWeek;
+
+                if (weekNumber == term.StartWeek)
+                {
+                    startDateOfTargetWeek = startDateOfWeek1;
+                    endDateOfTargetWeek = endDateOfWeek1;
+                }
+                else
+                {
+                    if (!weekNumber.HasValue)
+                    {
+                        throw new ArgumentException("weekNumber không được để trống");
+                    }
+
+                    var totalDaysToTargetWeek = (weekNumber.Value - term.StartWeek) * 7;
+                    startDateOfTargetWeek = endDateOfWeek1.AddDays(1).AddDays(totalDaysToTargetWeek - 7);
+                    endDateOfTargetWeek = startDateOfTargetWeek.AddDays(6);
+
+                }
+
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = $"Tuần {weekNumber}: {startDateOfTargetWeek:dd/MM/yyyy} - {endDateOfTargetWeek:dd/MM/yyyy}",
+                    Result = new
+                    {
+                        WeekNumber = weekNumber,
+                        StartDate = startDateOfTargetWeek,
+                        EndDate = endDateOfTargetWeek
+                    }
+                };
+            }
+            else
+            {
+                var result = new List<object>();
+                var currentStartDate = startDateOfWeek1;
+                var currentEndDate = endDateOfWeek1;
+
+                for (int week = term.StartWeek; week <= term.EndWeek; week++)
+                {
+                    result.Add(new
+                    {
+                        WeekNumber = week,
+                        StartDate = currentStartDate,
+                        EndDate = currentEndDate
+                    });
+
+                    currentStartDate = currentEndDate.AddDays(1);
+                    currentEndDate = currentStartDate.AddDays(6);
+                }
+
+                return new BaseResponseModel
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Danh sách các tuần trong kỳ học.",
+                    Result = result.OrderBy(r => ((dynamic)r).WeekNumber).ToList()
+                };
+            }
+        }
+
         #endregion
 
         public async Task<BaseResponseModel> GetAll(int schoolId, int yearId, int pageIndex = 1, int pageSize = 20)
