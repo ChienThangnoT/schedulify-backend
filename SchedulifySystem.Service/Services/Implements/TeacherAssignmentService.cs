@@ -133,6 +133,12 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
+            var invalidHomeroomTeached = assignmentsDb.Where(s => s.Subject.IsTeachedByHomeroomTeacher).Where(a => a.TeacherId == null)
+                .ToList();
+            foreach(var a in invalidHomeroomTeached)
+            {
+                errorDictionary["Lớp học"].Add($"Lớp {a.StudentClass.Name} không có giáo viên chủ nhiệm");
+            }
 
             var teacherCapabilities = teachers.ToDictionary(
                teacher => teacher.Id,
@@ -167,11 +173,11 @@ namespace SchedulifySystem.Service.Services.Implements
                         var teachableSubjectss = teacherCapabilities[teacher.Id]
                             .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
                             .ToList();
-
-                        if (!teachableSubjectss.Any())
+                        var subject = assignmentsDb.First(a => a.SubjectId == assignment.SubjectId).Subject;
+                        if (!teachableSubjectss.Any() && !subject.IsTeachedByHomeroomTeacher)
                         {
                             var teacherObj = teachers.FirstOrDefault(t => t.Id == teacher.Id);
-                            errorDictionary["Giáo viên"].Add($"Giáo viên {teacher.FirstName} {teacher.LastName} không thể dạy môn {assignmentsDb.First(a => a.SubjectId == assignment.SubjectId).Subject.SubjectName} khối {(int)assignment.StudentClass?.Grade}!.");
+                            errorDictionary["Giáo viên"].Add($"Giáo viên {teacher.FirstName} {teacher.LastName} không thể dạy môn {subject.SubjectName} khối {(int)assignment.StudentClass?.Grade}!.");
                         }
                     }
                     else
