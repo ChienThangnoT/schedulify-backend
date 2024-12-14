@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SchedulifySystem.Repository.DBContext;
@@ -11,9 +12,11 @@ using SchedulifySystem.Repository.DBContext;
 namespace SchedulifySystem.Repository.Migrations
 {
     [DbContext(typeof(SchedulifyContext))]
-    partial class SchedulifyContextModelSnapshot : ModelSnapshot
+    [Migration("20241214190331_UpdateClassPeriod")]
+    partial class UpdateClassPeriod
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -32,7 +32,7 @@ namespace SchedulifySystem.Service.Mapper
                     StartAt = cp.StartAt,
                     Priority = (int) cp.Priority,
                     TeacherAbbreviation = cp.TeacherAbbreviation,
-                    TeacherAssignmentId = cp.TeacherAssignmentId,
+                    //TeacherAssignmentId = cp.TeacherAssignmentId,
                     TeacherId = cp.TeacherId,
                     SubjectAbbreviation = cp.SubjectAbbreviation,
                     RoomId = cp.RoomId,

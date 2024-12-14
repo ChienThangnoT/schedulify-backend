@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 using SchedulifySystem.Repository.DBContext;
 using SchedulifySystem.Repository.Repositories.Interfaces;
 using System;
@@ -136,6 +137,11 @@ namespace SchedulifySystem.Service.UnitOfWork
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
             return await _context.Database.BeginTransactionAsync();
+        }
+
+        public IEnumerable<EntityEntry> GetTrackedEntities()
+        {
+            return _context.ChangeTracker.Entries();
         }
 
         public async Task<int> SaveChangesAsync()

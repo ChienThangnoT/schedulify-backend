@@ -146,13 +146,40 @@ namespace SchedulifySystem.Service.Services.Implements
         #region Send Notification To User
         public async Task SendNotificationToUser(int accountId, NotificationModel notification)
         {
-            var noti = _mapper.Map<Notification>(notification);
-            noti.AccountId = accountId;
-            await _unitOfWork.NotificationRepo.AddAsync(noti);
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var noti = _mapper.Map<Notification>(notification);
+                    noti.AccountId = accountId;
 
-            await _hubContext.Clients.User(accountId.ToString()).SendAsync("ReceiveNotification", notification);
-            await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.NotificationRepo.AddAsync(noti);
+
+                    // Gửi notification qua SignalR
+                    await _hubContext.Clients.User(accountId.ToString()).SendAsync("ReceiveNotification", notification);
+
+                    // Đặt trạng thái "Unchanged" cho các entity không phải Notification
+                    foreach (var entry in _unitOfWork.GetTrackedEntities())
+                    {
+                        if (entry.Entity is not Notification)
+                        {
+                            entry.State = EntityState.Unchanged;
+                        }
+                    }
+
+                    // Lưu chỉ Notification
+                    await _unitOfWork.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
         }
+
         #endregion
     }
 }

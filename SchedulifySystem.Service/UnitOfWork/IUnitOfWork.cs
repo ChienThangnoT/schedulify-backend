@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 using SchedulifySystem.Repository.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -39,6 +40,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IPeriodChangeRepository PeriodChangeRepo { get; }
         public IClassScheduleRepository ClassScheduleRepo { get; }
         public Task<int> SaveChangesAsync();
+        IEnumerable<EntityEntry> GetTrackedEntities();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }
 }

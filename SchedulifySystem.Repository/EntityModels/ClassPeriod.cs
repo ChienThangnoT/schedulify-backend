@@ -17,7 +17,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? SubjectAbbreviation { get; set; }
         public string? TeacherAbbreviation { get; set; }
         public string? RoomCode { get; set; }
-        public int? TeacherAssignmentId {  get; set; }
+        //public int? TeacherAssignmentId {  get; set; }
         public int StartAt { get; set; }
         public int Priority { get; set; } 
 
