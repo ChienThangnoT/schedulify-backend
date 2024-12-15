@@ -24,6 +24,10 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.HomeRoomTeacherOfClass, opt => opt.MapFrom(src => src.StudentClasses.FirstOrDefault().Name))
                 .ForMember(dest => dest.StudentClassId, opt => opt.MapFrom(src => src.StudentClasses.FirstOrDefault().Id));
 
+            CreateMap<Teacher, TeacherAccountViewModel>()
+                .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : string.Empty))
+                .ForMember(dest => dest.Gender, otp => otp.MapFrom(src => src.Gender == (int)Gender.Female ? "Female" : "Male")).ReverseMap();
+
             CreateMap<TeachableSubject, TeachableSubjectViewModel>()
                 .ForMember(dest => dest.SubjectId, otp => otp.MapFrom(src => src.Subject.Id) )
                 .ForMember(dest => dest.SubjectName, otp => otp.MapFrom(src => src.Subject.SubjectName))
