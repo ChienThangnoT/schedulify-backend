@@ -363,31 +363,34 @@ namespace SchedulifySystem.Service.Services.Implements
         {
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
-                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, include: query => query.Include(t => t.TeachableSubjects));
+                var existedTeacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id, include: query => query.Include(t => t.TeachableSubjects).Include(t => t.TeacherAssignments).ThenInclude(a => a.Subject));
                 if (existedTeacher == null)
                 {
                     return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
                 }
-
+                
                 _mapper.Map(updateTeacherRequestModel, existedTeacher);
 
                 if (updateTeacherRequestModel.DepartmentId.HasValue && updateTeacherRequestModel.DepartmentId != 0)
                 {
-                    var _ = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)updateTeacherRequestModel.DepartmentId)
-                        ?? throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
+                    _ = await _unitOfWork.DepartmentRepo.GetByIdAsync((int)updateTeacherRequestModel.DepartmentId)
+                       ?? throw new NotExistsException(ConstantResponse.DEPARTMENT_NOT_EXIST);
                 }
 
                 if (updateTeacherRequestModel.SchoolId.HasValue && updateTeacherRequestModel.SchoolId != 0)
                 {
-                    var _ = await _unitOfWork.SchoolRepo.GetByIdAsync((int)updateTeacherRequestModel.SchoolId)
-                        ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+                    _ = await _unitOfWork.SchoolRepo.GetByIdAsync((int)updateTeacherRequestModel.SchoolId)
+                       ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
                 }
                 
                 var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: sc => !sc.IsDeleted && existedTeacher.Id == sc.HomeroomTeacherId);
                 if ((existedTeacher.Status != (int)TeacherStatus.HoatDong) && studentClassesInDb.Any())
                 {
-                    studentClassesInDb.FirstOrDefault().HomeroomTeacherId = null;
+                    studentClassesInDb.First().HomeroomTeacherId = null;
+                    existedTeacher.TeacherAssignments.Where(a => !a.IsDeleted && a.Subject.IsTeachedByHomeroomTeacher && a.Subject.SchoolYearId == studentClassesInDb.First().SchoolYearId)
+                    .ToList().ForEach(a => a.TeacherId = null);
+                   
                 }
 
                 _unitOfWork.TeacherRepo.Update(existedTeacher);

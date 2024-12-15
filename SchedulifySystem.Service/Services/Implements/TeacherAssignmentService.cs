@@ -335,6 +335,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 .Select(g =>
                 {
                     var teacher = teachers.FirstOrDefault(t => t.Id == g.Key);
+                    
                     return new TeacherPeriodCountViewModel()
                     {
                         TeacherId = (int)g.Key,

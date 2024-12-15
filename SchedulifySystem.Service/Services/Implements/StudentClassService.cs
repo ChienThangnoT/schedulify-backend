@@ -311,7 +311,8 @@ namespace SchedulifySystem.Service.Services.Implements
         #region UpdateStudentClass
         public async Task<BaseResponseModel> UpdateStudentClass(int id, UpdateStudentClassModel updateStudentClassModel)
         {
-            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false)
+            var existedClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false , 
+                include: query => query.Include(t => t.TeacherAssignments).ThenInclude(a => a.Subject))
                 ?? throw new NotExistsException(ConstantResponse.STUDENT_CLASS_NOT_EXIST);
 
             if (updateStudentClassModel.RoomId != null && updateStudentClassModel.RoomId != existedClass.RoomId)
@@ -345,6 +346,17 @@ namespace SchedulifySystem.Service.Services.Implements
                     throw new DefaultException(ConstantResponse.HOMEROOM_TEACHER_ASSIGNED);
                 }
 
+                if(checkExistTeacher.Status != (int)TeacherStatus.HoatDong)
+                {
+                    throw new DefaultException("Chỉ có thể phân công chủ nhiệm cho những giáo viên đang còn hoạt động.");
+                }
+
+                existedClass.TeacherAssignments
+                 .Where(item => item.Subject.IsTeachedByHomeroomTeacher &&
+                                item.Subject.SchoolYearId == updateStudentClassModel.SchoolYearId)
+                 .ToList()
+                 .ForEach(item => item.TeacherId = updateStudentClassModel.HomeroomTeacherId);
+
             }
             updateStudentClassModel.HomeroomTeacherId ??= existedClass.HomeroomTeacherId;
             _mapper.Map(updateStudentClassModel, existedClass);
@@ -374,11 +386,21 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     foreach (AssignStudentClassModel assign in assignListStudentClassModel)
                     {
-                        var existClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(assign.ClassId, filter: t => t.IsDeleted == false) ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
-                        var _ = await _unitOfWork.TeacherRepo.GetByIdAsync(assign.TeacherId, filter: t => t.IsDeleted == false) ?? throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
+                        var existClass = await _unitOfWork.StudentClassesRepo.GetByIdAsync(assign.ClassId, filter: t => t.IsDeleted == false, include: query => query.Include(t => t.TeacherAssignments).ThenInclude(t => t.Subject)) ?? throw new NotExistsException(ConstantResponse.CLASS_NOT_EXIST);
+                        var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(assign.TeacherId, filter: t => t.IsDeleted == false) ?? throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
+                        if(teacher.Status != (int)TeacherStatus.HoatDong)
+                        {
+                            throw new DefaultException("Chỉ có thể phân công chủ nhiệm cho những giáo viên đang còn hoạt động.");
+                        }
+                        
                         existClass.HomeroomTeacherId = assign.TeacherId;
                         existClass.UpdateDate = DateTime.UtcNow;
-                    }
+                        existClass.TeacherAssignments
+                         .Where(item => item.Subject.IsTeachedByHomeroomTeacher && !item.IsDeleted &&
+                                        item.Subject.SchoolYearId == existClass.SchoolYearId)
+                         .ToList()
+                         .ForEach(item => item.TeacherId = assign.TeacherId);
+                            }
                     await _unitOfWork.SaveChangesAsync();
                     transaction.Commit();
                     return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = "Assign success!" };
