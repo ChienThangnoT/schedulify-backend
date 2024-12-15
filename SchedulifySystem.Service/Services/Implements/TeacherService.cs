@@ -6,6 +6,7 @@ using SchedulifySystem.Repository.Commons;
 using SchedulifySystem.Repository.EntityModels;
 using SchedulifySystem.Service.BusinessModels.AccountBusinessModels;
 using SchedulifySystem.Service.BusinessModels.EmailModels;
+using SchedulifySystem.Service.BusinessModels.NotificationBusinessModels;
 using SchedulifySystem.Service.BusinessModels.RoleAssignmentBusinessModels;
 using SchedulifySystem.Service.BusinessModels.StudentClassBusinessModels;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
@@ -31,15 +32,17 @@ namespace SchedulifySystem.Service.Services.Implements
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly IMailService _mailService;
+        private readonly INotificationService _notificationService;
         private readonly int MAX_APPROVIATE_LEVEL = 5;
         private readonly int MIN_APPROVIATE_LEVEL = 1;
 
-        public TeacherService(IMapper mapper, IUnitOfWork unitOfWork, IConfiguration configuration, IMailService mailService)
+        public TeacherService(IMapper mapper, IUnitOfWork unitOfWork, IConfiguration configuration, IMailService mailService, INotificationService notificationService)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
             _mailService = mailService;
+            _notificationService = notificationService;
         }
 
         #region Generate Teacher Account
@@ -51,72 +54,110 @@ namespace SchedulifySystem.Service.Services.Implements
             var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(teacherGenerateAccount.TeacherId, filter: t => t.IsDeleted == false)
                 ?? throw new NotExistsException(ConstantResponse.TEACHER_NOT_EXIST);
 
-            var teacherAccount = (await _unitOfWork.RoleAssignmentRepo.GetV2Async(filter: t => t.Account.Email == teacher.Email && t.Account.Status == (int)AccountStatus.Active)).FirstOrDefault();
-            if (teacherAccount != null)
+            var existingAccount = await _unitOfWork.UserRepo.GetV2Async(filter: t => t.Email == teacher.Email && t.Status == (int)AccountStatus.Active);
+
+            Account account;
+            if (existingAccount.Any())
             {
-                var existRole = await _unitOfWork.RoleAssignmentRepo.GetV2Async(
-                    filter: t => t.AccountId == teacherAccount.Id && t.Role.Name.ToLower() == RoleEnum.Teacher.ToString().ToLower() && t.IsDeleted == false,
-                    include: query => query.Include(u => u.Role));
-                if (existRole != null)
+                account = existingAccount.First();
+
+                var existingRoles = await _unitOfWork.RoleAssignmentRepo.GetV2Async(
+                    filter: t => t.AccountId == account.Id && !t.IsDeleted,
+                    include: query => query.Include(r => r.Role));
+
+                var hasTeacherRole = existingRoles.Any(r => r.Role.Name == RoleEnum.Teacher.ToString());
+                var hasDepartmentHeadRole = existingRoles.Any(r => r.Role.Name == RoleEnum.TeacherDepartmentHead.ToString());
+
+                if (!hasTeacherRole)
                 {
-                    return new BaseResponseModel()
+                    var roleTeacher = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.Teacher.ToString());
+                    var teacherRoleAssignment = new RoleAssignment
                     {
-                        Status = StatusCodes.Status400BadRequest,
-                        Message = ConstantResponse.GENERATE_TEACHER_HAS_EXISTED
+                        AccountId = account.Id,
+                        RoleId = roleTeacher.Id,
+                        CreateDate = DateTime.UtcNow
                     };
+                    await _unitOfWork.RoleAssignmentRepo.AddAsync(teacherRoleAssignment);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
+                if (teacher.TeacherRole == (int)TeacherRole.TEACHER_DEPARTMENT_HEAD && !hasDepartmentHeadRole)
+                {
+                    var roleHeadDepartment = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.TeacherDepartmentHead.ToString());
+                    var headDepartmentRoleAssignment = new RoleAssignment
+                    {
+                        AccountId = account.Id,
+                        RoleId = roleHeadDepartment.Id,
+                        CreateDate = DateTime.UtcNow
+                    };
+                    await _unitOfWork.RoleAssignmentRepo.AddAsync(headDepartmentRoleAssignment);
+                    await _unitOfWork.SaveChangesAsync();
+                    NotificationModel noti = new()
+                    {
+                        Title = "Cập nhật tài khoản",
+                        Message = $"Hiện tại bạn đã có thể truy cập vào tài khoản tổ trưởng thông qua sự cho phép từ quản lý trường học.",
+                        Type = ENotificationType.CapNhat,
+                        Link = ""
+                    };
+
+                    await _notificationService.SendNotificationToUser(account.Id, noti);
                 }
             }
-            var accountPassword = AuthenticationUtils.GeneratePassword();
-            Account account = new()
+            else
             {
-                Email = teacher.Email,
-                Password = AuthenticationUtils.HashPassword(accountPassword),
-                FirstName = teacher.FirstName,
-                LastName = teacher.LastName,
-                SchoolId = school.Id,
-                IsChangeDefaultPassword = false,
-                Status = (int)AccountStatus.Active,
-                Phone = teacher.Phone,
-                AvatarURL = teacher.AvatarURL,
-                CreateDate = DateTime.UtcNow,
-                IsConfirmSchoolManager = false
-            };
-
-            await _unitOfWork.UserRepo.AddAsync(account);
-            await _unitOfWork.SaveChangesAsync();
-            var role = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.Teacher.ToString());
-            if (role == null)
-            {
-                Role newRole = new()
+                var accountPassword = AuthenticationUtils.GeneratePassword();
+                account = new Account
                 {
-                    Name = RoleEnum.Teacher.ToString()
+                    Email = teacher.Email,
+                    Password = AuthenticationUtils.HashPassword(accountPassword),
+                    FirstName = teacher.FirstName,
+                    LastName = teacher.LastName,
+                    SchoolId = school.Id,
+                    IsChangeDefaultPassword = false,
+                    Status = (int)AccountStatus.Active,
+                    Phone = teacher.Phone,
+                    AvatarURL = teacher.AvatarURL,
+                    CreateDate = DateTime.UtcNow,
+                    IsConfirmSchoolManager = false
                 };
-                await _unitOfWork.RoleRepo.AddAsync(newRole);
+
+                await _unitOfWork.UserRepo.AddAsync(account);
                 await _unitOfWork.SaveChangesAsync();
-                role = newRole;
+
+                var roleTeacher = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.Teacher.ToString());
+                var teacherRoleAssignment = new RoleAssignment
+                {
+                    AccountId = account.Id,
+                    RoleId = roleTeacher.Id,
+                    CreateDate = DateTime.UtcNow
+                };
+                await _unitOfWork.RoleAssignmentRepo.AddAsync(teacherRoleAssignment);
+
+                if (teacher.TeacherRole == (int)TeacherRole.TEACHER_DEPARTMENT_HEAD)
+                {
+                    var roleHeadDepartment = await _unitOfWork.RoleRepo.GetRoleByNameAsync(RoleEnum.TeacherDepartmentHead.ToString());
+                    var headDepartmentRoleAssignment = new RoleAssignment
+                    {
+                        AccountId = account.Id,
+                        RoleId = roleHeadDepartment.Id,
+                        CreateDate = DateTime.UtcNow
+                    };
+                    await _unitOfWork.RoleAssignmentRepo.AddAsync(headDepartmentRoleAssignment);
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+
+                var messageRequest = new EmailRequest
+                {
+                    To = account.Email,
+                    Subject = "Tạo tài khoản thành công",
+                    Content = MailTemplate.SendPasswordTemplate(school.Name, account.LastName, account.Email, accountPassword)
+                };
+                await _mailService.SendEmailAsync(messageRequest);
             }
 
-            var accountRoleModel = new RoleAssigntmentAddModel
-            {
-                AccountId = account.Id,
-                RoleId = role.Id
-            };
-            var accountRoleEntyties = _mapper.Map<RoleAssignment>(accountRoleModel);
-            await _unitOfWork.RoleAssignmentRepo.AddAsync(accountRoleEntyties);
-            await _unitOfWork.SaveChangesAsync();
-
-            account.School = school;
             var result = _mapper.Map<AccountViewModel>(account);
-
-            var messageRequest = new EmailRequest
-            {
-                To = account.Email,
-                Subject = "Tạo tài khoản thành công",
-                Content = MailTemplate.SendPasswordTemplate(school.Name, account.LastName, account.Email, accountPassword)
-            };
-            await _mailService.SendEmailAsync(messageRequest);
-
-            return new BaseResponseModel()
+            return new BaseResponseModel
             {
                 Status = StatusCodes.Status201Created,
                 Message = ConstantResponse.GENERATE_TEACHER_SUCCESS,
@@ -368,7 +409,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.TEACHER_NOT_EXIST };
                 }
-                
+
                 _mapper.Map(updateTeacherRequestModel, existedTeacher);
 
                 if (updateTeacherRequestModel.DepartmentId.HasValue && updateTeacherRequestModel.DepartmentId != 0)
@@ -382,7 +423,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     _ = await _unitOfWork.SchoolRepo.GetByIdAsync((int)updateTeacherRequestModel.SchoolId)
                        ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
                 }
-                
+
                 var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
                 filter: sc => !sc.IsDeleted && existedTeacher.Id == sc.HomeroomTeacherId);
                 if ((existedTeacher.Status != (int)TeacherStatus.HoatDong) && studentClassesInDb.Any())
@@ -390,11 +431,54 @@ namespace SchedulifySystem.Service.Services.Implements
                     studentClassesInDb.First().HomeroomTeacherId = null;
                     existedTeacher.TeacherAssignments.Where(a => !a.IsDeleted && a.Subject.IsTeachedByHomeroomTeacher && a.Subject.SchoolYearId == studentClassesInDb.First().SchoolYearId)
                     .ToList().ForEach(a => a.TeacherId = null);
-                   
+
                 }
 
                 _unitOfWork.TeacherRepo.Update(existedTeacher);
                 await _unitOfWork.SaveChangesAsync();
+
+                var account = await _unitOfWork.UserRepo.GetV2Async(filter: u => u.Email == existedTeacher.Email && !u.IsDeleted);
+
+                if (updateTeacherRequestModel.TeacherRole == TeacherRole.TEACHER && existedTeacher.TeacherRole == (int)TeacherRole.TEACHER_DEPARTMENT_HEAD)
+                {
+                    if (account.Any())
+                    {
+                        var roleAssignments = await _unitOfWork.RoleAssignmentRepo.GetV2Async(
+                        filter: r => r.Account.Email == existedTeacher.Email && r.Role.Name == RoleEnum.TeacherDepartmentHead.ToString(),
+                        include: query => query.Include(r => r.Role).Include(r => r.Account));
+
+                        foreach (var roleAssignment in roleAssignments)
+                        {
+                            _unitOfWork.RoleAssignmentRepo.Remove(roleAssignment);
+                        }
+                        await _unitOfWork.SaveChangesAsync();
+                        NotificationModel noti = new()
+                        {
+                            Title = "Cập nhật tài khoản",
+                            Message = $"Bạn đã bị quản lý trường học thu hồi quyền truy cập vào tài khoản tổ trưởng tổ bộ môn.",
+                            Type = ENotificationType.CapNhat,
+                            Link = ""
+                        };
+
+                        await _notificationService.SendNotificationToUser(account.FirstOrDefault().Id, noti);
+                    }
+                }
+
+                if (account.Any())
+                {
+                    var teacherAccount = account.First();
+                    if (existedTeacher.Status != (int)TeacherStatus.HoatDong)
+                    {
+                        teacherAccount.Status = (int)AccountStatus.Inactive;
+                    }
+                    else
+                    {
+                        teacherAccount.Status = (int)AccountStatus.Active;
+                    }
+                    _unitOfWork.UserRepo.Update(teacherAccount);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
                 await transaction.CommitAsync();
 
                 return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.UPDATE_TEACHER_SUCCESS };
@@ -553,7 +637,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 var teacher = await _unitOfWork.TeacherRepo.GetByIdAsync(id,
                     include: query => query.Include(t => t.Department).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject));
-                var getHomeRoomTeacher = await _unitOfWork.StudentClassesRepo.GetAsync(filter: t=> t.HomeroomTeacherId == teacher.Id && !t.IsDeleted);
+                var getHomeRoomTeacher = await _unitOfWork.StudentClassesRepo.GetAsync(filter: t => t.HomeroomTeacherId == teacher.Id && !t.IsDeleted);
                 var teacherViewModels = new TeacherViewModel
                 {
                     Id = teacher.Id,
@@ -586,7 +670,7 @@ namespace SchedulifySystem.Service.Services.Implements
                         }).ToList()
                     }).ToList()
                 };
-                if(getHomeRoomTeacher.Any())
+                if (getHomeRoomTeacher.Any())
                 {
                     teacherViewModels.IsHomeRoomTeacher = true;
                     teacherViewModels.StudentClassId = getHomeRoomTeacher.FirstOrDefault().Id;
@@ -623,6 +707,17 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (studentClassesInDb.Any())
                 {
                     throw new DefaultException(ConstantResponse.DELETE_TEACHER_FAILED);
+                }
+                var account = await _unitOfWork.UserRepo.GetV2Async(filter: u => u.Email == existedTeacher.Email && !u.IsDeleted);
+
+                if (account.Any())
+                {
+                    var teacherAccount = account.First();
+
+                    teacherAccount.Status = (int)AccountStatus.Inactive;
+
+                    _unitOfWork.UserRepo.Update(teacherAccount);
+                    await _unitOfWork.SaveChangesAsync();
                 }
 
                 existedTeacher.IsDeleted = true;
@@ -802,6 +897,62 @@ namespace SchedulifySystem.Service.Services.Implements
                 Result = _mapper.Map<TeacherViewModel>(teacher)
             };
 
+        }
+        #endregion
+
+        #region Get Teacher Account List
+        public async Task<BaseResponseModel> GetTeacherAccountListAsync(int schoolId, int pageIndex, int pageSize)
+        {
+            // Lấy danh sách giáo viên trong trường
+            var getTeacherInSchool = await _unitOfWork.TeacherRepo.GetV2Async(
+                filter: t => t.SchoolId == schoolId && !t.IsDeleted);
+            var teacherEmails = getTeacherInSchool.Select(t => t.Email).ToList();
+
+            // Lấy danh sách tài khoản giáo viên có liên quan
+            var getAccountTeacher = await _unitOfWork.UserRepo.GetV2Async(
+                filter: t => teacherEmails.Contains(t.Email) && !t.IsDeleted,
+                orderBy: o => o.OrderBy(d => d.Id));
+
+            // Chuyển đổi sang ViewModel
+            var teacherAccountViewModels = await Task.WhenAll(getTeacherInSchool.Select(async teacher =>
+            {
+                var relatedAccount = getAccountTeacher.FirstOrDefault(account => account.Email == teacher.Email);
+
+                return new TeacherAccountViewModel
+                {
+                    Id = teacher.Id,
+                    FirstName = teacher.FirstName,
+                    LastName = teacher.LastName,
+                    Abbreviation = teacher.Abbreviation,
+                    Email = teacher.Email,
+                    Gender = (Gender)teacher.Gender,
+                    DepartmentId = teacher.DepartmentId,
+                    DepartmentName = teacher.Department != null ? teacher.Department.Name : string.Empty,
+                    TeacherRole = (TeacherRole)teacher.TeacherRole,
+                    IsTeacherHeadDepartment = (TeacherRole)teacher.TeacherRole == TeacherRole.TEACHER_DEPARTMENT_HEAD,
+                    TeacherStatus = (TeacherStatus)teacher.Status,
+                    IsDeleted = teacher.IsDeleted,
+                    IsHaveAccount = relatedAccount != null,
+                    AccountStatus = relatedAccount != null ? (AccountStatus)relatedAccount.Status : null,
+                    AccountId = relatedAccount != null ? relatedAccount.Id : null
+                };
+            }));
+
+            var pagination = new Pagination<TeacherAccountViewModel>
+            {
+                TotalItemCount = getTeacherInSchool.ToList().Count,
+                PageSize = pageSize,
+                PageIndex = pageIndex,
+                Items = teacherAccountViewModels.Skip(pageIndex * pageSize).Take(pageSize).ToList()
+            };
+
+            // Trả về kết quả với phân trang
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Success",
+                Result = pagination
+            };
         }
         #endregion
     }
