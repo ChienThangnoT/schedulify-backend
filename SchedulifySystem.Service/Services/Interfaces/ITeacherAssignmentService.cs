@@ -12,7 +12,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface ITeacherAssignmentService
     {
         Task<BaseResponseModel> GetAssignment(int classId,int? termId);
-        Task<BaseResponseModel> UpdateAssignment(int assignmentId);
+        Task<BaseResponseModel> CheckValidAssignment(int schoolId, int termId, List<TeacherAssignmentMinimalData> teacherAssignmentMinimalDatas);
         Task<BaseResponseModel> AssignTeacherForAsignments(List<AssignTeacherAssignmentModel> models);
         Task<BaseResponseModel> AutoAssignTeachers(int schoolId, int yearId, AutoAssignTeacherModel model);
         Task<BaseResponseModel> CheckTeacherAssignment(int schoolId, int yearId, AutoAssignTeacherModel model);
