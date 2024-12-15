@@ -22,5 +22,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
         Task<BaseResponseModel> AssignTeacherDepartmentHead(int schoolId, List<AssignTeacherDepartmentHeadModel> models);
         Task<BaseResponseModel> GetTeacherAssignmentDetail(int teacherId, int schoolYearId);
         Task<BaseResponseModel> GetTeacherByEmail(int schoolId, string email);
+        Task<BaseResponseModel> GetTeacherAccountListAsync(int schoolId, int pageIndex, int pageSize);
     }
 }

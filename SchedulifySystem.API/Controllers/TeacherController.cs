@@ -97,6 +97,11 @@ namespace SchedulifySystem.API.Controllers
             return ValidateAndExecute(() => _teacherService.GetTeacherByEmail(schoolId, email));
         }
 
+        [HttpGet("teacher-account")]
+        public Task<IActionResult> GetTeacherAccountListAsync(int schoolId, int pageIndex = 1, int pageSize = 20)
+        {
+            return ValidateAndExecute(() => _teacherService.GetTeacherAccountListAsync(schoolId, pageIndex, pageSize));
+        }
 
     }
 }
