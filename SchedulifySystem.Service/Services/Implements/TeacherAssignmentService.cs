@@ -133,11 +133,11 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
             }
-            var invalidHomeroomTeached = assignmentsDb.Where(s => s.Subject.IsTeachedByHomeroomTeacher).Where(a => a.TeacherId == null)
+            var invalidHomeroomTeached = assignmentsDb.Where(s => s.Subject.IsTeachedByHomeroomTeacher).Where(a => a.TeacherId == null && a.StudentClass.HomeroomTeacherId != null)
                 .ToList();
-            foreach (var a in invalidHomeroomTeached)
+            if(invalidHomeroomTeached.Any())
             {
-                errorDictionary["Lớp học"].Add($"Lớp {a.StudentClass.Name} không có giáo viên chủ nhiệm");
+                errorDictionary["Lớp học"].Add($"Lớp {string.Join(", ", invalidHomeroomTeached.Select(s => s.StudentClass.Name).Distinct())} dữ liệu phân công môn giáo viên chủ nhiệm dạy không hợp lệ");
             }
 
             var teacherCapabilities = teachers.ToDictionary(
@@ -470,11 +470,36 @@ namespace SchedulifySystem.Service.Services.Implements
                 }
             }
 
-            // Bước 4: Ràng buộc - Mỗi nhiệm vụ chỉ được phân công cho một giáo viên
+            // Bước 4: Ràng buộc - Chỉ gán giáo viên có khả năng dạy môn
             for (int i = 0; i < numRemainingAssignments; i++)
             {
-                model.Add(LinearExpr.Sum(from j in Enumerable.Range(0, numTeachers) select assignmentMatrix[i, j]) == 1);
+                var assignment = remainingAssignments[i];
+
+                for (int j = 0; j < numTeachers; j++)
+                {
+                    var teacher = teachers[j];
+
+                    // Kiểm tra xem giáo viên có khả năng dạy môn này không
+                    if (teacherCapabilities.ContainsKey(teacher.Id))
+                    {
+                        var teachableSubjects = teacherCapabilities[teacher.Id]
+                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
+                            .ToList();
+
+                        // Nếu giáo viên không thể dạy môn này, cấm gán nhiệm vụ
+                        if (!teachableSubjects.Any())
+                        {
+                            model.Add(assignmentMatrix[i, j] == 0);
+                        }
+                    }
+                    else
+                    {
+                        // Nếu giáo viên không có bất kỳ khả năng nào, cấm gán nhiệm vụ
+                        model.Add(assignmentMatrix[i, j] == 0);
+                    }
+                }
             }
+
 
             // Bước 5: Ràng buộc - Lớp gộp sẽ chỉ phân công cho 1 giáo viên 
             IntVar totalGroupViolations = model.NewIntVar(0, 1000, "totalGroupViolations");
