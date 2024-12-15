@@ -149,13 +149,13 @@ namespace SchedulifySystem.Service.Services.Implements
                 Type = ENotificationType.PheDuyet,
                 Link = ""
             };
+            await _unitOfWork.SaveChangesAsync();
 
             var getUser = (await _unitOfWork.UserRepo.GetAsync(filter: t => t.Email == getRequest.Teacher.Email)).FirstOrDefault();
             if(getUser != null)
             {
                 await _notificationService.SendNotificationToUser(getUser.Id, noti);
             }
-            await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
