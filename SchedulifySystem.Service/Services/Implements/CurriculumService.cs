@@ -415,9 +415,83 @@ namespace SchedulifySystem.Service.Services.Implements
                         else if (subject.SubSlotPerWeek > 0) subject.SubSlotPerWeek++;
                         subject.SlotPerTerm++;
                     }
+
                     await _unitOfWork.SaveChangesAsync();
                     // update assignment 
                     await UpdateToAssignment(curriculumId);
+
+
+                    var getStudentInflu = await _unitOfWork.StudentClassGroupRepo.GetV2Async(filter: t => t.CurriculumId == curriculumId && !t.IsDeleted, include: query => query.Include(t => t.StudentClasses));
+                    var studentClassIds = getStudentInflu
+                        .SelectMany(t => t.StudentClasses)
+                        .Where(sc => !sc.IsDeleted)
+                        .Select(sc => sc.Id)
+                        .ToList();
+
+                    var studentClassRoomSubjects = await _unitOfWork.StudentClassRoomSubjectRepo.GetV2Async(
+                        filter: scrs => !scrs.IsDeleted && studentClassIds.Contains(scrs.StudentClassId),
+                        include: query => query.Include(scrs => scrs.RoomSubject));
+
+                    var roomSubjects = studentClassRoomSubjects
+                        .Where(scrs => scrs.RoomSubject != null)
+                        .Select(scrs => scrs.RoomSubject)
+                        .Distinct()
+                        .ToList();
+
+                    var curriculumDetails = await _unitOfWork.CurriculumDetailRepo.GetV2Async(filter: cd => cd.CurriculumId == curriculumId && !cd.IsDeleted);
+                    var curriculumSubjectDetails = curriculumDetails.ToLookup(cd => cd.SubjectId);
+
+                    var affectedRoomSubjects = new List<RoomSubject>();
+
+                    foreach (var roomSubject in roomSubjects)
+                    {
+                        // Tìm CurriculumDetails tương ứng với SubjectId
+                        var relevantCurriculum = curriculumSubjectDetails[(int)roomSubject.SubjectId];
+
+                        if (!relevantCurriculum.Any())
+                        {
+                            // Môn học không tồn tại trong chương trình mới -> Lớp gộp bị ảnh hưởng
+                            affectedRoomSubjects.Add(roomSubject);
+                            continue;
+                        }
+
+                        // Kiểm tra theo Session (Main hoặc Sub)
+                        var isMainSession = roomSubject.Session == roomSubject.Session;
+
+                        var expectedSlotPerWeek = isMainSession
+                            ? relevantCurriculum.FirstOrDefault(cd => cd.MainSlotPerWeek > 0)?.MainSlotPerWeek
+                            : relevantCurriculum.FirstOrDefault(cd => cd.SubSlotPerWeek > 0)?.SubSlotPerWeek;
+
+                        // Nếu số tiết (SlotPerWeek) không khớp → Lớp gộp bị ảnh hưởng
+                        if (expectedSlotPerWeek.HasValue && roomSubject.SlotPerWeek != expectedSlotPerWeek.Value)
+                        {
+                            affectedRoomSubjects.Add(roomSubject);
+                        }
+                    }
+
+                    if (affectedRoomSubjects.Count != 0)
+                    {
+                        var affectedStudentClassIds = studentClassRoomSubjects
+                            .Where(scrs => affectedRoomSubjects.Select(rs => rs.Id).Contains(scrs.RoomSubjectId))
+                            .Select(scrs => scrs.StudentClassId)
+                            .Distinct()
+                            .ToList();
+
+                        var relatedStudentClassRoomSubjects = studentClassRoomSubjects
+                            .Where(scrs => affectedStudentClassIds.Contains(scrs.StudentClassId)).ToList();
+
+                        _unitOfWork.StudentClassRoomSubjectRepo.RemoveRange(relatedStudentClassRoomSubjects);
+
+                        var teacherAssignments = await _unitOfWork.TeacherAssignmentRepo.GetAsync(ta => affectedStudentClassIds.Contains(ta.StudentClassId) && !ta.IsDeleted);
+                        foreach (var assignment in teacherAssignments)
+                        {
+                            assignment.RoomSubjectId = null;
+                            _unitOfWork.TeacherAssignmentRepo.Update(assignment);
+                        }
+
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+
                     transaction.Commit();
                     return new BaseResponseModel()
                     {
