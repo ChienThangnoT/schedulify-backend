@@ -116,7 +116,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // Kiểm tra nhiệm vụ giảng dạy
-            var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => new { t.SubjectId , t.Grade}).ToList();
+            var teachableSubjects = teachers.SelectMany(t => t.TeachableSubjects).Select(t => new { t.SubjectId, t.Grade }).ToList();
             if (!assignmentsDb.Any())
             {
                 errorDictionary["Lớp học"].Add("Không có nhiệm vụ giảng dạy nào tồn tại cho các lớp học được chọn.");
@@ -135,7 +135,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
             var invalidHomeroomTeached = assignmentsDb.Where(s => s.Subject.IsTeachedByHomeroomTeacher).Where(a => a.TeacherId == null)
                 .ToList();
-            foreach(var a in invalidHomeroomTeached)
+            foreach (var a in invalidHomeroomTeached)
             {
                 errorDictionary["Lớp học"].Add($"Lớp {a.StudentClass.Name} không có giáo viên chủ nhiệm");
             }
@@ -203,7 +203,8 @@ namespace SchedulifySystem.Service.Services.Implements
                     if (assignments == null || !combination.ClassIds.All(assignmentsClassId.Contains))
                     {
                         errorDictionary["Lớp gộp"].Add($"không thể tạo lớp gộp cho lớp {string.Join(", ", clsCombination.Select(s => s.Name))} do môn {subjects.FirstOrDefault(f => f.Id == combination.SubjectId).SubjectName} không có trong trương trình học của một số lớp");
-                    }else
+                    }
+                    else
                     if (!result)
                     {
                         errorDictionary["Lớp gộp"].Add($"không thể tạo lớp gộp cho lớp {string.Join(", ", clsCombination.Select(s => s.Name))} do số lượng tiết môn {assignmentsDb.FirstOrDefault(a => a.SubjectId == combination.SubjectId).Subject.SubjectName} không giống nhau!.");
@@ -302,7 +303,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 if (term.Id == terms.First().Id)
                 {
                     // Phân công giáo viên cho kỳ đầu tiên
-                    await AssignTeachers(model,assignmentFirsts,
+                    await AssignTeachers(model, assignmentFirsts,
                         teachers.ToList(), teacherCapabilities,
                         homeroomTeachers, model.fixedAssignment,
                         model.classCombinations,
@@ -335,13 +336,14 @@ namespace SchedulifySystem.Service.Services.Implements
                 .Select(g =>
                 {
                     var teacher = teachers.FirstOrDefault(t => t.Id == g.Key);
-                    
+
                     return new TeacherPeriodCountViewModel()
                     {
                         TeacherId = (int)g.Key,
                         TeacherAbbreviation = teacher.Abbreviation,
                         TeacherName = teacher.FirstName + " " + teacher.LastName,
-                        TotalPeriodsPerWeek = g.Select(p => new TeacherSlotPerWeekViewModel() {
+                        TotalPeriodsPerWeek = g.Select(p => new TeacherSlotPerWeekViewModel()
+                        {
                             PeriodCount = p.PeriodCount,
                             SubjectAbbreviation = p.Subject.Abbreviation,
                             SubjectId = p.SubjectId,
@@ -390,7 +392,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             var teacherNotAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(assignments.Where(a => a.TeacherId == null));
             var teacherAssigntView = _mapper.Map<List<TeacherAssignmentViewModel>>(assignments.Where(a => a.TeacherId != null));
-            HomeRoomTeacherView teacherHomeRoom = new HomeRoomTeacherView { TeacherId = getHomeRoomTeacher?.HomeroomTeacherId, Abbreviation = getHomeRoomTeacher?.Teacher?.Abbreviation};
+            HomeRoomTeacherView teacherHomeRoom = new HomeRoomTeacherView { TeacherId = getHomeRoomTeacher?.HomeroomTeacherId, Abbreviation = getHomeRoomTeacher?.Teacher?.Abbreviation };
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
@@ -660,11 +662,26 @@ namespace SchedulifySystem.Service.Services.Implements
             return false;
         }
 
-        public Task<BaseResponseModel> UpdateAssignment(int assignmentId)
+        public async Task<BaseResponseModel> CheckValidAssignment(int schoolId, int termId, List<TeacherAssignmentMinimalData> teacherAssignmentMinimalDatas)
         {
-            throw new NotImplementedException();
+            var term = await _unitOfWork.TermRepo.GetByIdAsync((int)termId)
+                ?? throw new NotExistsException(ConstantResponse.TERM_NOT_FOUND);
+            var assignmentIds = teacherAssignmentMinimalDatas.Select(x => x.AssignmentId).ToList();
+
+            var existingAssignments = await _unitOfWork.TeacherAssignmentRepo.GetV2Async(
+                    filter: t => !t.IsDeleted && assignmentIds.Contains(t.Id) && (termId == 0 || t.TermId == termId));
+            var existingAssignmentIds = existingAssignments.Select(t => t.Id).ToList();
+
+            var validTeacherAssignmentMinimalData = teacherAssignmentMinimalDatas
+                .Where(t => existingAssignmentIds.Contains(t.AssignmentId))
+                .ToList();
+
+            return new BaseResponseModel
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "Success",
+                Result = validTeacherAssignmentMinimalData
+            };
         }
-
-
     }
 }

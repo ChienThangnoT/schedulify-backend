@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.BusinessModels.TeacherAssignmentBusinessModels;
 using SchedulifySystem.Service.Services.Interfaces;
+using System.ComponentModel.DataAnnotations;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -30,6 +31,13 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> GetAssignment(int studentClassId, int? termId)
         {
             return ValidateAndExecute(() => _teacherAssignmentService.GetAssignment(studentClassId, termId));
+        }
+
+        [HttpPatch("check-valid-assignments")]
+        [Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> CheckValidAssignment(int schoolId, [Required]int termId, [Required][FromBody]List<TeacherAssignmentMinimalData> teacherAssignmentMinimalDatas)
+        {
+            return ValidateAndExecute(() => _teacherAssignmentService.CheckValidAssignment(schoolId, termId, teacherAssignmentMinimalDatas));
         }
 
         [HttpPatch("auto-assign-teacher")]
