@@ -140,7 +140,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
                filter: sc => !sc.IsDeleted && classGroup.Id == sc.StudentClassGroupId);
 
-            if (studentClassesInDb != null)
+            if (studentClassesInDb.Any())
             {
                 throw new DefaultException(ConstantResponse.DELETE_STUDENT_CLASS_GROUP_FAILED);
             }
