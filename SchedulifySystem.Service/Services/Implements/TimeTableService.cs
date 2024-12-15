@@ -3077,6 +3077,18 @@ namespace SchedulifySystem.Service.Services.Implements
                 .FirstOrDefault(cp => cp.Id == getTeacherInSlotModel.ClassPeriodId)
                 ?? throw new NotExistsException("Không tìm thấy tiết học.");
 
+
+            // Nếu tiết học là lớp ghép, lấy danh sách các lớp bị ảnh hưởng
+            List<ClassPeriod> affectedClassPeriods = new();
+            if (getClassPeriod.Priority == (int)EPriority.Combination)
+            {
+                affectedClassPeriods = timetable.FirstOrDefault().ClassSchedules
+                    .SelectMany(cs => cs.ClassPeriods)
+                    .Where(cp => cp.StartAt == getClassPeriod.StartAt && cp.RoomId == getClassPeriod.RoomId
+                        && cp.Priority == (int)EPriority.Combination)
+                    .ToList();
+            }
+
             var getStudentClassByPeriod = await _unitOfWork.ClassScheduleRepo.GetV2Async(
                 filter: t => t.Id == getClassPeriod.ClassScheduleId && !t.IsDeleted,
                 include: query => query.Include(t => t.StudentClass));
@@ -3101,7 +3113,18 @@ namespace SchedulifySystem.Service.Services.Implements
                 .Where(t => !busyTeacherIds.Contains(t.Id))
                 .ToList();
 
-            var result = _mapper.Map<List<TeachableSubjectTimetableViewModel>>(availableTeachers);
+            var result = new
+            {
+                AvailableTeachers = _mapper.Map<List<TeachableSubjectTimetableViewModel>>(availableTeachers),
+                RelatedClasses = affectedClassPeriods.Select(cp => new
+                {
+                    cp.ClassScheduleId,
+                    cp.RoomId,
+                    cp.TeacherId,
+                    cp.SubjectId,
+                    cp.StartAt
+                }).ToList()
+            };
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
@@ -3267,7 +3290,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 Status = StatusCodes.Status200OK,
                 Message = "Danh sách phòng trống phù hợp",
-                Result = result
+                Result = response
             };
         }
         #endregion

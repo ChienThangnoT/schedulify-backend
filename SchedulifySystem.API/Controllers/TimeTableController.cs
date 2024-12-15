@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SchedulifySystem.Service.BusinessModels.PeriodChangeBusinessModels;
 using SchedulifySystem.Service.BusinessModels.ScheduleBusinessMoldes;
 using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.Services.Interfaces;
@@ -76,6 +77,13 @@ namespace SchedulifySystem.API.Controllers
         public Task<IActionResult> PublishedTimetable(SchoolScheduleDetailsViewModel schoolScheduleDetailsModel)
         {
             return ValidateAndExecute(() => _timetableService.PublishedTimetable(schoolScheduleDetailsModel));
+        }
+
+        [HttpPatch("student-class-period-change")]
+        [Authorize(Roles = "SchoolManager")]
+        public Task<IActionResult> ChangePeriodOfClass(List<PeriodChangeModel> periodChangeModel)
+        {
+            return ValidateAndExecute(() => _timetableService.ChangePeriodOfClass(periodChangeModel));
         }
 
         [HttpGet("get-week-dates")]
