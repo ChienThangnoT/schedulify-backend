@@ -5,6 +5,7 @@ using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
 using System.ComponentModel.DataAnnotations;
 using SchedulifySystem.Repository.EntityModels;
+using SchedulifySystem.Service.Enums;
 
 namespace SchedulifySystem.API.Controllers
 {
@@ -21,9 +22,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetTeachers(int schoolId,int? departmentId = null, bool includeDeleted = false, int pageSize = 20, int pageIndex = 1)
+        public Task<IActionResult> GetTeachers(int schoolId, TeacherStatus? teacherStatus, int? departmentId = null, bool includeDeleted = false, int pageSize = 20, int pageIndex = 1)
         {
-            return ValidateAndExecute(() => _teacherService.GetTeachers(schoolId, departmentId, includeDeleted, pageIndex, pageSize));
+            return ValidateAndExecute(() => _teacherService.GetTeachers(schoolId, teacherStatus, departmentId, includeDeleted, pageIndex, pageSize));
         }
 
 

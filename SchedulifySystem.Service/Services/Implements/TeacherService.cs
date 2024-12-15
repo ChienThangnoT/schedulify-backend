@@ -325,7 +325,7 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region GetTeachers
-        public async Task<BaseResponseModel> GetTeachers(int schoolId, int? departmentId, bool includeDeleted, int pageIndex, int pageSize)
+        public async Task<BaseResponseModel> GetTeachers(int schoolId, TeacherStatus? teacherStatus, int? departmentId, bool includeDeleted, int pageIndex, int pageSize)
         {
             // Kiểm tra sự tồn tại của trường học
             _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
@@ -342,7 +342,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 pageSize: pageSize,
                 pageIndex: pageIndex,
                 filter: t => t.SchoolId == schoolId && (includeDeleted || !t.IsDeleted)
-                            && (departmentId == null || departmentId == t.DepartmentId),
+                            && (departmentId == null || departmentId == t.DepartmentId) && (teacherStatus == null || t.Status == (int)teacherStatus),
                 include: query => query.Include(q => q.Department).Include(o => o.StudentClasses).Include(t => t.TeachableSubjects).ThenInclude(ts => ts.Subject)
             );
 
