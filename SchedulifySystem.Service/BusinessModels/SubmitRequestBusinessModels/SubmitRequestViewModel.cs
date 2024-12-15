@@ -14,7 +14,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubmitRequest
         public string? TeacherFirstName { get; set; }
         public string? TeacherLastName { get; set; }
         public ERequestType RequestType { get; set; }
-        public DateTime RequestTime { get; set; }
+        public DateTime? RequestTime { get; set; }
         public ERequestStatus Status { get; set; }
         public string? RequestDescription { get; set; }
         public string? ProcessNote { get; set; }

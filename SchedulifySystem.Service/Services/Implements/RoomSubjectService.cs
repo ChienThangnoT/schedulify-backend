@@ -117,9 +117,15 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     var roomSubjectCodeExists = await _unitOfWork.RoomSubjectRepo.ExistsAsync(rs =>
-                        (!string.IsNullOrEmpty(rs.RoomSubjectCode) && rs.RoomSubjectCode.ToLower() == roomSubjectAddModel.RoomSubjectCode.ToLower())
-                        || (!string.IsNullOrEmpty(rs.RoomSubjectName) && rs.RoomSubjectName.ToLower() == roomSubjectAddModel.RoomSubjectName.ToLower())
-                        && !rs.IsDeleted && rs.SchoolId == roomSubjectAddModel.SchoolId);
+                         (
+                             (!string.IsNullOrEmpty(rs.RoomSubjectCode) && rs.RoomSubjectCode.ToLower() == roomSubjectAddModel.RoomSubjectCode.ToLower())
+                             || (!string.IsNullOrEmpty(rs.RoomSubjectName) && rs.RoomSubjectName.ToLower() == roomSubjectAddModel.RoomSubjectName.ToLower())
+                         )
+                         && rs.IsDeleted == false
+                         && rs.SchoolId == roomSubjectAddModel.SchoolId
+                         && rs.TermId == roomSubjectAddModel.TermId
+                     );
+
 
 
                     if (roomSubjectCodeExists)
@@ -128,20 +134,22 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     var curriDetail = await _unitOfWork.StudentClassesRepo.GetV2Async(filter: t => t.Id == roomSubjectAddModel.StudentClassId.First(),
-                        include: query => query.Include(t => t.StudentClassGroup).ThenInclude(u => u.Curriculum).ThenInclude(p => p.CurriculumDetails));
+                        include: query => query.Include(t => t.StudentClassGroup).ThenInclude(u => u.Curriculum).ThenInclude(p => p.CurriculumDetails.Where(r => r.TermId == roomSubjectAddModel.TermId)));
 
                     var slot = curriDetail.FirstOrDefault().StudentClassGroup.Curriculum.CurriculumDetails;
 
                     var newRoomSubject = _mapper.Map<RoomSubject>(roomSubjectAddModel);
                     if (curriDetail.First().MainSession == (int)roomSubjectAddModel.Session)
                     {
-                        if (slot.Any(c => c.SubjectId == roomSubjectAddModel.SubjectId && c.MainSlotPerWeek > 0))
-                            newRoomSubject.SlotPerWeek = slot.First().MainSlotPerWeek;
+                        var mainSlot = slot.FirstOrDefault(c => c.SubjectId == roomSubjectAddModel.SubjectId && c.MainSlotPerWeek > 0);
+                        if (mainSlot != null)
+                            newRoomSubject.SlotPerWeek = mainSlot.MainSlotPerWeek;
                     }
                     else
                     {
-                        if (slot.Any(c => c.SubjectId == roomSubjectAddModel.SubjectId && c.SubSlotPerWeek > 0))
-                            newRoomSubject.SlotPerWeek = slot.First().SubSlotPerWeek;
+                        var subSlot = slot.FirstOrDefault(c => c.SubjectId == roomSubjectAddModel.SubjectId && c.SubSlotPerWeek > 0);
+                        if (subSlot != null)
+                            newRoomSubject.SlotPerWeek = subSlot.SubSlotPerWeek;
                     }
                     await _unitOfWork.RoomSubjectRepo.AddAsync(newRoomSubject);
                     await _unitOfWork.SaveChangesAsync();
