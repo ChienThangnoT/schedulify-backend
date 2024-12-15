@@ -1,4 +1,5 @@
 ﻿using SchedulifySystem.Service.BusinessModels.TeacherBusinessModels;
+using SchedulifySystem.Service.Enums;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace SchedulifySystem.Service.Services.Interfaces
 {
     public interface ITeacherService
     {
-        Task<BaseResponseModel> GetTeachers(int schoolId,int? departmentId, bool includeDeleted, int pageIndex, int pageSize);
+        Task<BaseResponseModel> GetTeachers(int schoolId, TeacherStatus? teacherStatus, int? departmentId, bool includeDeleted, int pageIndex, int pageSize);
         Task<BaseResponseModel> CreateTeacher(CreateTeacherModel createTeacherRequestModel);
         Task<BaseResponseModel> CreateTeachers(int schoolId, List<CreateListTeacherModel> createTeacherRequestModels);
         Task<BaseResponseModel> UpdateTeacher(int id, UpdateTeacherModel updateTeacherRequestModel);
