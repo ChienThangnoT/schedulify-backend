@@ -2679,6 +2679,15 @@ namespace SchedulifySystem.Service.Services.Implements
 
                             getClassPeriod.StartAt = periodChange.StartAt;
                             getClassPeriod.UpdateDate = DateTime.UtcNow;
+                            if (periodChange.TeacherId != null)
+                            {
+                                getClassPeriod.TeacherId = periodChange.TeacherId;
+                            }
+
+                            if (periodChange.RoomId != null)
+                            {
+                                getClassPeriod.RoomId = periodChange.RoomId;
+                            }
                             _unitOfWork.ClassPeriodRepo.Update(getClassPeriod);
                             await _unitOfWork.SaveChangesAsync();
 
