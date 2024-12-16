@@ -110,7 +110,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
 
                     Console.WriteLine("Đã đạt thời gian tối đa thực thi. Kết thúc sớm.");
-                    
+
                     break;
                 }
 
@@ -2657,23 +2657,71 @@ namespace SchedulifySystem.Service.Services.Implements
                 {
                     foreach (var periodChange in periodChangeModel)
                     {
-                        var getClassPeriod = await _unitOfWork.ClassPeriodRepo.GetByIdAsync(periodChange.ClassPeriodId, filter: t => !t.IsDeleted)
+                        var getClassPeriod = await _unitOfWork.ClassPeriodRepo.GetByIdAsync(periodChange.ClassPeriodId, filter: t => !t.IsDeleted, include: query => query.Include(t => t.ClassSchedule).Include(t => t.Teacher))
                             ?? throw new NotExistsException(ConstantResponse.CLASS_PERIOD_NOT_FOUND);
 
-                        var getAlreadyClassPeriod = (await _unitOfWork.PeriodChangeRepo.GetAsync(
-                            filter: t => t.ClassPeriodId == periodChange.ClassPeriodId && t.Week == periodChange.Week)).FirstOrDefault();
-
-                        if (getAlreadyClassPeriod != null)
+                        if (periodChange.IsChangeForever == true)
                         {
-                            var update = _mapper.Map(periodChange, getAlreadyClassPeriod);
-                            update.UpdateDate = DateTime.UtcNow;
-                            _unitOfWork.PeriodChangeRepo.Update(update);
+                            var isDuplicateInPeriodChange = await _unitOfWork.PeriodChangeRepo.GetAsync(filter: t =>
+                                t.StartAt == periodChange.StartAt &&
+                                t.ClassPeriod.TeacherId == getClassPeriod.TeacherId); // Kiểm tra cùng giáo viên, không loại bỏ bản ghi nào
+
+
+                            if (isDuplicateInPeriodChange.Any())
+                            {
+                                return new BaseResponseModel()
+                                {
+                                    Status = StatusCodes.Status400BadRequest,
+                                    Message = $"Tiết {periodChange.StartAt} đã bị trùng trong lịch đổi trong tuần ở các tuần khác. Vui lòng chọn tiết khác."
+                                };
+                            }
+
+
+                            getClassPeriod.StartAt = periodChange.StartAt;
+                            getClassPeriod.UpdateDate = DateTime.UtcNow;
+                            _unitOfWork.ClassPeriodRepo.Update(getClassPeriod);
+                            await _unitOfWork.SaveChangesAsync();
+
                         }
-                        var addChangePeriod = _mapper.Map<PeriodChange>(periodChange);
-                        addChangePeriod.CreateDate = DateTime.UtcNow;
-                        await _unitOfWork.PeriodChangeRepo.AddAsync(addChangePeriod);
+                        else
+                        {
+                            var getAlreadyClassPeriod = (await _unitOfWork.PeriodChangeRepo.GetAsync( filter: t => t.ClassPeriodId == periodChange.ClassPeriodId && t.Week == periodChange.Week)).FirstOrDefault();
+
+                            if (getAlreadyClassPeriod != null)
+                            {
+                                var update = _mapper.Map(periodChange, getAlreadyClassPeriod);
+                                update.UpdateDate = DateTime.UtcNow;
+                                _unitOfWork.PeriodChangeRepo.Update(update);
+                            }
+                            else
+                            {
+                                var addChangePeriod = _mapper.Map<PeriodChange>(periodChange);
+                                addChangePeriod.CreateDate = DateTime.UtcNow;
+                                await _unitOfWork.PeriodChangeRepo.AddAsync(addChangePeriod);
+                            }
+                            await _unitOfWork.SaveChangesAsync();
+                            if (periodChange.TeacherId != null)
+                            {
+                                var getAccountTeacher = await _unitOfWork.UserRepo.GetAsync(filter: t => t.Id == periodChange.TeacherId);
+                                if (getAccountTeacher.Any())
+                                {
+                                    int dayOfWeek = (periodChange.StartAt - 1) / 10 + 1;
+                                    int periodInDay = (periodChange.StartAt - 1) % 10 + 1;
+                                    NotificationModel noti = new NotificationModel
+                                    {
+                                        Title = "Yêu cầu dạy thay",
+                                        Message = $"Bạn đã được đề xuất dạy thay vào tiết {periodInDay} của lớp  {getClassPeriod.ClassSchedule.StudentClassName} vào ngày thứ {dayOfWeek}",
+                                        Type = ENotificationType.HeThong,
+                                        Link = ""
+                                    };
+                                    foreach (var teacher in getAccountTeacher)
+                                    {
+                                        await _notificationService.SendNotificationToUser(teacher.Id, noti);
+                                    }
+                                }
+                            }
+                        }
                     }
-                    await _unitOfWork.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new BaseResponseModel()
                     {

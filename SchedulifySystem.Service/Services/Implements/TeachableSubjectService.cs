@@ -30,13 +30,13 @@ namespace SchedulifySystem.Service.Services.Implements
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<BaseResponseModel> GetBySubjectId(int schoolId, int id, EGrade eGrade)
+        public async Task<BaseResponseModel> GetBySubjectId(int schoolId, TeacherStatus? teacherStatus, int id, EGrade eGrade)
         {
             var subject = await _unitOfWork.SubjectRepo.GetByIdAsync(id)
                 ?? throw new NotExistsException(ConstantResponse.SUBJECT_NOT_EXISTED);
 
             var teachableSubjects = await _unitOfWork.TeachableSubjectRepo.GetV2Async(
-                filter: ts => ts.SubjectId == id && ts.Teacher.SchoolId == schoolId && ts.Grade == (int)eGrade,
+                filter: ts => ts.SubjectId == id && ts.Teacher.SchoolId == schoolId && ts.Grade == (int)eGrade && (teacherStatus == null || ts.Teacher.Status == (int)teacherStatus),
                 include: query => query.Include(ts => ts.Teacher).Include(ts => ts.Subject));
 
             if (!teachableSubjects.Any())

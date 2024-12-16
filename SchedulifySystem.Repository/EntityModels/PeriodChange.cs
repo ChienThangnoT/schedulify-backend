@@ -10,9 +10,10 @@ namespace SchedulifySystem.Repository.EntityModels
     {
         public int ClassPeriodId { get; set; }
         public int StartAt { get; set; }
-        public int Week {  get; set; }
+        public int? Week {  get; set; }
         public int? TeacherId {  get; set; }
         public int? RoomId {  get; set; }
+        public bool? IsChangeForever { get; set; }
 
         public ClassPeriod? ClassPeriod { get; set; }
     }

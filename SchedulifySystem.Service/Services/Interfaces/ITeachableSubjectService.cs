@@ -11,6 +11,6 @@ namespace SchedulifySystem.Service.Services.Interfaces
     public interface ITeachableSubjectService
     {
         Task<BaseResponseModel> GetByTeacherId(int schoolId, int id);
-        Task<BaseResponseModel> GetBySubjectId(int schoolId, int id, EGrade eGrade);
+        Task<BaseResponseModel> GetBySubjectId(int schoolId, TeacherStatus? teacherStatus, int id, EGrade eGrade);
     }
 }

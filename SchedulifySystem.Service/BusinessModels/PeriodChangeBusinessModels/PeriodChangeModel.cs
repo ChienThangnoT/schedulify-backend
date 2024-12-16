@@ -10,8 +10,9 @@ namespace SchedulifySystem.Service.BusinessModels.PeriodChangeBusinessModels
     {
         public required int ClassPeriodId { get; set; }
         public required int StartAt { get; set; }
-        public required int Week { get; set; }
+        public int? Week { get; set; }
         public int? TeacherId { get; set; }
-        public int? RoomId { get; set; }
+        public int? RoomId { get; set; } 
+        public bool? IsChangeForever { get; set; }
     }
 }

@@ -26,9 +26,9 @@ namespace SchedulifySystem.API.Controllers
 
         [HttpGet("subjects/{subjectId}/teachable-subjects")]
         [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetBySubjectId(int schoolId, int subjectId, EGrade eGrade)
+        public Task<IActionResult> GetBySubjectId(int schoolId, TeacherStatus? teacherStatus,int subjectId, EGrade eGrade)
         {
-            return ValidateAndExecute(() => _service.GetBySubjectId(schoolId, subjectId, eGrade));
+            return ValidateAndExecute(() => _service.GetBySubjectId(schoolId, teacherStatus, subjectId, eGrade));
         }
     }
 }
