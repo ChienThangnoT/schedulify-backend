@@ -352,6 +352,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     };
                 })
                 .ToList();
+
                 var minimalData = assignmentByTerm.Select(a => new TeacherAssignmentMinimalData() { AssignmentId = a.Id, TeacherId = a.TeacherId }).ToList();
 
                 result.Add(new TeacherAssignmentTermViewModel()
@@ -417,6 +418,7 @@ namespace SchedulifySystem.Service.Services.Implements
     List<ClassCombinationAutoAssign>? classCombinations,
     Dictionary<int, ICollection<CurriculumDetail>>? curriculums)
         {
+            int avgPeriod = assignments.Select(a => a.PeriodCount).Sum()/teachers.Count;
             // Bước 1: Phân công giáo viên cố định trước
             if (fixedAssignments != null)
             {
@@ -456,6 +458,7 @@ namespace SchedulifySystem.Service.Services.Implements
             var remainingAssignments = assignments.Where(a => a.TeacherId == null).ToList();
             int numRemainingAssignments = remainingAssignments.Count;
             int numTeachers = teachers.Count;
+             
 
             // Bước 3: Khởi tạo mô hình CP (Constraint Programming) để tối ưu hóa phân công giáo viên
             CpModel model = new CpModel();
@@ -473,33 +476,8 @@ namespace SchedulifySystem.Service.Services.Implements
             // Bước 4: Ràng buộc - Chỉ gán giáo viên có khả năng dạy môn
             for (int i = 0; i < numRemainingAssignments; i++)
             {
-                var assignment = remainingAssignments[i];
-
-                for (int j = 0; j < numTeachers; j++)
-                {
-                    var teacher = teachers[j];
-
-                    // Kiểm tra xem giáo viên có khả năng dạy môn này không
-                    if (teacherCapabilities.ContainsKey(teacher.Id))
-                    {
-                        var teachableSubjects = teacherCapabilities[teacher.Id]
-                            .Where(ts => ts.SubjectId == assignment.SubjectId && ts.Grade == assignment.StudentClass?.Grade)
-                            .ToList();
-
-                        // Nếu giáo viên không thể dạy môn này, cấm gán nhiệm vụ
-                        if (!teachableSubjects.Any())
-                        {
-                            model.Add(assignmentMatrix[i, j] == 0);
-                        }
-                    }
-                    else
-                    {
-                        // Nếu giáo viên không có bất kỳ khả năng nào, cấm gán nhiệm vụ
-                        model.Add(assignmentMatrix[i, j] == 0);
-                    }
-                }
+                model.Add(LinearExpr.Sum(from j in Enumerable.Range(0, numTeachers) select assignmentMatrix[i, j]) == 1);
             }
-
 
             // Bước 5: Ràng buộc - Lớp gộp sẽ chỉ phân công cho 1 giáo viên 
             IntVar totalGroupViolations = model.NewIntVar(0, 1000, "totalGroupViolations");
@@ -537,7 +515,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Bước 6: Khởi tạo từ điển để lưu tổng số tiết của mỗi giáo viên
             Dictionary<int, IntVar> totalLoadDict = new Dictionary<int, IntVar>();
-            List<IntVar> overloadList = new List<IntVar>();
+            List<IntVar> overloadList = new List<IntVar>();  // Danh sách để lưu các biến vi phạm tải trọng
             var fixedAssgm = assignments.Where(a => a.TeacherId != null).ToList();
 
             // Ràng buộc số tiết tối đa là 17 cho mỗi giáo viên
@@ -584,7 +562,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 select assignmentMatrix[i, j]
             ) * 1000;
 
-            // Bước 8: Ưu tiên giáo viên chủ nhiệm và giáo viên có `IsMain` và `AppropriateLevel` cao
+            // Bước 8: Ưu tiên giáo viên chủ nhiệm và giáo viên có `IsMain` và `AppropriateLevel` cao, sau khi ưu tiên số tiết
             for (int i = 0; i < numRemainingAssignments; i++)
             {
                 var assignment = remainingAssignments[i];
@@ -605,19 +583,35 @@ namespace SchedulifySystem.Service.Services.Implements
                             var maxAppropriateLevel = teachableSubjects.Max(ts => ts.AppropriateLevel);
                             var isMain = teachableSubjects.Any(ts => ts.IsMain);
 
+                            if (totalLoadDict.ContainsKey(teacher.Id)){
+                                if (totalLoadDict[teacher.Id] < avgPeriod)
+                                {
+                                    objectiveExpr += assignmentMatrix[i, j] * 200;
+                                }else if(totalLoadDict[teacher.Id] > avgPeriod)
+                                {
+                                    objectiveExpr -= assignmentMatrix[i, j] * 200;
+                                }
+                            }
+
                             // Ưu tiên cao hơn cho giáo viên có `IsMain` và mức `AppropriateLevel` cao
                             if (homeroomTeacherId == teacher.Id && isMain)
                             {
                                 objectiveExpr += assignmentMatrix[i, j] * 200;
                             }
-                            objectiveExpr += assignmentMatrix[i, j] * maxAppropriateLevel;
+
+                             objectiveExpr += assignmentMatrix[i, j] * maxAppropriateLevel;
+                        }
+                        else
+                        {
+                            objectiveExpr -= assignmentMatrix[i, j] * 1000;
                         }
                     }
                 }
             }
 
-            // Bước 9: Giảm thiểu số tiết vượt quá 17 tiết
-            objectiveExpr -= LinearExpr.Sum(overloadList) * 100;
+
+            // Tối thiểu hóa tổng số phạt do vượt quá số tiết cho phép
+            objectiveExpr -= LinearExpr.Sum(overloadList) * 200;
 
             // Phạt vi phạm lớp gộp
             objectiveExpr -= totalGroupViolations * 500;
@@ -627,7 +621,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
             // Bước 10: Sử dụng solver để tìm giải pháp tối ưu
             CpSolver solver = new CpSolver();
-            solver.StringParameters = "max_time_in_seconds:300 log_search_progress:true";
+            solver.StringParameters = "max_time_in_seconds:500 log_search_progress:true";
             CpSolverStatus status = solver.Solve(model);
 
             // Bước 11: Cập nhật kết quả nếu tìm thấy lời giải khả thi
