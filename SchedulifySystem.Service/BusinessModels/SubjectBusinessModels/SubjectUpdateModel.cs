@@ -17,7 +17,7 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int? TotalSlotInYear { get; set; }
         public int? SlotSpecialized { get; set; }
         public ESubjectGroupType SubjectGroupType { get; set; }
-        //[JsonIgnore]
-        //public DateTime UpdateDate { get; set; }
+        [JsonIgnore]
+        public DateTime UpdateDate { get; set; }
     }
 }

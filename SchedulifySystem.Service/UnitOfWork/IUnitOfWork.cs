@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 using SchedulifySystem.Repository.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -19,7 +20,7 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ISubjectRepository SubjectRepo{ get; }
         public IBuildingRepository BuildingRepo { get; }
         public IRoomRepository RoomRepo { get; }
-        public ISubjectGroupRepository SubjectGroupRepo { get; }
+        public IStudentClassGroupRepository StudentClassGroupRepo { get; }
         public IDistrictRepository DistrictRepo { get; }
         public IProvinceRepository ProvinceRepo { get; }
         public IOtpRepository OTPRepo { get; }
@@ -28,10 +29,18 @@ namespace SchedulifySystem.Service.UnitOfWork
         public ITeacherAssignmentRepository TeacherAssignmentRepo { get; }
         public ITeachableSubjectRepository TeachableSubjectRepo { get; }
         public ITermRepository TermRepo { get; }
-        public ISubjectInGroupRepository SubjectInGroupRepo { get; }
+        public ICurriculumDetailRepository CurriculumDetailRepo { get; }
         public IRoomSubjectRepository RoomSubjectRepo { get; }
         public ISchoolScheduleRepository SchoolScheduleRepo { get; }
+        public INotificationRepository NotificationRepo { get; }
+        public ICurriculumRepository CurriculumRepo { get; }
+        public IStudentClassRoomSubjectRepository StudentClassRoomSubjectRepo { get; }
+        public ISubmitRequestRepository SubmitRequestRepo { get; }
+        public IClassPeriodRepository ClassPeriodRepo { get; }
+        public IPeriodChangeRepository PeriodChangeRepo { get; }
+        public IClassScheduleRepository ClassScheduleRepo { get; }
         public Task<int> SaveChangesAsync();
+        IEnumerable<EntityEntry> GetTrackedEntities();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }
 }

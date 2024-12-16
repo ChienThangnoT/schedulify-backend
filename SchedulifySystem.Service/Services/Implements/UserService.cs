@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FTravel.Service.Utils;
+using Google.OrTools.ConstraintSolver;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -71,7 +72,7 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                     schoolManager.IsConfirmSchoolManager = true;
                     schoolManager.Status = (int)accountStatus;
-                    if(schoolManager.Status == 1)
+                    if (schoolManager.Status == 1)
                     {
                         school.Status = 1;
                         school.UpdateDate = DateTime.UtcNow;
@@ -213,6 +214,12 @@ namespace SchedulifySystem.Service.Services.Implements
                     await _unitOfWork.SaveChangesAsync();
 
                     account.School = school;
+
+                    school.Status = (int)SchoolStatus.Validating;
+
+                    _unitOfWork.SchoolRepo.Update(school);
+                    await _unitOfWork.SaveChangesAsync();
+
                     var result = _mapper.Map<AccountViewModel>(account);
                     await transaction.CommitAsync();
                     return new BaseResponseModel
@@ -239,7 +246,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 try
                 {
-                    var existUser = (await _unitOfWork.UserRepo.ToPaginationIncludeAsync(filter: a => a.Email.ToLower().Equals(signInModel.Email.ToLower()), 
+                    var existUser = (await _unitOfWork.UserRepo.ToPaginationIncludeAsync(filter: a => a.Email.ToLower().Equals(signInModel.Email.ToLower()),
                         include: query => query.Include(a => a.School))).Items.FirstOrDefault();
                     if (existUser == null)
                     {
@@ -253,13 +260,28 @@ namespace SchedulifySystem.Service.Services.Implements
                     if (verifyUser)
                     {
                         if (existUser.Status == (int)AccountStatus.Inactive
-                            || existUser.Status == (int)AccountStatus.Pending
                             || existUser.IsDeleted == true)
                         {
                             return new AuthenticationResponseModel
                             {
                                 Status = StatusCodes.Status401Unauthorized,
                                 Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
+                            };
+                        }
+                        else if (existUser.Status == (int)AccountStatus.Pending)
+                        {
+                            return new AuthenticationResponseModel
+                            {
+                                Status = StatusCodes.Status401Unauthorized,
+                                Message = ConstantResponse.ACCOUNT_PENDING
+                            };
+                        }
+                        else if (existUser.IsChangeDefaultPassword == false)
+                        {
+                            return new AuthenticationResponseModel
+                            {
+                                Status = StatusCodes.Status401Unauthorized,
+                                Message = ConstantResponse.ACCOUNT_NOT_CHANGE_DEFAULT_PASSWORD
                             };
                         }
 
@@ -346,7 +368,7 @@ namespace SchedulifySystem.Service.Services.Implements
             }
         }
         #endregion
-         
+
         #region jwt service
         private async Task<List<Claim>> GetAuthClaims(Account user)
         {
@@ -354,6 +376,7 @@ namespace SchedulifySystem.Service.Services.Implements
             {
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim("accountId", user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim("schoolId", user.SchoolId?.ToString() ?? string.Empty),
                 new Claim("schoolName", user.School?.Name ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
@@ -409,15 +432,15 @@ namespace SchedulifySystem.Service.Services.Implements
             var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             if (existUser.Status != (int)AccountStatus.Active)
             {
-                return new BaseResponseModel() 
-                { 
-                    Status = StatusCodes.Status400BadRequest, 
+                return new BaseResponseModel()
+                {
+                    Status = StatusCodes.Status400BadRequest,
                     Message = ConstantResponse.ACCOUNT_CAN_NOT_ACCESS
                 };
             }
 
-            var sendOtp = await _otpService.SendOTPResetPassword(existUser.Id ,gmail);
-            if(sendOtp != false)
+            var sendOtp = await _otpService.SendOTPResetPassword(existUser.Id, gmail);
+            if (sendOtp != false)
             {
                 return new BaseResponseModel()
                 {
@@ -434,9 +457,9 @@ namespace SchedulifySystem.Service.Services.Implements
         #endregion
 
         #region Confirm reset password
-        public async Task<BaseResponseModel> ConfirmResetPassword(string gmail, int code)
+        public async Task<BaseResponseModel> ConfirmResetPassword(ConfirmResetPasswordModel confirmResetPasswordModel)
         {
-            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(gmail) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
+            var existUser = await _unitOfWork.UserRepo.GetAccountByEmail(confirmResetPasswordModel.Email) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             if (existUser.Status != (int)AccountStatus.Active)
             {
                 return new BaseResponseModel()
@@ -446,7 +469,7 @@ namespace SchedulifySystem.Service.Services.Implements
                 };
             }
 
-            var sendOtp = await _otpService.ConfirmResetPassword(existUser.Id, code);
+            var sendOtp = await _otpService.ConfirmResetPassword(existUser.Id, confirmResetPasswordModel.Code);
             if (sendOtp != false)
             {
                 return new BaseResponseModel()
@@ -469,12 +492,47 @@ namespace SchedulifySystem.Service.Services.Implements
             var existedUser = await _unitOfWork.UserRepo.GetAccountByEmail(resetPasswordModel.Email) ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
             existedUser.Password = AuthenticationUtils.HashPassword(resetPasswordModel.Password);
             existedUser.UpdateDate = DateTime.UtcNow;
+            existedUser.IsChangeDefaultPassword = true;
             _unitOfWork.UserRepo.Update(existedUser);
             await _unitOfWork.SaveChangesAsync();
             return new BaseResponseModel()
             {
                 Status = StatusCodes.Status200OK,
                 Message = ConstantResponse.RESET_PASSWORD_SUCCESS
+            };
+        }
+        #endregion
+
+        #region Update Account Status
+        public async Task<BaseResponseModel> UpdateAccountStatus(UpdateStatus updateStatus)
+        {
+            var account = await _unitOfWork.UserRepo.GetByIdAsync(updateStatus.AccountId, filter: t => !t.IsDeleted)
+                ?? throw new NotExistsException(ConstantResponse.ACCOUNT_NOT_EXIST);
+            if ((int)updateStatus.AccountStatus == account.Status)
+            {
+                throw new DefaultException(ConstantResponse.ACCOUNT_UN_CHANGE_STATUS);
+            }
+
+            account.Status = (int)updateStatus.AccountStatus;
+
+            var getRole = (await _unitOfWork.RoleRepo.GetAsync(filter: t=>t.Name == RoleEnum.SchoolManager.ToString())).Select(t => t.Id).FirstOrDefault();
+            var hasSchoolManagerRole = (await _unitOfWork.RoleAssignmentRepo.GetRolesByAccountIdAsync(updateStatus.AccountId))
+                .Any(t => t.RoleId == getRole);
+
+            if (hasSchoolManagerRole && updateStatus.AccountStatus == AccountStatus.Inactive)
+            {
+                var accountInScchool = await _unitOfWork.UserRepo.GetAsync(filter: t => t.SchoolId == account.SchoolId && t.Status == (int)AccountStatus.Active);
+                foreach (var accountInSchool in accountInScchool)
+                {
+                    accountInSchool.Status = (int)AccountStatus.Inactive;
+                    _unitOfWork.UserRepo.Update(account);
+                }
+            }
+            await _unitOfWork.SaveChangesAsync();
+            return new BaseResponseModel()
+            {
+                Status = StatusCodes.Status200OK,
+                Message = ConstantResponse.ACCOUNT_CHANGE_STATUS_SUCCESS
             };
         }
         #endregion

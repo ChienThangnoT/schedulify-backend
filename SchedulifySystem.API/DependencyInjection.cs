@@ -16,6 +16,7 @@ using SchedulifySystem.Repository.Repositories.Implements;
 using SchedulifySystem.Service.Services.Interfaces;
 using SchedulifySystem.Service.Services.Implements;
 using SchedulifySystem.Service.BusinessModels.EmailModels;
+using System.Security.Claims;
 
 
 namespace SchedulifySystem.API
@@ -47,12 +48,24 @@ namespace SchedulifySystem.API
                 options.AddPolicy("app-cors",
                     builder =>
                     {
-                        builder.AllowAnyOrigin()
+                        builder.WithOrigins("https://schedulify.id.vn", "http://localhost:8080", "http://localhost:3000")  // Chỉ cho phép domain này
                         .AllowAnyHeader()
+                        .AllowCredentials()
                         .WithExposedHeaders("X-Pagination")
                         .AllowAnyMethod();
                     });
             });
+
+
+            #endregion
+
+            #region signal R
+            services.AddSignalR(options =>
+            {
+                options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+                options.ClientTimeoutInterval = TimeSpan.FromMinutes(2);
+            });
+
             #endregion
 
             #region config authen swagger
@@ -85,26 +98,43 @@ namespace SchedulifySystem.API
             });
 
             // Add Authentication and JwtBearer
-            services
-                .AddAuthentication(options =>
-                {
-                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddJwtBearer(options =>
-                {
-                    options.SaveToken = true;
-                    options.RequireHttpsMetadata = false;
-                    options.TokenValidationParameters = new TokenValidationParameters()
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
-                        ValidAudience = builder.Configuration["JWT:ValidAudience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-                    };
-                });
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+             .AddJwtBearer(options =>
+             {
+                 options.SaveToken = true;
+                 options.RequireHttpsMetadata = false;
+                 options.TokenValidationParameters = new TokenValidationParameters
+                 {
+                     ValidateIssuer = true,
+                     ValidateAudience = true,
+                     ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
+                     ValidAudience = builder.Configuration["JWT:ValidAudience"],
+                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"])),
+                     ValidateLifetime = true,
+                     ClockSkew = TimeSpan.Zero // Giảm thời gian lệch đồng hồ
+                 };
+
+                 options.Events = new JwtBearerEvents
+                 {
+                     OnMessageReceived = context =>
+                     {
+                         var accessToken = context.Request.Query["access_token"];
+                         var path = context.HttpContext.Request.Path;
+                         if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+                         {
+                             context.Token = accessToken;
+                         }
+                         return Task.CompletedTask;
+                     }
+                 };
+             });
+
+
             #endregion
             #region Email setting
             //add dj mail service
@@ -121,6 +151,9 @@ namespace SchedulifySystem.API
             //Configure UnitOfWork
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddAutoMapper(typeof(MapperConfigs).Assembly);
+
+            // config claim service 
+            services.AddTransient<IClaimsService, ClaimsService>();
 
             //config user service and repo
             services.AddTransient<IUserRepository, UserRepository>();
@@ -162,23 +195,26 @@ namespace SchedulifySystem.API
             services.AddTransient<IRoomRepository, RoomRepository>();
             services.AddTransient<IRoomService, RoomService>();
 
-            //config room subject  repo
+            //config room subject service and repo
             services.AddTransient<IRoomSubjectRepository, RoomSubjectRepository>();
-            
+            services.AddTransient<IRoomSubjectService, RoomSubjectService>();
+
+            //config student class room subject repo
+            services.AddTransient<IStudentClassRoomSubjectRepository, StudentClassRoomSubjectRepository>();
+            //services.AddTransient<IRoomSubjectService, RoomSubjectService>();
 
             //config subject group service and repo
-            services.AddTransient<ISubjectGroupRepository, SubjectGroupRepository>();
-            services.AddTransient<ISubjectGroupService, SubjectGroupService>();
-            
+            services.AddTransient<ICurriculumRepository, CurriculumRepository>();
+            services.AddTransient<ICurriculumService, CurriculumService>();
 
             //config district service and repo
             services.AddTransient<IDistrictRepository, DistrictRepository>();
-            //services.AddTransient<IDistrictService, IDistrictService>();
+            services.AddTransient<IDistrictService, DistrictService>();
 
             //config province service and repo
             services.AddTransient<IProvinceRepository, ProvinceRepository>();
-            //services.AddTransient<ISubjectGroupService, SubjectGroupService>();
-            
+            services.AddTransient<IProvinceService, ProvinceService>();
+
             //config otp service and repo
             services.AddTransient<IOtpRepository, OtpRepository>();
             services.AddTransient<IOtpService, OtpService>();
@@ -197,20 +233,44 @@ namespace SchedulifySystem.API
 
             //config TeachableSubject service and repo
             services.AddTransient<ITeachableSubjectRepository, TeachableSubjectRepository>();
-            //services.AddTransient<ITeacherAssignmentService, TeacherAssignmentService>();
+            services.AddTransient<ITeachableSubjectService, TeachableSubjectService>();
 
             //config Term service and repo
             services.AddTransient<ITermRepository, TermRepository>();
             services.AddTransient<ITermService, TermService>();
 
             //config Subject in group service and repo
-            services.AddTransient<ISubjectInGroupRepository, SubjectInGroupRepository>();
-            services.AddTransient<ISubjectInGroupService, SubjectInGroupService>();
+            services.AddTransient<ICurriculumDetailRepository, CurriculumDetailRepository>();
+            services.AddTransient<ICurriculumDetailService, CurriculumDetailService>();
 
             //config Timetable service and repo
             services.AddTransient<ISchoolScheduleRepository, SchoolScheduleRepository>();
             services.AddTransient<ITimetableService, TimeTableService>();
-            
+
+            //config Timetable service and repo
+            services.AddTransient<IStudentClassGroupRepository, StudentClassGroupRepository>();
+            services.AddTransient<IStudentClassGroupService, StudentClassGroupService>();
+
+            //config Submit Request service and repo
+            services.AddTransient<ISubmitRequestRepository, SubmitRequestRepository>();
+            services.AddTransient<ISubmitRequestService, SubmitRequestService>();
+
+            //config Class period service and repo
+            services.AddTransient<IClassPeriodRepository, ClassPeriodRepository>();
+            services.AddTransient<IClassPeriodService, ClassPeriodService>();
+
+            //config Change period service and repo
+            services.AddTransient<IPeriodChangeRepository, PeriodChangeRepository>();
+            //services.AddTransient<IClassPeriodService, ClassPeriodService>();
+
+            //config class schedule service and repo
+            services.AddTransient<IClassScheduleRepository, ClassScheduleRepository>();
+            //services.AddTransient<IClassPeriodService, ClassPeriodService>();
+
+            //config Notification
+            services.AddSignalR();
+            services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
 
 
             #endregion

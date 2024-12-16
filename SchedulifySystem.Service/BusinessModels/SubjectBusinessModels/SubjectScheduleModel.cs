@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 {
-    public class SubjectScheduleModel : BaseEntity
+    public record SubjectScheduleModel 
     {
         public int SubjectId { get; set; }
         public string? Abbreviation { get; set; }
@@ -20,7 +20,28 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
         public int? SlotSpecialized { get; set; }
         public bool IsSpecialized { get; set; }
         public bool IsDoublePeriod { get; set; }
-        public ESubjectGroupType SubjectGroupType { get; set; }
+        public int CurriculumId { get; set; }
+        public int MainMinimumCouple { get; set; }
+        public int SubMinimumCouple { get; set; }
+
+
+        public SubjectScheduleModel() { }
+
+        public SubjectScheduleModel(CurriculumDetail sig)
+        {
+           SubjectId = sig.SubjectId;
+            Abbreviation = sig.Subject.Abbreviation;
+            SubjectName = sig.Subject.SubjectName;
+            MainSlotPerWeek = sig.MainSlotPerWeek;
+            SubSlotPerWeek = sig.SubSlotPerWeek;
+            TotalSlotInYear = sig.Subject.TotalSlotInYear;
+            SlotSpecialized = sig.Subject.SlotSpecialized;
+            IsSpecialized = sig.IsSpecialized;
+            IsDoublePeriod = sig.IsDoublePeriod;
+            MainMinimumCouple = sig.MainMinimumCouple;
+            SubMinimumCouple = sig.SubMinimumCouple;
+            CurriculumId = (int)sig.CurriculumId;
+        }
 
     }
 }

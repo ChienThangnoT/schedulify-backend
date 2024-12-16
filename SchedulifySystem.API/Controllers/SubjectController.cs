@@ -19,35 +19,35 @@ namespace SchedulifySystem.API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
+        [Authorize]
          public Task<IActionResult> GetSubjectBySubjectId(int id)
         {
             return ValidateAndExecute(() => _subjectService.GetSubjectById(id));
         }
 
-        [HttpGet("{schoolId}/subjects")]
-        [Authorize(Roles = "SchoolManager, TeacherDepartmentHead, Teacher")]
-        public Task<IActionResult> GetSubjectListWithSchoolId(int schoolId, string? subjectName, bool? isRequired,bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
+        [HttpGet]
+        [Authorize]
+        public Task<IActionResult> GetSubjectListWithSchoolYearId(int schoolYearIdint, int? id, string? subjectName, bool? isRequired,bool includeDeleted = false, int pageIndex = 1, int pageSize = 20)
         {
-            return ValidateAndExecute(()=> _subjectService.GetSubjectBySchoolId(schoolId, subjectName, isRequired, includeDeleted, pageSize, pageIndex));
+            return ValidateAndExecute(()=> _subjectService.GetSubjectById(schoolYearIdint, id, subjectName, isRequired, includeDeleted, pageSize, pageIndex));
         }
 
-        [HttpPost("{schoolId}/subjects")]
-        [Authorize(Roles = "SchoolManager")]
-        public Task<IActionResult> CreateSubjectList(int schoolId, List<SubjectAddListModel> subjectAddModel)
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public Task<IActionResult> CreateSubjectList(int schoolYearId, List<SubjectAddListModel> subjectAddModel)
         {
-            return ValidateAndExecute(() => _subjectService.CreateSubjectList(schoolId, subjectAddModel));
+            return ValidateAndExecute(() => _subjectService.CreateSubjectList(schoolYearId, subjectAddModel));
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "SchoolManager")]
+        [Authorize(Roles = "Admin")]
         public Task<IActionResult> UpdateSubjectById(int id, SubjectUpdateModel subjectUpdate)
         {
             return ValidateAndExecute(() => _subjectService.UpdateSubjectById(id, subjectUpdate));
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "SchoolManager")]
+        [Authorize(Roles = "Admin")]
         public Task<IActionResult> DeleteSubjectById(int id)
         {
             return ValidateAndExecute(() => _subjectService.DeleteSubjectById(id));

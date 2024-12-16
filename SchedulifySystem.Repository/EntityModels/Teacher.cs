@@ -14,6 +14,7 @@ namespace SchedulifySystem.Repository.EntityModels
         public string? LastName { get; set; }
         public string? Abbreviation { get; set; }
         public string? Email { get; set; }
+        public string? AvatarURL { get; set; }
         public int Gender { get; set; }
         public int DepartmentId { get; set; }
         public DateOnly DateOfBirth { get; set; }
@@ -21,15 +22,16 @@ namespace SchedulifySystem.Repository.EntityModels
         public int TeacherRole { get; set; }
         public int Status { get; set; }
         public string? Phone {  get; set; }
+        public int PeriodCount { get; set; }
 
         public Department? Department { get; set; }
         public School? School { get; set; }
         public ICollection<TeachableSubject> TeachableSubjects { get; set; } = new List<TeachableSubject>();
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();
-        public ICollection<TeacherConfig> TeacherConfigs { get; set; } = new List<TeacherConfig>();
         public ICollection<TeacherUnavailability> TeacherUnavailabilities { get; set; } = new List<TeacherUnavailability>();
         public ICollection<SubmitRequest> SubmitRequests { get; set; } = new List<SubmitRequest>();
         public ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
+        public ICollection<RoomSubject> RoomSubjects { get; set; } = new List<RoomSubject>();
     }
 }

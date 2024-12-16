@@ -23,7 +23,9 @@ namespace SchedulifySystem.Service.Mapper
                 .ForMember(dest => dest.UpdateDate, otp => otp.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.BuildingCode, otp => otp.MapFrom(src => src.BuildingCode.ToUpper()));
 
-            CreateMap<Building, BuildingViewModel>();
+            CreateMap<Building, BuildingViewModel>()
+                .ForMember(dest => dest.Rooms, opt => opt.MapFrom(src => src.Rooms ?? new List<Room>()))
+                .ReverseMap();
         }
     }
 }

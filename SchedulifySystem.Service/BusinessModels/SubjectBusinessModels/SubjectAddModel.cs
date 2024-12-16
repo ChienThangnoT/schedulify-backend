@@ -11,7 +11,6 @@ namespace SchedulifySystem.Service.BusinessModels.SubjectBusinessModels
 {
     public class SubjectAddModel
     {
-        public int SchoolId { get; set; }
         public required string SubjectName { get; set; }
         public required string Abbreviation { get; set; }
         public bool IsRequired { get; set; }

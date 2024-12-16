@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 using SchedulifySystem.Repository.DBContext;
 using SchedulifySystem.Repository.Repositories.Interfaces;
 using System;
@@ -23,18 +24,25 @@ namespace SchedulifySystem.Service.UnitOfWork
         private readonly IRoomRepository _roomRepository;
         private readonly IProvinceRepository _provinceRepository;
         private readonly IOtpRepository _otpRepository;
-        private readonly ISubjectGroupRepository _subjectGroupRepository;
+        private readonly IStudentClassGroupRepository _studentClassGroupRepository;
         private readonly IDistrictRepository _districtRepository;
         private readonly ISchoolYearRepository _schoolYearRepository;
         private readonly IDepartmentRepository _departmentRepository;
         private readonly ITeacherAssignmentRepository _teacherAssignmentRepository;
         private readonly ITeachableSubjectRepository _teachableSubjectRepository;
         private readonly ITermRepository _termRepository;
-        private readonly ISubjectInGroupRepository _subjectInGroupRepository;
+        private readonly ICurriculumDetailRepository _curriculumDetailRepository;
         private readonly IRoomSubjectRepository _roomSubjectRepository;
         private readonly ISchoolScheduleRepository _schoolScheduleRepository;
+        private readonly INotificationRepository _notificationRepository;
+        private readonly ICurriculumRepository _curriculumRepository;
+        private readonly IStudentClassRoomSubjectRepository _studentClassRoomSubjectRepository;
+        private readonly ISubmitRequestRepository _submitRequestRepository;
+        private readonly IClassPeriodRepository _classPeriodRepository;
+        private readonly IPeriodChangeRepository _periodChangeRepository;
+        private readonly IClassScheduleRepository _classScheduleRepository;
 
-        public UnitOfWork(SchedulifyContext context, 
+        public UnitOfWork(SchedulifyContext context,
             IUserRepository userRepository,
             IRoleRepository roleRepository,
             IRoleAssignmentRepository roleAssignmentRepository,
@@ -44,7 +52,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             ISubjectRepository subjectRepository,
             IBuildingRepository buildingRepository,
             IRoomRepository roomRepository,
-            ISubjectGroupRepository subjectGroupRepository,
+            IStudentClassGroupRepository studentClassGroupRepository,
             IDistrictRepository districtRepository,
             IProvinceRepository provinceRepository,
             IOtpRepository otpRepository,
@@ -53,9 +61,16 @@ namespace SchedulifySystem.Service.UnitOfWork
             ITeacherAssignmentRepository teacherAssignmentRepository,
             ITeachableSubjectRepository teachableSubjectRepository,
             ITermRepository termRepository,
-            ISubjectInGroupRepository subjectInGroupRepository,
+            ICurriculumDetailRepository curriculumDetailRepository,
             IRoomSubjectRepository roomSubjectRepository,
-            ISchoolScheduleRepository schoolScheduleRepository)
+            ISchoolScheduleRepository schoolScheduleRepository,
+            INotificationRepository notificationRepository,
+            ICurriculumRepository curriculumRepository,
+            IStudentClassRoomSubjectRepository studentClassRoomSubjectRepository,
+            ISubmitRequestRepository submitRequestRepository,
+            IClassPeriodRepository classPeriodRepository,
+            IPeriodChangeRepository periodChangeRepository,
+            IClassScheduleRepository classScheduleRepository)
         {
             _context = context;
             _userRepository = userRepository;
@@ -66,7 +81,7 @@ namespace SchedulifySystem.Service.UnitOfWork
             _studentClassesRepository = studentClassesRepository;
             _subjectRepository = subjectRepository;
             _buildingRepository = buildingRepository;
-            _subjectGroupRepository = subjectGroupRepository;
+            _studentClassGroupRepository = studentClassGroupRepository;
             _districtRepository = districtRepository;
             _roomRepository = roomRepository;
             _provinceRepository = provinceRepository;
@@ -76,9 +91,17 @@ namespace SchedulifySystem.Service.UnitOfWork
             _teacherAssignmentRepository = teacherAssignmentRepository;
             _teachableSubjectRepository = teachableSubjectRepository;
             _termRepository = termRepository;
-            _subjectInGroupRepository = subjectInGroupRepository;
+            _curriculumDetailRepository = curriculumDetailRepository;
             _roomSubjectRepository = roomSubjectRepository;
             _schoolScheduleRepository = schoolScheduleRepository;
+            _notificationRepository = notificationRepository;
+            _studentClassGroupRepository = studentClassGroupRepository;
+            _curriculumRepository = curriculumRepository;
+            _studentClassRoomSubjectRepository = studentClassRoomSubjectRepository;
+            _submitRequestRepository = submitRequestRepository;
+            _classPeriodRepository = classPeriodRepository;
+            _periodChangeRepository = periodChangeRepository;
+            _classScheduleRepository = classScheduleRepository;
         }
 
         public IUserRepository UserRepo => _userRepository;
@@ -89,25 +112,36 @@ namespace SchedulifySystem.Service.UnitOfWork
         public IStudentClassesRepository StudentClassesRepo => _studentClassesRepository;
         public ISubjectRepository SubjectRepo => _subjectRepository;
         public IBuildingRepository BuildingRepo => _buildingRepository;
-        public ISubjectGroupRepository SubjectGroupRepo => _subjectGroupRepository;
-        public IDistrictRepository DistrictRepo=> _districtRepository;
+        public IStudentClassGroupRepository StudentClassGroupRepo => _studentClassGroupRepository;
+        public IDistrictRepository DistrictRepo => _districtRepository;
         public IProvinceRepository ProvinceRepo => _provinceRepository;
         public IRoomRepository RoomRepo => _roomRepository;
         public IOtpRepository OTPRepo => _otpRepository;
         public ISchoolYearRepository SchoolYearRepo => _schoolYearRepository;
         public IDepartmentRepository DepartmentRepo => _departmentRepository;
-        public ITeacherAssignmentRepository TeacherAssigntRepo=> _teacherAssignmentRepository;
+        public ITeacherAssignmentRepository TeacherAssigntRepo => _teacherAssignmentRepository;
         public ITeacherAssignmentRepository TeacherAssignmentRepo => _teacherAssignmentRepository;
         public ITeachableSubjectRepository TeachableSubjectRepo => _teachableSubjectRepository;
         public ITermRepository TermRepo => _termRepository;
-        public ISubjectInGroupRepository SubjectInGroupRepo => _subjectInGroupRepository;
+        public ICurriculumDetailRepository CurriculumDetailRepo => _curriculumDetailRepository;
         public IRoomSubjectRepository RoomSubjectRepo => _roomSubjectRepository;
-
         public ISchoolScheduleRepository SchoolScheduleRepo => _schoolScheduleRepository;
+        public INotificationRepository NotificationRepo => _notificationRepository;
+        public ICurriculumRepository CurriculumRepo => _curriculumRepository;
+        public IStudentClassRoomSubjectRepository StudentClassRoomSubjectRepo => _studentClassRoomSubjectRepository;
+        public ISubmitRequestRepository SubmitRequestRepo => _submitRequestRepository;
+        public IClassPeriodRepository ClassPeriodRepo => _classPeriodRepository;
+        public IPeriodChangeRepository PeriodChangeRepo => _periodChangeRepository;
+        public IClassScheduleRepository ClassScheduleRepo => _classScheduleRepository;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
             return await _context.Database.BeginTransactionAsync();
+        }
+
+        public IEnumerable<EntityEntry> GetTrackedEntities()
+        {
+            return _context.ChangeTracker.Entries();
         }
 
         public async Task<int> SaveChangesAsync()

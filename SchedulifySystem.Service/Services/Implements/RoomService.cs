@@ -48,7 +48,8 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> CheckValidDataAddRooms(int schoolId, List<AddRoomModel> models)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t=> t.IsDeleted == false) 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
 
             var ValidList = new List<AddRoomModel>();
             var errorList = new List<AddRoomModel>();
@@ -62,7 +63,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.ROOM_NAME_DUPLICATED, Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } };
+                return new BaseResponseModel 
+                { 
+                    Status = StatusCodes.Status400BadRequest, 
+                    Message = ConstantResponse.ROOM_NAME_DUPLICATED, 
+                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } 
+                };
             }
             //check duplicate code in list
             errorList = models
@@ -73,13 +79,18 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel { Status = StatusCodes.Status400BadRequest, Message = ConstantResponse.ROOM_CODE_DUPLICATED, Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } };
+                return new BaseResponseModel 
+                { 
+                    Status = StatusCodes.Status400BadRequest, 
+                    Message = ConstantResponse.ROOM_CODE_DUPLICATED, 
+                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } 
+                };
             }
 
 
             // check subject abreviation
 
-            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == schoolId));
+            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted ));
             var subjectAbreviations = subjects.Select(s => s.Abbreviation.ToLower());
             foreach (var model in models)
             {
@@ -123,7 +134,8 @@ namespace SchedulifySystem.Service.Services.Implements
             //check have building in db
             foreach (AddRoomModel model in models)
             {
-                var found = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(filter: b => b.SchoolId == schoolId && !b.IsDeleted && b.BuildingCode.Equals(model.BuildingCode.ToUpper()));
+                var found = await _unitOfWork.BuildingRepo.ToPaginationIncludeAsync(
+                    filter: b => b.SchoolId == schoolId && !b.IsDeleted && b.BuildingCode.Equals(model.BuildingCode.ToUpper()));
                 if (!found.Items.Any())
                 {
                     errorList.Add(model);
@@ -136,7 +148,12 @@ namespace SchedulifySystem.Service.Services.Implements
 
             if (errorList.Any())
             {
-                return new BaseResponseModel() { Status = StatusCodes.Status404NotFound, Message = ConstantResponse.BUILDING_CODE_NOT_EXIST, Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } };
+                return new BaseResponseModel() 
+                { 
+                    Status = StatusCodes.Status404NotFound, 
+                    Message = ConstantResponse.BUILDING_CODE_NOT_EXIST, 
+                    Result = new { ValidList = models.Where(m => !errorList.Contains(m)), errorList } 
+                };
             }
 
 
@@ -171,7 +188,19 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> DeleteRoom(int RoomId)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId) ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, filter: t=> !t.IsDeleted) 
+                ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+
+            // Lấy danh sách StudentClasses từ DB dựa trên RoomId
+            var studentClassesInDb = await _unitOfWork.StudentClassesRepo.GetV2Async(
+                filter: sc => !sc.IsDeleted && room.Id == sc.RoomId);
+            var roomSubjectInDb = await _unitOfWork.RoomSubjectRepo.GetAsync(
+                filter: sc => !sc.IsDeleted && room.Id == sc.RoomId);
+            if(studentClassesInDb.Any() || roomSubjectInDb.Any())
+            {
+                throw new DefaultException(ConstantResponse.DELETE_ROOM_FAILED);
+            }
+
             room.IsDeleted = true;
             _unitOfWork.RoomRepo.Update(room);
             await _unitOfWork.SaveChangesAsync();
@@ -180,7 +209,7 @@ namespace SchedulifySystem.Service.Services.Implements
 
         public async Task<BaseResponseModel> GetRoomById(int roomId)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(roomId, 
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(roomId, filter: t=> t.IsDeleted == false, 
                 include: query => query.Include(r => r.RoomSubjects).ThenInclude(rs => rs.Subject)) 
                 ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
             return new BaseResponseModel
@@ -191,36 +220,44 @@ namespace SchedulifySystem.Service.Services.Implements
             };
         }
 
-        public async Task<BaseResponseModel> GetRooms(int schoolId, int? buildingId, ERoomType? roomType, int pageIndex = 1, int pageSize = 20)
+        public async Task<BaseResponseModel> GetRooms(int schoolId, int? capicity, int? buildingId, ERoomType? roomType, int pageIndex = 1, int pageSize = 20)
         {
-            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId) ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
+            var _ = await _unitOfWork.SchoolRepo.GetByIdAsync(schoolId, filter: t => t.Status == (int)SchoolStatus.Active) 
+                ?? throw new NotExistsException(ConstantResponse.SCHOOL_NOT_FOUND);
             if (buildingId != null)
             {
-                var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
+                var __ = await _unitOfWork.BuildingRepo.GetByIdAsync((int)buildingId, filter: t=> t.IsDeleted == false) 
+                    ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
             }
             var found = await _unitOfWork.RoomRepo
                 .ToPaginationIncludeAsync(
                     pageIndex, pageSize,
-                    filter: r => r.Building.SchoolId == schoolId && (buildingId == null ? true : r.Building.Id == buildingId) && (roomType == null || roomType == (ERoomType) r.RoomType) && !r.IsDeleted
+                    filter: r => r.Building.SchoolId == schoolId && (capicity == null || r.MaxClassPerTime >= capicity) &&(buildingId == null || r.Building.Id == buildingId) && (roomType == null || roomType == (ERoomType) r.RoomType) && !r.IsDeleted
                     , include: query => query.Include(r => r.RoomSubjects).ThenInclude(rs => rs.Subject)
                 );
+            if (found.Items.Count == 0)
+            {
+                throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
+            }
             var response = _mapper.Map<Pagination<RoomViewModel>>(found);
             return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_ROOM_SUCCESS, Result = response };
         }
 
         public async Task<BaseResponseModel> UpdateRoom(int RoomId, UpdateRoomModel model)
         {
-            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, include: query => query.Include(r => r.RoomSubjects))
+            var room = await _unitOfWork.RoomRepo.GetByIdAsync(RoomId, filter: t => t.IsDeleted == false ,include: query => query.Include(r => r.RoomSubjects))
                 ?? throw new NotExistsException(ConstantResponse.ROOM_NOT_EXIST);
-            var building = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId)
+            var building = await _unitOfWork.BuildingRepo.GetByIdAsync(model.BuildingId, filter: t => t.IsDeleted == false)
                 ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
 
             // Check existed name or code
-            var foundRooms = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
-                filter: b => !b.IsDeleted && b.Id != room.Id &&
-                (model.Name.ToLower().Equals(b.Name.ToLower()) || model.RoomCode.ToUpper().Equals(b.RoomCode)));
+            var isDuplicate = await _unitOfWork.RoomRepo.ToPaginationIncludeAsync(
+                filter: b => !b.IsDeleted && b.Id != room.Id && !model.Name.Equals(room.Name, StringComparison.OrdinalIgnoreCase) 
+                && !model.RoomCode.Equals(room.RoomCode, StringComparison.OrdinalIgnoreCase) &&
+                (model.Name.Equals(b.Name, StringComparison.OrdinalIgnoreCase) ||
+                 model.RoomCode.Equals(b.RoomCode, StringComparison.OrdinalIgnoreCase)));
 
-            if (foundRooms.Items.Any())
+            if (isDuplicate.Items.Count != 0)
             {
                 return new BaseResponseModel
                 {
@@ -230,11 +267,10 @@ namespace SchedulifySystem.Service.Services.Implements
             }
 
             // Check subject
-            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted && f.SchoolId == building.SchoolId));
+            var subjects = (await _unitOfWork.SubjectRepo.GetV2Async(filter: f => !f.IsDeleted));
             var subjectIds = subjects.Select(s => s.Id).ToList();
             var newRoomSubjects = new List<RoomSubject>();
 
-            // Nếu là phòng thực hành, xử lý môn học
             if (model.RoomType == ERoomType.PRACTICE_ROOM)
             {
                 if (model.SubjectIds == null || !model.SubjectIds.All(s => subjectIds.Contains(s)))
@@ -246,17 +282,17 @@ namespace SchedulifySystem.Service.Services.Implements
                     };
                 }
 
-                // Xóa những RoomSubject không còn nằm trong danh sách SubjectIds và xóa chúng khỏi db
+                // remove roomSubject không còn nằm trong danh sách SubjectIds và xóa khỏi db
                 var subjectsToRemove = room.RoomSubjects
                     .Where(rs => !model.SubjectIds.Contains((int)rs.SubjectId))
                     .ToList();
 
                 foreach (var subjectToRemove in subjectsToRemove)
                 {
-                    _unitOfWork.RoomSubjectRepo.Remove(subjectToRemove); // Xóa trực tiếp từ repo
+                    _unitOfWork.RoomSubjectRepo.Remove(subjectToRemove);
                 }
 
-                // Thêm các môn học mới vào RoomSubjects nếu chưa có
+                // add các môn học mới vào RoomSubjects nếu chưa có
                 foreach (var item in model.SubjectIds)
                 {
                     if (!room.RoomSubjects.Any(rs => rs.SubjectId == item))
@@ -265,18 +301,15 @@ namespace SchedulifySystem.Service.Services.Implements
                     }
                 }
 
-                // Thêm các RoomSubject mới vào db
-                if (newRoomSubjects.Any())
+                if (newRoomSubjects.Count != 0)
                 {
-                    await _unitOfWork.RoomSubjectRepo.AddRangeAsync(newRoomSubjects); // Sử dụng repo để thêm các RoomSubject mới
+                    await _unitOfWork.RoomSubjectRepo.AddRangeAsync(newRoomSubjects);
                 }
             }
 
-            // Map các thay đổi từ model sang room hiện tại
-            var newRoom = _mapper.Map(model, room);
+            _mapper.Map(model, room);
 
-            // Cập nhật Room trong cơ sở dữ liệu
-            _unitOfWork.RoomRepo.Update(newRoom);
+            _unitOfWork.RoomRepo.Update(room);
             await _unitOfWork.SaveChangesAsync();
 
             return new BaseResponseModel

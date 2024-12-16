@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  schedulifysystem.api:
+    image: schedulify
+    build:
+      context: .  
+      dockerfile: SchedulifySystem.API/Dockerfile
+    ports:
+      - "8080:8080"
+     # - "9091:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=schedulifyDB
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: schedulifyDB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
+
+volumes:
+  postgres_data:

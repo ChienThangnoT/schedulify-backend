@@ -29,6 +29,15 @@ namespace SchedulifySystem.Service.Services.Implements
             _mapper = mapper;
         }
 
+        #region get building by id
+        public async Task<BaseResponseModel> GetBuildingById(int id)
+        {
+            var buildings = await _unitOfWork.BuildingRepo.GetByIdAsync(id, filter: t => t.IsDeleted == false, include: t=> t.Include(query => query.Rooms));
+            var response = _mapper.Map<BuildingViewModel>(buildings);
+            return new BaseResponseModel() { Status = StatusCodes.Status200OK, Message = ConstantResponse.GET_BUILDING_SUCCESS, Result = response };
+        }
+        #endregion
+
         #region AddBuildings
         public async Task<BaseResponseModel> AddBuildings(int schoolId, List<AddBuildingModel> models)
         {
@@ -106,7 +115,16 @@ namespace SchedulifySystem.Service.Services.Implements
         #region DeleteBuildings
         public async Task<BaseResponseModel> DeleteBuildings(int buildingId)
         {
-            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
+            var existed = await _unitOfWork.BuildingRepo.GetByIdAsync(buildingId, filter: t => !t.IsDeleted) ?? throw new NotExistsException(ConstantResponse.BUILDING_NOT_EXIST);
+
+            var roomInDB = await _unitOfWork.RoomRepo.GetV2Async(
+               filter: sc => !sc.IsDeleted && existed.Id == sc.BuildingId);
+
+            if (roomInDB.Any())
+            {
+                throw new DefaultException(ConstantResponse.DELETE_BUILDING_FAILED);
+            }
+
             existed.IsDeleted = true;
             _unitOfWork.BuildingRepo.Update(existed);
             await _unitOfWork.SaveChangesAsync();
@@ -124,7 +142,6 @@ namespace SchedulifySystem.Service.Services.Implements
 
         }
         #endregion
-
 
         #region UpdateBuildings
         public async Task<BaseResponseModel> UpdateBuildings(int buildingId, UpdateBuildingModel model)

@@ -33,8 +33,8 @@ namespace SchedulifySystem.Service.Mapper
             //add building mapper config
             BuildingMapperConfig();
 
-            //add subject group mapper config
-            SubjectGroupMapperConfig();
+            //add Curriculum Mapper Config
+            CurriculumMapperConfig();
 
             //add school mapper config
             SchoolMapperConfig();
@@ -46,7 +46,7 @@ namespace SchedulifySystem.Service.Mapper
             TeacherAssignmentMapperConfig();
 
             //add teacherAssignment mapper config
-            SubjectInGroupMapperrConfigs();
+            CurriculumDetailMapperConfig();
 
             //add Department Mapper Config
             DepartmentMapperConfig();
@@ -63,6 +63,24 @@ namespace SchedulifySystem.Service.Mapper
             //add Room Subject Mapper Config
             RoomSubjectMapperConfig();
 
+            //add notification Mapper Config
+            NotificationMapperConfig();
+
+            //add Student Class Group Mapper Config
+            StudentClassGroupMapperConfig();
+
+            //add District Mapper Config
+            DistrictMapperConfig();
+
+            //add Province Mapper Config
+            ProvinceMapperConfig();
+
+            //add Submit Request Mapper Config
+            SubmitRequestMapperConfig();
+
+            //add change period Mapper Config
+            PeriodChangeMapperConfig();
+
         }
         partial void TeacherMapperConfig();
         partial void AccountMapperConfig();
@@ -71,16 +89,20 @@ namespace SchedulifySystem.Service.Mapper
         partial void SubjectMapperConfig();
         partial void BuildingMapperConfig();
         partial void RoomMapperConfig();
-        partial void SubjectGroupMapperConfig();
+        partial void CurriculumMapperConfig();
         partial void SchoolMapperConfig();
         partial void TeacherAssignmentMapperConfig();
-        partial void SubjectInGroupMapperrConfigs();
+        partial void CurriculumDetailMapperConfig();
         partial void DepartmentMapperConfig();
         partial void TimetableMapperConfig();
         partial void TermMapperConfig();
         partial void RoomSubjectMapperConfig();
         partial void SchoolYearMapperConfig();
-
-
+        partial void NotificationMapperConfig();
+        partial void StudentClassGroupMapperConfig();
+        partial void DistrictMapperConfig();
+        partial void ProvinceMapperConfig();
+        partial void SubmitRequestMapperConfig();
+        partial void PeriodChangeMapperConfig();
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SchedulifySystem.API;
 using SchedulifySystem.API.Middleware;
+using SchedulifySystem.Service.Hubs;
 using SchedulifySystem.Service.Validations;
 using SchedulifySystem.Service.ViewModels.ResponseModels;
 
@@ -8,7 +9,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
 {
-    //custom response for invalid model
     options.InvalidModelStateResponseFactory = context =>
     {
         var errors = context.ModelState
@@ -26,25 +26,40 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
         return new BadRequestObjectResult(response);
     };
 });
+
+// Add IHttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+// Add Swagger services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddWebAPIService(builder);
 builder.Services.AddInfractstructure(builder.Configuration);
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
+// Configure Swagger to be available in all environments
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Schedulify Web API");
-    //c.InjectStylesheet("/swagger-ui/SwaggerDark.css");
     c.RoutePrefix = "swagger";
 });
 
+// Use HTTPS Redirection only in Development
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseHttpsRedirection();
 app.UseCors("app-cors");
-app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
+app.UseWebSockets();
+app.MapHub<NotificationHub>("/notificationHub");
 app.MapControllers();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.Run();

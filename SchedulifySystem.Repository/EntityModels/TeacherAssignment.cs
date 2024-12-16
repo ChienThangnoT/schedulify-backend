@@ -14,11 +14,12 @@ namespace SchedulifySystem.Repository.EntityModels
         public int AssignmentType { get; set; }
         public int PeriodCount { get; set; } // số lượng tiết trên tuần 
         public int TermId { get; set; }
+        public int? RoomSubjectId { get; set; }
 
+        public RoomSubject? RoomSubject { get; set; }
         public Teacher? Teacher { get; set; }
         public Subject? Subject { get; set; }
         public Term? Term { get; set; }
         public StudentClass? StudentClass { get; set; }
-        public ICollection<ClassPeriod> ClassPeriods { get; set; } = new List<ClassPeriod>();
     }
 }
